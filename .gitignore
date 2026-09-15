@@ -1,0 +1,17 @@
+# Xcode user-specific data
+**/xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Xcode build products
+build/
+DerivedData/
+
+# Swift / Xcode
+.swiftpm/
+
+# Temporary files
+*.tmp
+*.swp

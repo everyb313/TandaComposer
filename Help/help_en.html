@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TandaComposer – User Guide Proposal</title>
+<style>
+:root{--bg:#14110F;--surface:#1C1815;--raised:#241F1A;--line:#3A332B;--text:#F2EAE0;--dim:#B8AA98;--accent:#C98A3B;--teal:#6B8C87;--red:#C0534A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:auto;padding:0 30px 100px}
+.hero{padding:70px 0 44px;border-bottom:1px solid var(--line);margin-bottom:42px}
+.eyebrow,.chapter-num,.toc-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font:400 clamp(38px,6vw,56px)/1.08 Georgia,"Iowan Old Style",serif;margin:12px 0 18px}
+.hero p{max-width:66ch;color:var(--dim);font-size:16px;margin:0}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 26px;margin-bottom:58px}
+.toc-title{margin-bottom:12px}.toc ol{list-style:none;padding:0;margin:0;columns:2}.toc li{break-inside:avoid;margin:6px 0}.toc a{color:var(--dim);text-decoration:none;font-size:13.5px}.toc a:hover{color:var(--accent)}
+.chapter{margin-bottom:68px;scroll-margin-top:25px}.head{display:flex;gap:12px;align-items:baseline;margin-bottom:7px}.chapter-num{white-space:nowrap}h2{font:400 29px/1.2 Georgia,"Iowan Old Style",serif;margin:0}h3{font:400 19px Georgia,"Iowan Old Style",serif;border-bottom:1px solid var(--line);padding-bottom:7px;margin:34px 0 12px}.lead{color:var(--dim);font-size:14.5px;max-width:68ch;margin:8px 0 26px}
+.steps{list-style:none;padding:0;margin:0;counter-reset:step}.steps li{counter-increment:step;position:relative;margin-left:17px;padding:0 0 25px 48px;border-left:1px solid var(--line)}.steps li:last-child{padding-bottom:2px}.steps li:before{content:counter(step);position:absolute;left:-18px;top:-2px;width:34px;height:34px;border-radius:50%;background:var(--raised);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:600;font-size:13px}.steps strong{display:block;margin-bottom:3px}.steps p{margin:0;color:var(--dim);font-size:13.5px}
+.bullets{list-style:none;padding:0;margin:0}.bullets li{position:relative;padding-left:18px;color:var(--dim);font-size:14px;margin:8px 0}.bullets li:before{content:"–";position:absolute;left:0;color:var(--accent)}.bullets strong{color:var(--text)}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;margin:16px 0 22px;color:var(--dim);font-size:13.5px}.callout strong{color:var(--text)}.warn{border-left-color:var(--red)}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}.card h4{font:400 17px Georgia,serif;margin:0 0 5px}.card p{color:var(--dim);font-size:13px;margin:0}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:16px 0 25px}th{text-align:left;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--line);padding:0 10px 8px 0}td{color:var(--dim);border-bottom:1px solid var(--line);padding:9px 10px 9px 0;vertical-align:top}td:first-child{color:var(--text)}
+.groove{display:flex;gap:10px;align-items:center;color:var(--dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:54px 0 45px}.groove:before,.groove:after{content:"";height:1px;background:var(--line);flex:1}
+footer{border-top:1px solid var(--line);padding-top:28px;text-align:center;color:var(--dim);font-size:12px}
+.shot{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:22px 18px;margin:16px 0 25px;text-align:center;color:var(--dim);font-size:12.5px}.shot b{display:block;color:var(--text);font-size:13.5px;margin-bottom:2px;font-weight:600}.shot .note{font-size:11.5px}
+img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;border:1px solid var(--line);border-radius:8px}
+.small-shot{max-width:80%!important}.half-shot{max-width:52%!important}
+.kbd{font-size:12px;background:var(--raised);border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--dim)}
+.lock-legend{display:flex;gap:18px;flex-wrap:wrap;margin:18px 0 22px}.lock-item{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px}.lock-icon{width:19px;height:19px;display:inline-block;flex:none}.lock-icon svg{display:block;width:100%;height:100%}.lock-closed{color:#8b8b8b}.lock-open{color:#e58a22}
+@media(max-width:600px){.wrap{padding:0 20px 70px}.toc ol{columns:1}.small-shot,.half-shot{max-width:100%!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Getting Started · User Guide</div>
+  <h1>TandaComposer</h1>
+  <p>Prepare a Setlist for your Tango DJ set. Start with individual tracks, reuse music from previous Setlists, or use Tandas you have prepared earlier. Narrow large selections with Smartlists or the quick A / T / V / M / X filters.
+  <br> (A=All / T=Tango / V=Vals / M=Milonga)</p>
+  <div class="callout">
+    <strong>The basic idea:</strong> TandaComposer helps you build and check a Setlist before exporting it as an <strong>M3U8 playlist</strong> for the player you use for the actual evening.
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#library-setup">01 · Get your music into TandaComposer</a></li>
+    <li><a href="#start">02 · Start with a Setlist</a></li>
+    <li><a href="#sources">03 · Three ways to add music</a></li>
+    <li><a href="#library">04 · Choose tracks from the Library</a></li>
+    <li><a href="#setlist">05 · Arrange and refine your Setlist</a></li>
+    <li><a href="#tandas">06 · Use and create Tandas</a></li>
+    <li><a href="#smartlists">07 · Smartlists</a></li>
+    <li><a href="#preview">08 · Preview and check your Setlist</a></li>
+    <li><a href="#export">09 · Save and export</a></li>
+    <li><a href="#maintenance">10 · Maintenance</a></li>
+    <li><a href="#tools">11 · Other tools</a></li>
+    <li><a href="#reference">Quick reference</a></li>
+  </ol>
+</nav>
+
+<section class="chapter" id="library-setup"><div class="head"><span class="chapter-num">01</span><h2>Get your music into TandaComposer</h2></div>
+<p class="lead">Before you can build a Setlist, TandaComposer needs to know where your music is. The first step is to add the folders containing your music to the Track Library.</p>
+<ol class="steps"><li><strong>Add your music folders</strong><p>Add the folders that contain the audio files you want to use. TandaComposer scans these folders and creates a Library of the tracks it finds.</p></li><li><strong>Let the Library keep track of your music</strong><p>The audio files themselves are not copied into the Library. The Library keeps the information needed to find and use the music files in their existing locations.</p></li><li><strong>Lock the Library for normal work</strong><p>Once your Library is ready, leave it locked while you build Setlists. This protects the Library from accidental changes.</p></li></ol>
+<h3>What the lock means</h3><p class="lead">The Library lock controls whether the Library itself can be changed. The same Library lock applies when you are working in the <strong>Track Library</strong> or the <strong>Tanda Library</strong>.</p>
+<div class="lock-legend"><div class="lock-item"><span class="lock-icon lock-closed"><svg viewBox="0 0 20 20"><rect x="4.2" y="8.2" width="11.6" height="9" rx="1.7" fill="currentColor"/><path d="M6.7 8.2V5.9a3.3 3.3 0 0 1 6.6 0v2.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span><strong>Locked</strong> — Library protected from changes</span></div><div class="lock-item"><span class="lock-icon lock-open"><svg viewBox="0 0 20 20"><rect x="4.2" y="8.2" width="11.6" height="9" rx="1.7" fill="currentColor"/><path d="M7 8.2V6.1a3.3 3.3 0 0 1 6.5-.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span><strong>Unlocked</strong> — Library changes are enabled</span></div></div>
+<div class="callout"><strong>Keep it locked during normal Setlist work.</strong> Unlock the Library only when you want to change the Library itself — for example when importing music, changing import sources or performing Library maintenance. <strong>Unlocking is not needed to build a Setlist.</strong></div>
+<div class="shot">
+  <b>SCREENSHOT PLACEHOLDER — Main workspace</b>
+  TandaComposer main workspace showing the Library and Smartlists.
+</div>
+<p class="lead">The Library lock is shown beside the A / T / V / M / X filters. The <strong>Smartlists pane has its own lock</strong>; it protects the Smartlist and folder structure separately. See <a href="#smartlists">Smartlists</a> for details.</p></section>
+
+<section class="chapter" id="start">
+  <div class="head"><span class="chapter-num">02</span><h2>Start with a Setlist</h2></div>
+  <p class="lead">The Setlist is where you prepare the music and its order for your evening. There is no single right way to build it.</p>
+
+  <div class="cardgrid">
+    <div class="card"><h4>Start from scratch</h4><p>Find tracks in your Library and drag them into a new Setlist.</p></div>
+    <div class="card"><h4>Reuse an old Setlist</h4><p>Take individual tracks from a saved Setlist and use them in the new one.</p></div>
+    <div class="card"><h4>Reuse a Tanda</h4><p>Drag a previously prepared Tanda into the Setlist, then change it if needed.</p></div>
+  </div>
+
+  <div class="callout">
+    <strong>Working with a large Library?</strong> Use a Track Smartlist to narrow the selection before choosing tracks. For a quick filter, the <strong>A / T / V / M / X</strong> buttons can narrow the visible tracks by type. See <a href="#smartlists">Smartlists</a> and <a href="#filters">A / T / V / M / X filters</a>.
+  </div>
+
+  <div class="shot">
+    <b>SCREENSHOT PLACEHOLDER — Main workspace overview</b>
+    TandaComposer main workspace.
+  </div>
+
+  <p class="lead">The main workspace brings the Setlist, Library and the other libraries/tools together. The Preview Player is available while you prepare your music. </p>
+</section>
+
+<section class="chapter" id="sources">
+  <div class="head"><span class="chapter-num">03</span><h2>Three ways to add music</h2></div>
+  <p class="lead">Choose whichever source fits the job. You can mix all three approaches in the same Setlist.</p>
+
+  <h3>1. From the Track Library</h3>
+  <p class="lead">Browse or filter your Library, select one or more tracks, and drag them into the Setlist.</p>
+
+  <h3>2. From a saved Setlist</h3>
+  <p class="lead">When an earlier Setlist contains tracks you want to use again, select the tracks you need and copy/drag them into the current Setlist.</p>
+  <div class="shot">
+      <b>SCREENSHOT PLACEHOLDER — Setlist built from a saved Setlist</b>
+      TandaComposer Track Library / saved Setlist source view.
+  </div>
+
+  <h3>3. From the Tanda Library</h3>
+  <p class="lead">A Tanda is a group of <strong>3–8 tracks</strong> that you have previously put together because you consider them a good combination. Drag the Tanda into the Setlist and adjust individual tracks if you want.</p>
+  <div class="shot">
+      <b>SCREENSHOT PLACEHOLDER — Tanda Library source view</b>
+      TandaComposer Tanda Library / Track Library view.
+  </div>
+
+  <div class="callout">
+    <strong>Important:</strong> TandaComposer does not automatically decide that a Tanda is musically harmonious. The Tandas in your Tanda Library are groups you have defined and saved yourself.
+  </div>
+</section>
+
+<section class="chapter" id="library">
+  <div class="head"><span class="chapter-num">04</span><h2>Choose tracks from the Library</h2></div>
+  <p class="lead">The Track Library is the main place to find individual tracks for your Setlist.</p>
+
+  <div class="callout"><strong>Library lock:</strong> You can browse, filter and use tracks for Setlists while the Library is locked. Unlock it only for changes to the Library itself.</div><h3>Browse and select</h3>
+  <ul class="bullets">
+    <li>Select one track or several tracks.</li>
+    <li>Drag the selection into the Setlist.</li>
+    <li>Drop it at the position where you want the track(s) to appear.</li>
+    <li>Move tracks later by dragging them within the Setlist.</li>
+  </ul>
+
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — Track Library</b>
+    TandaComposer Track Library.
+  </div>
+
+  <h3>Quickly narrow the visible tracks</h3>
+  <p class="lead">The <strong>A / T / V / M / X</strong> buttons provide a quick type filter. They can be used on the current Library view, including a Smartlist result where applicable.</p>
+
+  <div id="filters" class="cardgrid">
+    <div class="card"><h4>A</h4><p>Show all / turn the dance-type filter off.</p></div>
+    <div class="card"><h4>T</h4><p>Show tracks classified as Tango.</p></div>
+    <div class="card"><h4>V</h4><p>Show tracks classified as Vals.</p></div>
+    <div class="card"><h4>M</h4><p>Show tracks classified as Milonga-type music according to the application's Genre handling.</p></div>
+    <div class="card"><h4>X</h4><p>Show tracks outside the T/V/M categories, including untagged tracks.</p></div>
+  </div>
+
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — Dance-type filters</b>
+    Track Library dance type filters.
+  </div>
+
+  <div class="callout">
+    <strong>These are filters, not musical recommendations.</strong> The classification is based on the track's Genre information and the application's matching rules.
+  </div>
+</section>
+
+<section class="chapter" id="setlist">
+  <div class="head"><span class="chapter-num">05</span><h2>Arrange and refine your Setlist</h2></div>
+  <p class="lead">Once tracks are in the Setlist, the Setlist becomes your working area. Add, remove and rearrange tracks until the sequence suits your plan.</p>
+
+  <h3>Typical editing workflow</h3>
+  <ol class="steps">
+    <li><strong>Add tracks</strong><p>Drag tracks from the Library, an older Setlist or the Tanda Library into the current Setlist.</p></li>
+    <li><strong>Arrange the order</strong><p>Drag tracks within the Setlist to move them to the desired position.</p></li>
+    <li><strong>Replace or remove</strong><p>Change individual tracks when a different choice fits the sequence better.</p></li>
+    <li><strong>Listen through</strong><p>Use the Preview Player to check individual tracks before the Setlist is finished.</p></li>
+    <li><strong>Save your work</strong><p>Save the Setlist so you can return to it later or use it as a source for another Setlist.</p></li>
+  </ol>
+
+  <div class="shot">
+    <b>SCREENSHOT PLACEHOLDER — Setlist</b>
+    TandaComposer Setlist.
+  </div>
+
+  <div class="callout">
+    <strong>A practical approach:</strong> You can work track-by-track first and later save a successful group as a Tanda. Or start with a prepared Tanda and modify it in the Setlist. The Setlist remains the place where the final sequence is decided.
+  </div>
+</section>
+
+<section class="chapter" id="tandas">
+  <div class="head"><span class="chapter-num">06</span><h2>Use and create Tandas</h2></div>
+  <p class="lead">Tandas are a convenient way to reuse groups of tracks you have already prepared. They are optional — you can build an entire Setlist without using them.</p>
+
+  <h3>What is a Tanda?</h3>
+  <p class="lead">A Tanda in the Tanda Library is a saved group of <strong>3–8 tracks</strong> that you have chosen because you think the tracks work well together.</p>
+
+  <div class="callout">
+    <strong>Tell it like it is:</strong> TandaComposer stores and reuses your Tandas. It does not judge whether the tracks actually harmonize musically.
+  </div>
+
+  <div class="callout"><strong>The same Library lock applies here.</strong> You can browse and use saved Tandas while the Library is locked. Unlock the Library only when you need to change its contents or perform Library maintenance.</div><h3>Find a prepared Tanda</h3>
+  <p class="lead">Tandas can be organized in the Tanda Library using folders / Smartlists. This is useful when you have many combinations, for example different orchestra / singer combinations.</p>
+  <p class="lead"><strong>Double-click a Tanda Library folder or Smartlist</strong> to restrict the Tanda Library display to that selection.</p>
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — Track Library</b>
+    TandaComposer Track Library.
+  </div>
+  <div class="shot">
+      <b>SCREENSHOT PLACEHOLDER — Tanda Library selection</b>
+      TandaComposer Tanda Library / Track Library view.
+  </div>
+
+  <h3>Use a Tanda in your Setlist</h3>
+  <ol class="steps">
+    <li><strong>Find the Tanda</strong><p>Use the Tanda Library folders / Smartlists and, if useful, the A / T / V / M / X filters.</p></li>
+    <li><strong>Drag it into the Setlist</strong><p>The saved group is inserted as a group of tracks.</p></li>
+    <li><strong>Adjust it if needed</strong><p>You can change the resulting tracks and their order in the Setlist.</p></li>
+  </ol>
+
+  <h3>Create a Tanda for later reuse</h3>
+  <ol class="steps">
+    <li><strong>Select 3–8 tracks in the Setlist</strong><p>Choose the tracks you want to preserve as a group.</p></li>
+    <li><strong>Drag the selection to the Tanda Library</strong><p>TandaComposer validates the selection and saves the Tanda.</p></li>
+    <li><strong>Organize it for later</strong><p>Place it in the appropriate Tanda Library folder / Smartlist structure if desired.</p></li>
+  </ol>
+</section>
+
+<section class="chapter" id="smartlists">
+  <div class="head"><span class="chapter-num">07</span><h2>Smartlists</h2></div>
+  <p class="lead">Smartlists are reusable filters. They are especially useful for experienced users with a large Library who want to reduce the number of tracks they have to browse before building a Setlist.</p>
+
+  <h3>The Smartlists lock is separate</h3><p class="lead">The lock in the Smartlists pane protects the Smartlist and folder structure. It is independent of the Library lock.</p><div class="lock-legend"><div class="lock-item"><span class="lock-icon lock-closed">🔒</span><span><strong>Locked</strong> — browse and use Smartlists, but do not change their structure</span></div><div class="lock-item"><span class="lock-icon lock-open">🔓</span><span><strong>Unlocked</strong> — create, edit, move or delete Smartlists and folders</span></div></div><div class="callout"><strong>Important:</strong> Double-clicking a Smartlist or folder to use it does <strong>not</strong> require unlocking. Unlock the Smartlists pane only when you want to change the Smartlist structure itself.</div><h3>Track Smartlists</h3>
+  <p class="lead">Define a Track Smartlist using the metadata available in your Library. For example, you can create a selection for <strong>Canaro</strong>, or a more specific selection such as <strong>Canaro with Maida as singer</strong>, if the corresponding information is present in the track metadata.</p>
+
+  <ul class="bullets">
+    <li>Choose fields such as <strong>Title, Artist, AlbumArtist, Genre, Year</strong> or <strong>Grouping</strong>.</li>
+    <li>Use the available matching rules such as <strong>is, is not, contains</strong> and <strong>does not contain</strong>.</li>
+    <li>For Year, range conditions such as <strong>is between</strong> are available.</li>
+    <li>Combine conditions so that <strong>all</strong> or <strong>any</strong> conditions must match.</li>
+  </ul>
+
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — Editing a Smartlist</b>
+    Smartlist editor with fields, matching rules and conditions.
+  </div>
+
+  <h3>Use a Track Smartlist while building a Setlist</h3>
+  <p class="lead">Apply the Smartlist to narrow the Library view. The resulting tracks can then be selected and dragged into the Setlist just like tracks from the full Library.</p>
+
+  <div class="callout">
+    <strong>Smartlists and A / T / V / M / X can work together.</strong> A Smartlist can make the selection specific — for example, Canaro + Maida — while the quick buttons can further narrow the displayed result by dance type where the filter is available.
+  </div>
+
+  <h3>Tanda Library Smartlists</h3>
+  <p class="lead">The same idea is useful in the Tanda Library. Your saved Tandas can be organized into folders / Smartlists, for example by orchestra and singer combination. <strong>Double-clicking</strong> a folder / Smartlist restricts the Tanda Library display to that selection.</p>
+
+  <div class="shot">
+    <b>SCREENSHOT PLACEHOLDER — Tanda Smartlist navigation</b>
+    A close-up showing the Tanda Library folders / Smartlists and the narrowed result after double-clicking.
+  </div>
+
+  <h3>Quick type filters in the Tanda Library</h3>
+  <p class="lead">The <strong>A / T / V / M / X</strong> buttons are also available for the Tanda Library. They narrow the current Tanda view by type, on top of the folder / Smartlist selection already active.</p>
+
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — A / T / V / M / X filter buttons</b>
+    Quick type filter buttons in the Tanda Library.
+  </div>
+  <p class="lead">The exact meaning of the categories follows the application's Tanda classification. Use the buttons as a quick browsing filter, not as a judgement of musical quality.</p>
+
+  <div class="callout">
+    <strong>Truth about Smartlists:</strong> Smartlists filter information already present in the Library. They do not listen to the music or determine whether two tracks are musically compatible.
+  </div>
+</section>
+
+<section class="chapter" id="preview">
+  <div class="head"><span class="chapter-num">08</span><h2>Preview and check your Setlist</h2></div>
+  <p class="lead">Before exporting, use TandaComposer to inspect the sequence and listen to tracks where needed.</p>
+
+  <h3>Preview a track</h3>
+  <ul class="bullets">
+    <li><strong>Double-click a Library track</strong> to load and start it in the Preview Player.</li>
+    <li><strong>Double-click a Setlist track</strong> to preview that track from the current Setlist.</li>
+    <li>Use the Preview Player for preparation and checking; it is not intended to replace the DJ player used for the actual evening.</li>
+  </ul>
+
+  <h3>Tanda Coloring</h3>
+  <p class="lead">The palette button in the Setlist header toggles the visual Tanda Coloring. It gives you a quick indication of Tango, Vals and Milonga-type tracks based on the track's Genre metadata.</p>
+
+  <div class="callout">
+    <strong>It is visual guidance, not automatic Tanda detection.</strong> The coloring does not decide which tracks belong together.
+  </div>
+
+  <h3>A quick final check</h3>
+  <ul class="bullets">
+    <li>Is the order what you want?</li>
+    <li>Are the tracks available?</li>
+    <li>Are there any accidental duplicates?</li>
+    <li>Does the sequence make sense to you?</li>
+    <li>Have you previewed anything you are unsure about?</li>
+  </ul>
+</section>
+
+<section class="chapter" id="export">
+  <div class="head"><span class="chapter-num">09</span><h2>Save and export</h2></div>
+  <p class="lead">When the Setlist is ready, save it and export it for the player you will use for the actual DJ set.</p>
+
+  <ol class="steps">
+    <li><strong>Save the Setlist</strong><p>Keep the working Setlist so you can reopen it later or reuse tracks from it.</p></li>
+    <li><strong>Choose Export Setlist…</strong><p>Use the Setlist menu and choose <strong>Export Setlist…</strong>.</p></li>
+    <li><strong>Save the M3U8 playlist</strong><p>TandaComposer creates an <code>.m3u8</code> playlist referring to the actual music files.</p></li>
+    <li><strong>Open it in your player</strong><p>Use the exported playlist with a player that supports M3U8 playlists. The current workflow has been tested with <strong>Apple Music</strong>.</p></li>
+  </ol>
+
+  <div class="callout warn">
+    <strong>The playlist does not contain the audio.</strong> The music files must remain accessible at the paths referenced by the M3U8 playlist.
+  </div>
+</section>
+
+<div class="groove">Maintenance</div>
+
+<section class="chapter" id="maintenance">
+  <div class="head"><span class="chapter-num">10</span><h2>Maintenance</h2></div>
+  <p class="lead">Normally you only need Maintenance when music files have been moved, renamed, deleted or are temporarily unavailable.</p>
+
+  <div class="shot half-shot">
+    <b>SCREENSHOT PLACEHOLDER — Maintenance menu</b>
+    TandaComposer Maintenance menu.
+  </div>
+
+  <h3>First: check whether the drive is available</h3>
+  <p class="lead">If your music is on an external drive, reconnect it before using Rescan. A temporary disconnect does not mean the files are gone.</p>
+
+  <h3>Rescan</h3>
+  <p class="lead">The Rescan tools first show what they found. Nothing is written until you choose <strong>Apply Fixes</strong>.</p>
+
+  <div class="cardgrid">
+    <div class="card"><h4>Rescan TrackLibrary</h4><p>Re-check imported folders for new, moved or missing files.</p></div>
+    <div class="card"><h4>Rescan Setlist</h4><p>Re-check the current Setlist against the Library.</p></div>
+    <div class="card"><h4>Rescan TandaLibrary</h4><p>Re-check saved Tandas against the Library, including outdated saved paths.</p></div>
+    <div class="card"><h4>Rescan Saved Setlists</h4><p>Re-check saved Setlists, including ones that are not currently open.</p></div>
+  </div>
+
+  <h3>Status dots</h3>
+  <table>
+    <thead><tr><th>Dot</th><th>Meaning</th><th>Typical next step</th></tr></thead>
+    <tbody>
+      <tr><td>No dot</td><td>The track reference is resolved.</td><td>Nothing to do.</td></tr>
+      <tr><td>Red</td><td>The file was not found at the last check.</td><td>Reconnect the drive or check the file, then rescan.</td></tr>
+      <tr><td>Blue</td><td>The track is not in the current Library.</td><td>Import the file, then rescan.</td></tr>
+      <tr><td>Orange</td><td>Tanda-only: the file was found at a new location but the saved Tanda path is old.</td><td>Rescan the Tanda Library.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="shot half-shot">
+    <b>SCREENSHOT PLACEHOLDER — Status dots</b>
+    TandaComposer status dots (red / blue / orange).
+  </div>
+
+  <h3>Clean Up Missing Links</h3>
+  <p class="lead">Use this when a file is permanently gone and you want the Library to stop tracking it. This removes the Library record, not the actual audio file.</p>
+
+  <div class="shot half-shot">
+    <b>SCREENSHOT PLACEHOLDER — Clean Up Missing Links</b>
+    Clean Up Missing Links action in the Maintenance menu.
+  </div>
+
+  <h3>Other maintenance actions</h3>
+  <ul class="bullets">
+    <li><strong>Manage Import Sources</strong> — review the folders used as music sources.</li>
+    <li><strong>Compact TrackLibrary</strong> — reclaim database space after extensive cleanup.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="tools">
+  <div class="head"><span class="chapter-num">11</span><h2>Other tools</h2></div>
+  <p class="lead">These tools are useful when you need them, but they are not part of the normal Setlist-building workflow.</p>
+
+  <div class="cardgrid">
+    <div class="card"><h4>Find Duplicates</h4><p>Inspect possible duplicate tracks in the Library.</p></div>
+    <div class="card"><h4>Backup</h4><p>Export a backup before major changes or when moving to another Mac.</p></div>
+    <div class="card"><h4>Settings</h4><p>Adjust available appearance and audio preferences.</p></div>
+    <div class="card"><h4>Locks</h4><p>Protected Library and Smartlist areas can be unlocked when you need to make changes.</p></div>
+  </div>
+
+  <div class="shot half-shot">
+    <b>SCREENSHOT PLACEHOLDER — Find Duplicates</b>
+    Find Duplicates tool.
+  </div>
+  <div class="shot half-shot">
+    <b>SCREENSHOT PLACEHOLDER — Settings</b>
+    TandaComposer Settings.
+  </div>
+
+  <div class="callout">
+    <strong>Backup before a major change.</strong> If you are moving to another Mac or making extensive Library changes, use <strong>Tools → Export Backup…</strong> first.
+  </div>
+</section>
+
+<section class="chapter" id="reference">
+  <div class="head"><span class="chapter-num">Reference</span><h2>Quick reference</h2></div>
+  <table>
+    <thead><tr><th>Task</th><th>Where / How</th></tr></thead>
+    <tbody>
+      <tr><td>Build a Setlist from scratch</td><td>Select tracks in the Library → drag to Setlist</td></tr>
+      <tr><td>Reuse tracks from an old Setlist</td><td>Select tracks in a saved Setlist → copy/drag to the current Setlist</td></tr>
+      <tr><td>Use a prepared Tanda</td><td>Find it in Tanda Library → drag to Setlist</td></tr>
+      <tr><td>Create a Tanda</td><td>Select 3–8 Setlist tracks → drag to Tanda Library</td></tr>
+      <tr><td>Narrow a large Track Library</td><td>Apply a Track Smartlist</td></tr>
+      <tr><td>Quick type filter</td><td>A / T / V / M / X buttons</td></tr>
+      <tr><td>Filter Tanda Library</td><td>Double-click a Tanda Library folder / Smartlist; optionally use A / T / V / M / X</td></tr>
+      <tr><td>Preview a track</td><td>Double-click a Library or Setlist track</td></tr>
+      <tr><td>Tanda Coloring</td><td>Palette button in the Setlist header</td></tr>
+      <tr><td>Save a Setlist</td><td>Save Set</td></tr>
+      <tr><td>Export</td><td>Setlist → Export Setlist… → <code>.m3u8</code></td></tr>
+      <tr><td>Find duplicates</td><td>Find Duplicates</td></tr>
+      <tr><td>Rescan</td><td>Maintenance → appropriate Rescan action</td></tr>
+      <tr><td>Remove links to permanently missing files</td><td>Clean Up Missing Links</td></tr>
+      <tr><td>Review import folders</td><td>Manage Import Sources</td></tr>
+      <tr><td>Reclaim database space</td><td>Compact TrackLibrary</td></tr>
+      <tr><td>Back up</td><td>Tools → Export Backup…</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  TandaComposer · User Guide Proposal<br>
+  Structured around the user's workflow rather than the application's internal features.
+</footer>
+
+</div>
+</body>
+</html>
