@@ -1,3 +1,4 @@
+
 //
 //  DatabaseManager.swift
 //
@@ -162,25 +163,15 @@ public final class DatabaseManager {
         let isValid =
             try queue.read { db in
 
-                let songsExists =
-                    try db.tableExists(
-                        "songs"
-                    )
-
-                let playlistsExists =
-                    try db.tableExists(
-                        "playlists"
-                    )
-
-                let playlistSongsExists =
-                    try db.tableExists(
-                        "playlist_songs"
-                    )
-
-                return
-                    songsExists &&
-                    playlistsExists &&
-                    playlistSongsExists
+                // `playlists`/`playlist_songs` used to be required here too,
+                // but they're dead schema (Setlists/Tandas moved to JSON
+                // files on disk long ago) and have been dropped from real
+                // library files — see the "Playlists / Playlist Songs —
+                // removed" note below. Only `songs` still indicates a
+                // genuine TandaComposer library.
+                try db.tableExists(
+                    "songs"
+                )
             }
 
 
@@ -496,85 +487,23 @@ public final class DatabaseManager {
         }
 
 
-        // MARK: Playlists
-
-        migrator.registerMigration(
-            "createPlaylists"
-        ) { db in
-
-            try db.create(
-                table:
-                    "playlists"
-            ) { t in
-
-                t.autoIncrementedPrimaryKey(
-                    "id"
-                )
-
-                t.column(
-                    "name",
-                    .text
-                )
-                .notNull()
-
-                t.column(
-                    "createdAt",
-                    .datetime
-                )
-                .notNull()
-            }
-        }
-
-
-        // MARK: Playlist Songs
-
-        // Every playlist occurrence gets its own ID.
+        // MARK: Playlists / Playlist Songs — removed
         //
-        // This intentionally allows the same song to occur multiple
-        // times in the same playlist.
-
-        migrator.registerMigration(
-            "createPlaylistSongs"
-        ) { db in
-
-            try db.create(
-                table:
-                    "playlist_songs"
-            ) { t in
-
-                t.autoIncrementedPrimaryKey(
-                    "id"
-                )
-
-                t.column(
-                    "playlistId",
-                    .integer
-                )
-                .notNull()
-                .references(
-                    "playlists",
-                    onDelete:
-                        .cascade
-                )
-
-                t.column(
-                    "songId",
-                    .integer
-                )
-                .notNull()
-                .references(
-                    "songs",
-                    onDelete:
-                        .cascade
-                )
-
-                t.column(
-                    "position",
-                    .integer
-                )
-                .notNull()
-            }
-        }
+        // `createPlaylists`/`createPlaylistSongs` used to create the
+        // `playlists`/`playlist_songs` tables here. They're dead schema:
+        // Setlists/Tandas are stored as JSON files on disk, nothing in
+        // the app has read or written these tables in a long time.
+        //
+        // Deliberately NOT replaced with a "drop tables" migration.
+        // GRDB's DatabaseMigrator only ever iterates the migrations
+        // still registered in code (see `unappliedExecutions` in
+        // DatabaseMigrator.swift) — a migration identifier recorded as
+        // applied in `grdb_migrations` but no longer registered here is
+        // simply never revisited, no error, no re-run, as long as
+        // `eraseDatabaseOnSchemaChange` stays `false` (it does, project-
+        // wide). So removing the registrations is enough going forward;
+        // the two tables were dropped once, by hand, from the existing
+        // library files.
 
 
         // MARK: Import Sources
