@@ -50,6 +50,13 @@ INSTALL_GUIDES=(
     "install_en.html"
 )
 
+# Always run from the project root, regardless of where this script was
+# invoked from (e.g. "./scripts/build_pkg.sh" or "cd scripts &&
+# ./build_pkg.sh" both work — everything below assumes the project root
+# as CWD).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}/.."
+
 
 # --------------------------------------------------------------------
 # Helper

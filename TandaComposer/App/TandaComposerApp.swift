@@ -95,6 +95,7 @@ struct TandaComposerApp: App {
 
             PlaylistCommands(
                 playlistStore: environment.playlistStore,
+                libraryStore: environment.libraryStore,
                 switchConfirmationCenter: switchConfirmationCenter
             )
 

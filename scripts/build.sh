@@ -26,6 +26,12 @@ PROJECT="TandaComposer.xcodeproj"
 CONFIGURATION="Release"
 BUILD_DIR="build"
 
+# Always run from the project root, regardless of where this script was
+# invoked from (e.g. "./scripts/build.sh" or "cd scripts && ./build.sh"
+# both work — everything below assumes the project root as CWD).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}/.."
+
 echo "==> Building ${APP_NAME} (${CONFIGURATION})…"
 
 xcodebuild \

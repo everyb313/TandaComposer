@@ -24,6 +24,9 @@ struct PlaylistCommands: Commands {
 @ObservedObject var playlistStore:
     PlaylistStore
 
+@ObservedObject var libraryStore:
+    LibraryStore
+
 @ObservedObject var switchConfirmationCenter:
     SwitchConfirmationCenter
 
@@ -142,6 +145,19 @@ var body: some Commands {
             PlaylistActions.exportSetlist(
                 playlistStore:
                     playlistStore
+            )
+        }
+
+
+        Button("Import Setlist (M3U8)…") {
+
+            PlaylistActions.importSetlist(
+                playlistStore:
+                    playlistStore,
+                libraryStore:
+                    libraryStore,
+                switchConfirmationCenter:
+                    switchConfirmationCenter
             )
         }
     }
