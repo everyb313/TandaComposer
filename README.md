@@ -9,7 +9,7 @@ It is designed for DJs and dancers who want to prepare Setlists from their own m
 ## Requirements
 
 - **Mac with Apple Silicon — M1 or later**
-- macOS
+- macOS 15.6 or later
 - Xcode
 - A music collection accessible from the Mac
 
@@ -18,11 +18,14 @@ It is designed for DJs and dancers who want to prepare Setlists from their own m
 - Build Setlists from individual tracks
 - Reuse tracks from previously saved Setlists
 - Add prepared Tandas to a Setlist
+- Import a Setlist from an M3U8 file (experimental)
 - Organize Tandas in folders and Smartlists
 - Filter tracks by dance type
 - Create Smartlists to find tracks matching specific criteria
 - Preview tracks while preparing a Setlist
+- See how Tandas in your Setlist are distributed across orchestras
 - Save and export Setlists
+- Work with multiple, independent Track Libraries
 - Check and maintain the music Library
 - Find duplicate tracks and clean up missing file references
 
@@ -97,11 +100,11 @@ TandaComposer.xcodeproj
 
 Select the appropriate target and build the application in Xcode.
 
-The repository also contains build scripts for creating application/package builds:
+The repository also contains build scripts for creating application/package builds, under `scripts/`:
 
 ```text
-build.sh
-build_pkg.sh
+scripts/build.sh
+scripts/build_pkg.sh
 ```
 
 ## Documentation
@@ -113,6 +116,10 @@ Help/help_en.html
 ```
 
 The `Help` folder also contains the screenshots used by the documentation.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## License
 
