@@ -198,6 +198,18 @@ struct ContentView: View {
     @State private var columnHeaderHeight:
         CGFloat = 0
 
+    // Drives the Orchestra Mix popover in the Set column's title bar
+    // — see OrchestraBreakdownView.
+    @State private var showingOrchestraBreakdown:
+        Bool = false
+
+    // Drives the "how these modes work" popover next to the
+    // TrackLibrary/TandaLibrary/Setlist Picker — see
+    // LibraryModeHelpView. Replaces what used to be a long, plain
+    // .help() tooltip on the Picker itself.
+    @State private var showingModeHelp:
+        Bool = false
+
     // Owns the currently-viewed saved Setlist (Setlist mode) — entirely
     // separate from `playlistStore`, so viewing a saved Setlist here
     // never touches the actively-edited one in the Set column.
@@ -824,6 +836,49 @@ struct ContentView: View {
 
 
                 // =====================================================
+                // MODE HELP
+                //
+                // Replaces the old plain-text .help() tooltip that used
+                // to hang directly off the Picker above — same three
+                // sections, now a popover so the titles can actually be
+                // bold/larger instead of flat tooltip text.
+                // =====================================================
+
+                Button {
+
+                    showingModeHelp.toggle()
+
+                } label: {
+
+                    Image(
+                        systemName:
+                            "questionmark.circle"
+                    )
+                    .foregroundStyle(
+                        showingModeHelp
+                        ? Color.accentColor
+                        : Color.gray
+                    )
+                    .font(
+                        .system(size: 18)
+                    )
+                }
+                .buttonStyle(
+                    .plain
+                )
+                .help(
+                    "How These Modes Work"
+                )
+                .popover(
+                    isPresented:
+                        $showingModeHelp
+                ) {
+
+                    LibraryModeHelpView()
+                }
+
+                
+                // =====================================================
                 // ACTIVE LIBRARY NAME
                 //
                 // Only shown in TrackLibrary mode — TandaLibrary and
@@ -1228,6 +1283,53 @@ struct ContentView: View {
                     ? "Hide Tanda Coloring"
                     : "Show Tanda Coloring"
                 )
+
+
+                // =====================================================
+                // ORCHESTRA MIX
+                // =====================================================
+
+                Button {
+
+                    showingOrchestraBreakdown.toggle()
+
+                } label: {
+
+                    Image(
+                        systemName:
+                            "chart.bar"
+                    )
+                    .foregroundStyle(
+                        showingOrchestraBreakdown
+                        ? Color.accentColor
+                        : Color.gray
+                    )
+                    .font(
+                        .system(size: 18)
+                    )
+                }
+                .buttonStyle(
+                    .plain
+                )
+                .disabled(
+                    playlistStore.songs.isEmpty
+                )
+                .help(
+                    "Orchestra Mix"
+                )
+                .popover(
+                    isPresented:
+                        $showingOrchestraBreakdown
+                ) {
+
+                    OrchestraBreakdownView(
+                        songs:
+                            playlistStore.songs
+                    )
+                    .environmentObject(
+                        settings
+                    )
+                }
             }
             .padding(
                 .horizontal,
@@ -2020,6 +2122,98 @@ private final class SplitViewObserverView:
         }
 
         return nil
+    }
+}
+
+
+// MARK: - Library Mode Help
+
+// Same three explanations that used to live in a single plain-text
+// .help() tooltip on the TrackLibrary/TandaLibrary/Setlist Picker —
+// moved into a popover (triggered by the "?" button next to the
+// Picker) so the three titles can be set in a larger, bold font
+// instead of flattened into tooltip text.
+private struct LibraryModeHelpView: View {
+
+    private struct Section: Identifiable {
+        let title: String
+        let body: String
+        var id: String { title }
+    }
+
+    private let sections: [Section] = [
+
+        Section(
+            title: "Track Library",
+            body: "For experienced DJs: Build your setlist from " +
+                "scratch, refining your selection by building " +
+                "your own Smartlist — add tracks and narrow them " +
+                "down using orchestra and singer combinations. " +
+                "This gives you full control over your track " +
+                "selection and lets you build every part of your " +
+                "set individually."
+        ),
+
+        Section(
+            title: "Tanda Library",
+            body: "For beginners: Build your own Tanda Library by " +
+                "grouping tracks into musically compatible sets " +
+                "and saving them as Tandas. The system " +
+                "automatically recognizes the orchestra and " +
+                "singer combinations and adds the corresponding " +
+                "Tandas to the Smartlist. This allows you to " +
+                "quickly find the right Tandas by orchestra and " +
+                "singer when building your setlist."
+        ),
+
+        Section(
+            title: "Setlists",
+            body: "For smart — or simply lazy — DJs: Reuse " +
+                "setlists you have already created and save " +
+                "yourself the effort of starting from scratch. " +
+                "Copy an entire setlist or just the parts you " +
+                "like, then adapt, extend, and reuse them for " +
+                "your next event."
+        )
+    ]
+
+
+    var body: some View {
+
+        ScrollView {
+
+            VStack(
+                alignment: .leading,
+                spacing: 18
+            ) {
+
+                ForEach(sections) { section in
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 6
+                    ) {
+
+                        Text(section.title)
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        Text(section.body)
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                            .fixedSize(
+                                horizontal: false,
+                                vertical: true
+                            )
+                    }
+                }
+            }
+            .padding(20)
+        }
+        .frame(
+            width: 420,
+            height: 420
+        )
     }
 }
 
