@@ -272,6 +272,23 @@ struct TandaComposerApp: App {
             )
         }
 
+        // The active TrackLibrary at last quit failed to open (see
+        // AppEnvironment.init()) — the app is currently running on a
+        // temporary in-memory database. Tell the user and let them
+        // pick a different Library or create a new one right away,
+        // rather than leaving them stuck on a Library that silently
+        // isn't really there.
+        if let failedLibraryName = environment.libraryStore.startupLibraryError {
+
+            LibraryActions.recoverFromStartupLibraryError(
+                failedLibraryName: failedLibraryName,
+                libraryStore: environment.libraryStore,
+                playlistStore: environment.playlistStore,
+                smartlistStore: environment.smartlistStore,
+                settings: settings
+            )
+        }
+
         guard let lastSetlist = UserDefaults.standard.string(
             forKey: AppPaths.lastPlaylistDefaultsKey
         ) else {
@@ -450,11 +467,19 @@ final class AppEnvironment {
             }
         }
 
+        // Name of the TrackLibrary that failed to open, if any — kept
+        // outside the do/catch below so it can be attached to
+        // libraryStore afterward (LibraryStore doesn't exist yet at
+        // this point in init).
+        let failedLibraryName: String?
+
         do {
 
             db = try DatabaseManager(
                 path: libraryPath
             )
+
+            failedLibraryName = nil
 
         } catch {
 
@@ -462,6 +487,10 @@ final class AppEnvironment {
                 "Could not open library database:",
                 error.localizedDescription
             )
+
+            failedLibraryName = URL(fileURLWithPath: libraryPath)
+                .deletingPathExtension()
+                .lastPathComponent
 
             do {
 
@@ -486,9 +515,25 @@ final class AppEnvironment {
             db: db
         )
 
-        libraryStore.setCurrentLibraryName(
-            from: libraryPath
-        )
+        if let failedLibraryName {
+
+            // Do NOT call setCurrentLibraryName(from: libraryPath)
+            // here — that would make libraryStore claim to be "on"
+            // the very Library that just failed to open, even though
+            // `db` above is actually a throwaway in-memory database
+            // disconnected from that path (and from that Library's
+            // Setlists/Tandas/Smartlists subtree). Surface the
+            // failure instead; startApplication() shows it and offers
+            // Open/New Library. currentLibraryName/currentLibraryPath
+            // stay at their defaults until the user resolves it.
+            libraryStore.startupLibraryError = failedLibraryName
+
+        } else {
+
+            libraryStore.setCurrentLibraryName(
+                from: libraryPath
+            )
+        }
 
         playlistStore = PlaylistStore(db: db)
 

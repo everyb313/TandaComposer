@@ -78,6 +78,16 @@ public final class LibraryStore: ObservableObject {
 
     @Published public var isLocked: Bool = true
 
+    /// Set by `AppEnvironment.init()` when the TrackLibrary that was
+    /// active at last quit could not be opened at startup (missing or
+    /// corrupted `.sqlite` file) — holds that library's name so the
+    /// app can tell the user, then offer to open a different Library
+    /// or create a new one, instead of silently claiming to still be
+    /// "on" a Library that doesn't actually load. `nil` once handled.
+    /// The app is running on a throwaway in-memory database for as
+    /// long as this is non-nil.
+    @Published public var startupLibraryError: String?
+
     private let db: DatabaseManager
     private var allSongs: [Song] = []
 

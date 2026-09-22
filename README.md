@@ -44,6 +44,7 @@ Your original audio files remain unchanged. TandaComposer maintains its own Libr
 Organizing tracks, creating Tandas, building Setlists or using Smartlists does **not** modify the tags of your audio files.
 
 ## Setlists
+![TandaComposer](setlist_creation_flow.png)
 
 The Setlist is the central workspace in TandaComposer.
 
