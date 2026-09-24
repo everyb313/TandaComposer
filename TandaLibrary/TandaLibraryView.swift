@@ -287,6 +287,19 @@ struct TandaLibraryView:
                                     newComment,
                                     for: tanda
                                 )
+                            },
+                            onDeleteSong: { songIndex in
+
+                                deleteSong(
+                                    at: songIndex,
+                                    from: tanda
+                                )
+                            },
+                            onDropAppend: {
+
+                                appendSetlistSelectionToTanda(
+                                    tanda
+                                )
                             }
                         )
                     }
@@ -691,6 +704,75 @@ struct TandaLibraryView:
     }
 
 
+    // MARK: - Append Setlist Selection To Existing Tanda
+    //
+    // Counterpart to saveSetlistSelectionAsTanda() above — triggered
+    // by dropping the Setlist selection directly onto a SPECIFIC
+    // TandaBlock (its own onDrop, see TandaBlock below) rather than
+    // onto the view's general background. Same "drag carries no song
+    // data, read the Setlist's current selection at drop time" shape.
+
+    private func appendSetlistSelectionToTanda(
+        _ tanda:
+            Tanda
+    ) {
+
+        guard
+            !libraryStore.isLocked
+        else {
+            return
+        }
+
+
+        let songs =
+            playlistStore.selectedRowIndexes.compactMap {
+                index -> Song? in
+
+                playlistStore.songs.indices.contains(index)
+                    ? playlistStore.songs[index]
+                    : nil
+            }
+
+        do {
+
+            try store.addSongs(
+                songs,
+                to: tanda,
+                missingSongIDs: libraryStore.missingSongIDs
+            )
+
+        } catch {
+
+            saveErrorMessage =
+                error.localizedDescription
+        }
+    }
+
+
+    // MARK: - Delete Song From Tanda
+
+    private func deleteSong(
+        at songIndex:
+            Int,
+        from tanda:
+            Tanda
+    ) {
+
+        do {
+
+            try store.removeSong(
+                at: songIndex,
+                from: tanda
+            )
+
+        } catch {
+
+            saveErrorMessage =
+                error.localizedDescription
+        }
+    }
+
+
     // MARK: - Comment
 
     private func commitComment(
@@ -908,45 +990,60 @@ struct TandaLibraryView:
                 }
         }
 
-        guard
-            let requiredComponent =
-                danceFilter.filenameComponent
-        else {
+        let danceFilteredTandas:
+            [Tanda]
+
+        if let requiredComponent =
+            danceFilter.filenameComponent {
+
+            danceFilteredTandas =
+                folderFilteredTandas.filter { tanda in
+
+                    let filename =
+                        tanda.sourceURL
+                            .deletingPathExtension()
+                            .lastPathComponent
+
+                    let components =
+                        filename.split(
+                            separator:
+                                "_",
+                            omittingEmptySubsequences:
+                                false
+                        )
+
+                    // Expected filename structure:
+                    //
+                    // Artist_DanceType_ThirdComponent
+                    //
+                    // We require at least two components because
+                    // component #2 is the dance type.
+                    guard
+                        components.count >= 2
+                    else {
+                        return false
+                    }
+
+                    return components[1] ==
+                        requiredComponent
+                }
+
+        } else {
 
             // A = all dance types, but STILL only within the
             // currently selected folder.
-            return folderFilteredTandas
+            danceFilteredTandas =
+                folderFilteredTandas
         }
 
-        return folderFilteredTandas.filter { tanda in
+        // Alphabetical by displayed name, regardless of the
+        // (essentially arbitrary, filesystem-enumeration-order)
+        // order `store.tandas` itself is in.
+        return danceFilteredTandas.sorted {
 
-            let filename =
-                tanda.sourceURL
-                    .deletingPathExtension()
-                    .lastPathComponent
-
-            let components =
-                filename.split(
-                    separator:
-                        "_",
-                    omittingEmptySubsequences:
-                        false
-                )
-
-            // Expected filename structure:
-            //
-            // Artist_DanceType_ThirdComponent
-            //
-            // We require at least two components because component
-            // #2 is the dance type.
-            guard
-                components.count >= 2
-            else {
-                return false
-            }
-
-            return components[1] ==
-                requiredComponent
+            $0.name.localizedStandardCompare(
+                $1.name
+            ) == .orderedAscending
         }
     }
 }
@@ -981,6 +1078,20 @@ private struct TandaBlock:
     let onCommitComment:
         (String) -> Void
 
+    /// Removes the song at this index (within `tanda.songs`) from
+    /// the Tanda — the per-row delete button below.
+    let onDeleteSong:
+        (Int) -> Void
+
+    /// Fired when the current Setlist selection is dropped directly
+    /// onto THIS block (as opposed to the Tanda Library's general
+    /// background, which creates a brand-new Tanda instead — see
+    /// TandaLibraryView's own onDrop). The drag carries no song data;
+    /// this only triggers the parent to read the Setlist's current
+    /// selection.
+    let onDropAppend:
+        () -> Void
+
     // Local editable copy — TextField needs a two-way Binding, and
     // `tanda` is a `let` parameter here (owned/passed down by the
     // parent's ForEach), so this mirrors it for editing and only
@@ -993,6 +1104,33 @@ private struct TandaBlock:
     @FocusState
     private var commentFieldIsFocused:
         Bool
+
+    // Drop-hover visual feedback for the Setlist-to-THIS-Tanda
+    // append drag — separate from the Tanda Library's own
+    // isTargetedForTandaSave (background = create new).
+    @State
+    private var isTargetedForAppend =
+        false
+
+    // Gates the append-drop and the per-row delete button, same lock
+    // as everything else that mutates a Tanda (Delete Tanda, Add
+    // Files, the "create new Tanda" drop).
+    @EnvironmentObject
+    private var libraryStore:
+        LibraryStore
+
+    // Read at append-drop time for the Setlist's current selection —
+    // same source TandaLibraryView's own saveSetlistSelectionAsTanda()
+    // reads from.
+    @EnvironmentObject
+    private var playlistStore:
+        PlaylistStore
+
+    /// Fixed width of the leading delete-button column, shared between
+    /// the column header (as a leading spacer) and every song row, so
+    /// the two stay aligned regardless of whether the button is
+    /// currently visible.
+    private static let deleteColumnWidth: CGFloat = 20
 
     // Read to highlight whichever row (if any) matches the song
     // currently loaded in the preview player — the SwiftUI equivalent
@@ -1253,6 +1391,16 @@ private struct TandaBlock:
                     0
             ) {
 
+                // Matches the delete-button column's fixed width in
+                // the song rows below — without this, the header's
+                // text columns would start deleteColumnWidth too far
+                // left compared to the actual row content next to it.
+                Color.clear
+                    .frame(
+                        width:
+                            Self.deleteColumnWidth
+                    )
+
                 ForEach(
                     columns,
                     id:
@@ -1304,19 +1452,101 @@ private struct TandaBlock:
                     \.offset
             ) { index, song in
 
-                TandaSongRow(
-                    index:
-                        index,
-                    song:
-                        song,
-                    status:
-                        status(
-                            for:
-                                song
-                        ),
-                    columns:
-                        columns
-                )
+                HStack(
+                    spacing:
+                        0
+                ) {
+
+                    // =============================================
+                    // REMOVE FROM TANDA
+                    //
+                    // Own fixed-width leading column, kept in exact
+                    // sync with the header's spacer column below
+                    // (Self.deleteColumnWidth) so the two rows stay
+                    // aligned. The leading padding here mirrors the
+                    // block's own header/column-header inset (8pt),
+                    // so the X has real breathing room from the
+                    // card's left edge instead of sitting flush
+                    // against it — the button's own frame width is
+                    // shrunk by that same 8pt so the TOTAL column
+                    // width (padding + button) still matches
+                    // deleteColumnWidth exactly.
+                    //
+                    // Always present in the layout (so column
+                    // alignment stays stable even while hidden) but
+                    // only visible/interactive when this Tanda is the
+                    // selected/active one, the Library is unlocked,
+                    // and removing wouldn't drop the Tanda below the
+                    // 3-track minimum — same pattern as other
+                    // lock-gated controls elsewhere in this view.
+                    // Opacity (not just `.disabled`) also checks the
+                    // lock, so re-locking the Library hides it again
+                    // instead of leaving a dead-looking but
+                    // still-visible X behind.
+
+                    Button {
+
+                        onDeleteSong(
+                            index
+                        )
+
+                    } label: {
+
+                        Image(
+                            systemName:
+                                "xmark"
+                        )
+                        .foregroundStyle(
+                            .red
+                        )
+                    }
+                    .buttonStyle(
+                        .plain
+                    )
+                    .padding(
+                        .leading,
+                        8
+                    )
+                    .frame(
+                        width:
+                            Self.deleteColumnWidth,
+                        alignment:
+                            .leading
+                    )
+                    .opacity(
+                        isSelected &&
+                        !libraryStore.isLocked
+                        ? 1
+                        : 0
+                    )
+                    .disabled(
+                        !isSelected
+                        || libraryStore.isLocked
+                        || tanda.songs.count <= 3
+                    )
+                    .help(
+                        libraryStore.isLocked
+                        ? "Unlock the Library to edit Tandas"
+                        : tanda.songs.count <= 3
+                        ? "A Tanda needs at least 3 tracks — delete the whole Tanda instead"
+                        : "Remove this track from the Tanda"
+                    )
+
+
+                    TandaSongRow(
+                        index:
+                            index,
+                        song:
+                            song,
+                        status:
+                            status(
+                                for:
+                                    song
+                            ),
+                        columns:
+                            columns
+                    )
+                }
                 .background(
                     song == previewPlayer.currentSong
                     ? Color.accentColor.opacity(
@@ -1371,6 +1601,76 @@ private struct TandaBlock:
                     : 1
             )
         )
+
+
+        // =========================================================
+        // SETLIST → THIS TANDA (APPEND BY DROP)
+        //
+        // Dropping directly onto a specific block appends to THAT
+        // Tanda, as opposed to TandaLibraryView's own background
+        // onDrop (drop anywhere else in the scroll area) which
+        // creates a brand-new Tanda. SwiftUI resolves the drop to
+        // whichever onDrop is on the deepest view under the pointer,
+        // so this naturally takes priority over the background one
+        // without any extra mode/flag.
+        // =========================================================
+
+        .overlay(
+            isTargetedForAppend &&
+            !libraryStore.isLocked
+            ? RoundedRectangle(
+                cornerRadius:
+                    6
+            )
+            .stroke(
+                Color.accentColor,
+                lineWidth:
+                    3
+            )
+            : nil
+        )
+        .onDrop(
+            of:
+                [.text],
+            isTargeted:
+                $isTargetedForAppend
+        ) { providers in
+
+            guard
+                !libraryStore.isLocked
+            else {
+                return false
+            }
+
+            guard
+                let provider =
+                    providers.first
+            else {
+                return false
+            }
+
+            _ =
+                provider.loadObject(
+                    ofClass:
+                        NSString.self
+                ) { reading, _ in
+
+                    guard
+                        let marker =
+                            reading as? String,
+                        marker == "setlist-to-tanda"
+                    else {
+                        return
+                    }
+
+                    DispatchQueue.main.async {
+
+                        onDropAppend()
+                    }
+                }
+
+            return true
+        }
 
 
         // =========================================================

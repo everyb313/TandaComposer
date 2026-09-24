@@ -32,6 +32,13 @@ enum TandaSaveError:
     case duplicateTanda(existingName: String)
     case containsMissingTracks(titles: [String])
 
+    /// Editing an existing Tanda (add/remove a track) would take it
+    /// below the 3-track minimum. Distinct wording from `tooFewTracks`
+    /// (which talks about the Setlist selection at creation time) —
+    /// this one talks about the Tanda itself and points at the
+    /// alternative (delete the whole Tanda).
+    case wouldDropBelowMinimum(Int)
+
     var errorDescription:
         String? {
 
@@ -55,6 +62,10 @@ enum TandaSaveError:
                 titles.joined(separator: ", ")
 
             return "Can't save a Tanda with track(s) missing on disk: \(list). Fix or remove them first."
+
+        case .wouldDropBelowMinimum(let count):
+
+            return "A Tanda needs at least 3 tracks (currently \(count)). Delete the whole Tanda instead if you want to remove it entirely."
         }
     }
 }
@@ -267,6 +278,36 @@ enum TandaSaver {
             String
     ) throws -> URL {
 
+        let folder =
+            tandaFolderURL(
+                forArtist: artist,
+                albumArtist: albumArtist
+            )
+
+        try FileManager.default.createDirectory(
+            at:
+                folder,
+            withIntermediateDirectories:
+                true
+        )
+
+
+        return folder
+    }
+
+
+    /// Pure path computation — no directory creation, no disk access.
+    /// Split out of `ensureTandaFolder` so `resolvedLocation(for:
+    /// settings:excluding:)` (used read-only by Rescan TandaLibrary,
+    /// see below) can compute where a Tanda WOULD live without
+    /// creating anything.
+    private static func tandaFolderURL(
+        forArtist artist:
+            String,
+        albumArtist:
+            String
+    ) -> URL {
+
         let artistFolderName =
             normalizedFileNameComponent(
                 commaTruncated(
@@ -282,29 +323,17 @@ enum TandaSaver {
             )
 
 
-        let folder =
-            AppPaths.tandasFolder
-                .appendingPathComponent(
-                    artistFolderName,
-                    isDirectory:
-                        true
-                )
-                .appendingPathComponent(
-                    albumArtistFolderName,
-                    isDirectory:
-                        true
-                )
-
-
-        try FileManager.default.createDirectory(
-            at:
-                folder,
-            withIntermediateDirectories:
-                true
-        )
-
-
-        return folder
+        return AppPaths.tandasFolder
+            .appendingPathComponent(
+                artistFolderName,
+                isDirectory:
+                    true
+            )
+            .appendingPathComponent(
+                albumArtistFolderName,
+                isDirectory:
+                    true
+            )
     }
 
 
@@ -340,6 +369,54 @@ enum TandaSaver {
             in:
                 .whitespacesAndNewlines
         )
+    }
+
+
+    // MARK: - Resolved Location (read-only, for Rescan)
+    //
+    // Computes where a Tanda with these songs WOULD be saved/named
+    // right now — same resolution `save(...)` itself uses — WITHOUT
+    // creating any folder or writing anything. Used by TandaStore's
+    // Rescan TandaLibrary to detect when an existing Tanda's saved
+    // name/folder has drifted from what its CURRENT songs resolve to
+    // (e.g. after a track was added/removed and the Orchestra/Singer
+    // mix changed). Not `private` — this is the one entry point
+    // TandaStore (a different file/type) is meant to call; everything
+    // it depends on internally stays private to this enum.
+    //
+    // `excludingURL` should be the Tanda's own current file, so an
+    // unchanged Tanda's collision check never collides with itself
+    // (see `firstAvailableName`'s `excluding` parameter).
+
+    static func resolvedLocation(
+        for songs:
+            [Song],
+        settings:
+            AppSettings,
+        excluding excludingURL:
+            URL? = nil
+    ) -> (folder: URL, name: String) {
+
+        let fields =
+            resolvedFields(
+                for: songs,
+                settings: settings
+            )
+
+        let folder =
+            tandaFolderURL(
+                forArtist: fields.artist,
+                albumArtist: fields.albumArtist
+            )
+
+        let name =
+            suggestedName(
+                fields: fields,
+                availableIn: folder,
+                excluding: excludingURL
+            )
+
+        return (folder, name)
     }
 
 
@@ -453,7 +530,9 @@ enum TandaSaver {
 
     // MARK: Artist Comparison Normalization
 
-    /// Used ONLY for comparing Artist values.
+    /// Used for comparing Artist (Orchestra) values, and also reused
+    /// by `resolvedField` for Singer/AlbumArtist and Genre
+    /// comparison (see "Generic Field Resolution" below).
     ///
     /// Case and diacritics are ignored here.
     ///
@@ -489,6 +568,13 @@ enum TandaSaver {
 
 
     // MARK: Generic Field Resolution
+    //
+    // Comparison is case- and diacritic-insensitive (same rule as
+    // Artist Comparison Normalization above), so e.g. "Podestá" and
+    // "Podesta", or "Tango" and "tango", are treated as the same
+    // value instead of triggering the various* fallback. The
+    // ORIGINAL string (first occurrence) is returned when all
+    // values match, exactly like `resolvedArtistField`.
 
     private static func resolvedField(
         _ values:
@@ -499,38 +585,45 @@ enum TandaSaver {
             String
     ) -> String {
 
-        let distinctValues =
+        let cleanedValues =
+            values.compactMap {
+                value -> String? in
+
+                let trimmed =
+                    value?.trimmingCharacters(
+                        in:
+                            .whitespacesAndNewlines
+                    ) ?? ""
+
+                return trimmed.isEmpty
+                    ? nil
+                    : trimmed
+            }
+
+
+        guard
+            !cleanedValues.isEmpty
+        else {
+
+            return unknownFallback
+        }
+
+
+        let normalizedValues =
             Set(
-                values.compactMap {
-                    value -> String? in
-
-                    let trimmed =
-                        value?.trimmingCharacters(
-                            in:
-                                .whitespacesAndNewlines
-                        ) ?? ""
-
-                    return trimmed.isEmpty
-                        ? nil
-                        : trimmed
+                cleanedValues.map {
+                    normalizedArtistForComparison($0)
                 }
             )
 
 
-        switch distinctValues.count {
+        if normalizedValues.count == 1 {
 
-        case 0:
-
-            return unknownFallback
-
-        case 1:
-
-            return distinctValues.first!
-
-        default:
-
-            return variousFallback
+            return cleanedValues[0]
         }
+
+
+        return variousFallback
     }
 
 
@@ -555,7 +648,9 @@ enum TandaSaver {
         fields:
             ResolvedFields,
         availableIn folder:
-            URL
+            URL,
+        excluding excludedURL:
+            URL? = nil
     ) -> String {
 
         let base =
@@ -582,15 +677,13 @@ enum TandaSaver {
             )
 
 
-        print(base)
-        print(folder)
-
-
         return firstAvailableName(
             base:
                 base,
             in:
-                folder
+                folder,
+            excluding:
+                excludedURL
         )
     }
 
@@ -652,31 +745,50 @@ enum TandaSaver {
     /// `base` itself if `<base>.json` doesn't exist yet in `folder`;
     /// otherwise `<base>_2`, `<base>_3`, ... — the first ordinal whose
     /// file doesn't already exist.
+    ///
+    /// `excludedURL`, when given, is never treated as an existing
+    /// collision — used by `resolvedLocation(for:settings:excluding:)`
+    /// so a Tanda whose songs haven't actually changed doesn't
+    /// collide with ITS OWN current file and get offered a pointless
+    /// "_2" rename.
 
     private static func firstAvailableName(
         base:
             String,
         in folder:
-            URL
+            URL,
+        excluding excludedURL:
+            URL? = nil
     ) -> String {
+
+        let excludedPath =
+            excludedURL?.standardizedFileURL.path
 
         func exists(
             _ name:
                 String
         ) -> Bool {
 
-            FileManager.default.fileExists(
+            let candidate =
+                folder
+                    .appendingPathComponent(
+                        name,
+                        isDirectory:
+                            false
+                    )
+                    .appendingPathExtension(
+                        "json"
+                    )
+
+            if candidate.standardizedFileURL.path
+                == excludedPath {
+
+                return false
+            }
+
+            return FileManager.default.fileExists(
                 atPath:
-                    folder
-                        .appendingPathComponent(
-                            name,
-                            isDirectory:
-                                false
-                        )
-                        .appendingPathExtension(
-                            "json"
-                        )
-                        .path
+                    candidate.path
             )
         }
 

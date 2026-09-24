@@ -29,17 +29,38 @@ struct TandaRescanSummary {
 
     var fixedReferenceCount = 0
     var updatedTandaCount = 0
+    var renamedTandaCount = 0
     var failedWrites: [(url: URL, error: Error)] = []
 }
 
 
-/// One Tanda whose songs a rescan WOULD update — a preview, computed
-/// by `previewRescan(byID:byPath:missingSongIDs:)`. Nothing is written to
-/// disk until this is handed to `applyRescan(_:)`.
+/// Where a Tanda's name/folder would move to, because its CURRENT
+/// songs no longer resolve to the Artist/Genre/AlbumArtist the file
+/// was originally saved under — e.g. after a track was added/removed
+/// (via addSongs/removeSong above) and the Orchestra/Singer mix
+/// changed. Computed read-only by `TandaSaver.resolvedLocation`.
+struct TandaRenameFix {
+    let newFolder: URL
+    let newName: String
+
+    var newURL: URL {
+        newFolder
+            .appendingPathComponent(newName, isDirectory: false)
+            .appendingPathExtension("json")
+    }
+}
+
+
+/// One Tanda a rescan WOULD update — either its songs (stale path
+/// references), its name/folder (drifted from its current songs), or
+/// both — a preview, computed by
+/// `previewRescan(byID:byPath:missingSongIDs:settings:)`. Nothing is
+/// written to disk until this is handed to `applyRescan(_:)`.
 struct TandaRescanFix {
     let tanda: Tanda
     let updatedSongs: [Song]
     let fixedSongCount: Int
+    let rename: TandaRenameFix?
 }
 
 
@@ -177,6 +198,181 @@ final class TandaStore:
     }
 
 
+    // MARK: - Add Songs (append from Setlist)
+    //
+    // Appends `newSongs` to an existing Tanda and rewrites the SAME
+    // file in place — same sourceURL, same name, same comment — via
+    // the identical TandaMetadataExporter.export call updateComment/
+    // applyRescan already use above. Deliberately does NOT touch the
+    // Tanda's name or folder placement, even if the added songs would
+    // change what Artist/AlbumArtist would now resolve to; a Tanda's
+    // name/location is only ever set once, at creation (TandaSaver.
+    // save), same as it already survives Rescan replacing songs
+    // wholesale without renaming.
+
+    /// Already-present songs (matched by `normalizedPath`, same
+    /// identity check `TandaSaver.save`'s duplicate check uses) are
+    /// silently skipped rather than duplicated. Throws
+    /// `.containsMissingTracks` if any NEW song is missing on disk, or
+    /// `.tooManyTracks` if the combined count would exceed 8 — same
+    /// rules as creating a Tanda.
+    func addSongs(
+        _ newSongs:
+            [Song],
+        to tanda:
+            Tanda,
+        missingSongIDs:
+            Set<Int64> = []
+    ) throws {
+
+        let existingPaths =
+            Set(
+                tanda.songs.map {
+                    $0.normalizedPath
+                }
+            )
+
+        let songsToAdd =
+            newSongs.filter {
+                !existingPaths.contains(
+                    $0.normalizedPath
+                )
+            }
+
+        guard
+            !songsToAdd.isEmpty
+        else {
+            return
+        }
+
+
+        let missingTitles =
+            songsToAdd.compactMap { song -> String? in
+
+                guard
+                    let id = song.id,
+                    missingSongIDs.contains(id)
+                else {
+                    return nil
+                }
+
+                return song.title ?? song.filename
+            }
+
+        guard missingTitles.isEmpty else {
+
+            throw TandaSaveError.containsMissingTracks(
+                titles: missingTitles
+            )
+        }
+
+
+        let updatedSongs =
+            tanda.songs + songsToAdd
+
+        guard updatedSongs.count <= 8 else {
+
+            throw TandaSaveError.tooManyTracks(
+                updatedSongs.count
+            )
+        }
+
+
+        try TandaMetadataExporter.export(
+            songs: updatedSongs,
+            tandaName: tanda.name,
+            to: tanda.sourceURL,
+            comment: tanda.comment
+        )
+
+        guard
+            let index = tandas.firstIndex(
+                where: { $0.sourceURL == tanda.sourceURL }
+            )
+        else {
+            return
+        }
+
+        // The new songs came from the current Library (via the
+        // Setlist), so — same reasoning as applyRescan — the whole
+        // file is now trustworthy against the CURRENT Library, even
+        // if the old songs' own savedAgainstLibraryName predated it.
+        tandas[index] =
+            Tanda(
+                name: tanda.name,
+                songs: updatedSongs,
+                comment: tanda.comment,
+                sourceFolder: tanda.sourceFolder,
+                sourceURL: tanda.sourceURL,
+                savedAgainstLibraryName: AppPaths.currentLibraryName
+            )
+    }
+
+
+    // MARK: - Remove Song
+    //
+    // Removes a single track (by its position in tanda.songs) and
+    // rewrites the same file in place, same pattern as addSongs above.
+    // Refuses to drop the Tanda below the 3-track minimum enforced at
+    // creation — delete the whole Tanda instead for that.
+
+    func removeSong(
+        at songIndex:
+            Int,
+        from tanda:
+            Tanda
+    ) throws {
+
+        guard
+            tanda.songs.indices.contains(songIndex)
+        else {
+            return
+        }
+
+        guard
+            tanda.songs.count > 3
+        else {
+
+            throw TandaSaveError.wouldDropBelowMinimum(
+                tanda.songs.count
+            )
+        }
+
+
+        var updatedSongs =
+            tanda.songs
+
+        updatedSongs.remove(
+            at: songIndex
+        )
+
+        try TandaMetadataExporter.export(
+            songs: updatedSongs,
+            tandaName: tanda.name,
+            to: tanda.sourceURL,
+            comment: tanda.comment
+        )
+
+        guard
+            let index = tandas.firstIndex(
+                where: { $0.sourceURL == tanda.sourceURL }
+            )
+        else {
+            return
+        }
+
+        tandas[index] =
+            Tanda(
+                name: tanda.name,
+                songs: updatedSongs,
+                comment: tanda.comment,
+                sourceFolder: tanda.sourceFolder,
+                sourceURL: tanda.sourceURL,
+                savedAgainstLibraryName: tanda.savedAgainstLibraryName
+            )
+    }
+
+
     // MARK: - Rescan References
     //
     // "Tanda Rescan" (Tools menu): mirrors PlaylistStore's rescan for
@@ -194,12 +390,14 @@ final class TandaStore:
     // Tanda file on disk is actually rewritten.
 
     /// Read-only: diffs every loaded Tanda's songs against the Library
-    /// and returns the fixes a rescan WOULD make. Doesn't touch any
-    /// Tanda file or `tandas` itself.
+    /// AND against its own saved name/folder (see
+    /// `TandaSaver.resolvedLocation`), and returns the fixes a rescan
+    /// WOULD make. Doesn't touch any Tanda file or `tandas` itself.
     func previewRescan(
         byID: [Int64: Song],
         byPath: [String: Song],
-        missingSongIDs: Set<Int64>
+        missingSongIDs: Set<Int64>,
+        settings: AppSettings
     ) -> [TandaRescanFix] {
 
         var fixes: [TandaRescanFix] = []
@@ -235,7 +433,37 @@ final class TandaStore:
                     return live
                 }
 
-            guard fixedSongCount > 0 else {
+            // Name/folder drift check runs against updatedSongs (the
+            // post-path-fix content), not the raw tanda.songs — same
+            // final state applyRescan would actually write. Excludes
+            // this Tanda's own current file from the collision check,
+            // so a Tanda whose resolved fields haven't actually
+            // changed never gets offered a pointless "_2" rename.
+            let resolvedLocation =
+                TandaSaver.resolvedLocation(
+                    for: updatedSongs,
+                    settings: settings,
+                    excluding: tanda.sourceURL
+                )
+
+            let currentFolder =
+                tanda.sourceURL.deletingLastPathComponent()
+
+            let currentNameStem =
+                tanda.sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent
+
+            let rename: TandaRenameFix? =
+                resolvedLocation.folder.standardizedFileURL.path != currentFolder.standardizedFileURL.path
+                || resolvedLocation.name != currentNameStem
+                ? TandaRenameFix(
+                    newFolder: resolvedLocation.folder,
+                    newName: resolvedLocation.name
+                )
+                : nil
+
+            guard fixedSongCount > 0 || rename != nil else {
                 continue
             }
 
@@ -243,7 +471,8 @@ final class TandaStore:
                 TandaRescanFix(
                     tanda: tanda,
                     updatedSongs: updatedSongs,
-                    fixedSongCount: fixedSongCount
+                    fixedSongCount: fixedSongCount,
+                    rename: rename
                 )
             )
         }
@@ -252,9 +481,10 @@ final class TandaStore:
     }
 
     /// Commits a previously-computed set of `TandaRescanFix`es (see
-    /// `previewRescan(byID:byPath:missingSongIDs:)`) — rewrites each
-    /// affected Tanda's JSON file on disk and updates `tandas` in
-    /// memory to match.
+    /// `previewRescan(byID:byPath:missingSongIDs:settings:)`) —
+    /// rewrites each affected Tanda's JSON file on disk (moving it to
+    /// a new folder/name first, when `fix.rename` is set) and updates
+    /// `tandas` in memory to match.
     @discardableResult
     func applyRescan(
         _ fixes: [TandaRescanFix]
@@ -283,26 +513,81 @@ final class TandaStore:
 
             do {
 
-                try TandaMetadataExporter.export(
-                    songs: fix.updatedSongs,
-                    tandaName: tanda.name,
-                    to: tanda.sourceURL,
-                    comment: tanda.comment
-                )
+                if let rename = fix.rename {
 
-                summary.fixedReferenceCount += fix.fixedSongCount
-                summary.updatedTandaCount += 1
-
-                resultingTandas.append(
-                    Tanda(
-                        name: tanda.name,
-                        songs: fix.updatedSongs,
-                        comment: tanda.comment,
-                        sourceFolder: tanda.sourceFolder,
-                        sourceURL: tanda.sourceURL,
-                        savedAgainstLibraryName: AppPaths.currentLibraryName
+                    // Moving to a (possibly new) Artist/AlbumArtist
+                    // folder — same folder-creation TandaSaver.save
+                    // itself uses, just invoked here instead of at
+                    // ensureTandaFolder's usual call site.
+                    try FileManager.default.createDirectory(
+                        at: rename.newFolder,
+                        withIntermediateDirectories: true
                     )
-                )
+
+                    try TandaMetadataExporter.export(
+                        songs: fix.updatedSongs,
+                        tandaName: rename.newName,
+                        to: rename.newURL,
+                        comment: tanda.comment
+                    )
+
+                    // Only remove the old file once the new one is
+                    // safely written, and only if they're not
+                    // literally the same path (a pure content update
+                    // with no actual move/rename still goes through
+                    // this branch whenever fix.rename is set, since a
+                    // rename is only ever computed when something
+                    // DID change — see previewRescan above — but this
+                    // guard is cheap insurance either way).
+                    if rename.newURL.standardizedFileURL.path
+                        != tanda.sourceURL.standardizedFileURL.path {
+
+                        try? FileManager.default.removeItem(
+                            at: tanda.sourceURL
+                        )
+                    }
+
+                    summary.fixedReferenceCount += fix.fixedSongCount
+                    summary.updatedTandaCount += 1
+                    summary.renamedTandaCount += 1
+
+                    resultingTandas.append(
+                        Tanda(
+                            name: rename.newName,
+                            songs: fix.updatedSongs,
+                            comment: tanda.comment,
+                            sourceFolder: Self.relativeFolder(
+                                of: rename.newURL,
+                                tandasRoot: tandasRoot
+                            ),
+                            sourceURL: rename.newURL,
+                            savedAgainstLibraryName: AppPaths.currentLibraryName
+                        )
+                    )
+
+                } else {
+
+                    try TandaMetadataExporter.export(
+                        songs: fix.updatedSongs,
+                        tandaName: tanda.name,
+                        to: tanda.sourceURL,
+                        comment: tanda.comment
+                    )
+
+                    summary.fixedReferenceCount += fix.fixedSongCount
+                    summary.updatedTandaCount += 1
+
+                    resultingTandas.append(
+                        Tanda(
+                            name: tanda.name,
+                            songs: fix.updatedSongs,
+                            comment: tanda.comment,
+                            sourceFolder: tanda.sourceFolder,
+                            sourceURL: tanda.sourceURL,
+                            savedAgainstLibraryName: AppPaths.currentLibraryName
+                        )
+                    )
+                }
 
             } catch {
 

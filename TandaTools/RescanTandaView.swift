@@ -27,6 +27,9 @@ struct RescanTandaView: View {
     @EnvironmentObject
     private var libraryStore: LibraryStore
 
+    @EnvironmentObject
+    private var settings: AppSettings
+
     @StateObject
     private var tandaStore =
         TandaStore()
@@ -157,7 +160,7 @@ struct RescanTandaView: View {
             Divider()
 
             Text(
-                "Checks all saved Tandas against the TrackLibrary as currently loaded, and shows what would be re-linked by their Library ID. This does NOT scan disk itself — if a file moved and the TrackLibrary hasn't picked that up yet, run \"Rescan TrackLibrary\" first."
+                "Checks all saved Tandas against the TrackLibrary as currently loaded (re-links tracks by their Library ID), and also checks whether a Tanda's saved name/folder still matches what its CURRENT tracks resolve to (e.g. after adding or removing a track changed the Orchestra/Singer mix) — offering to rename/refile it if not. This does NOT scan disk itself — if a file moved and the TrackLibrary hasn't picked that up yet, run \"Rescan TrackLibrary\" first."
             )
             .font(.system(size: 14))
             .foregroundStyle(.secondary)
@@ -207,7 +210,7 @@ struct RescanTandaView: View {
                         } else {
 
                             Label(
-                                "No broken references found.",
+                                "No broken references or name/folder drift found.",
                                 systemImage:
                                     "checkmark.circle.fill"
                             )
@@ -223,10 +226,18 @@ struct RescanTandaView: View {
                     let totalFixed =
                         pendingFixes.reduce(0) { $0 + $1.fixedSongCount }
 
+                    let totalRenamed =
+                        pendingFixes.filter { $0.rename != nil }.count
+
+                    let summarySubject =
+                        totalRenamed > 0
+                        ? "\(totalFixed) reference(s) and \(totalRenamed) rename(s)"
+                        : "\(totalFixed) reference(s)"
+
                     Label(
                         isApplied
-                        ? "\(totalFixed) reference(s) fixed across \(pendingFixes.count) Tanda(s)."
-                        : "\(totalFixed) reference(s) found across \(pendingFixes.count) Tanda(s) — click \"Apply Fixes\" to fix and save them.",
+                        ? "\(summarySubject) fixed across \(pendingFixes.count) Tanda(s)."
+                        : "\(summarySubject) found across \(pendingFixes.count) Tanda(s) — click \"Apply Fixes\" to fix and save them.",
                         systemImage:
                             isApplied
                             ? "checkmark.circle.fill"
@@ -273,7 +284,9 @@ struct RescanTandaView: View {
                                 ) {
 
                                     Text(
-                                        "\(fix.tanda.name) (\(fix.fixedSongCount) track(s))"
+                                        fix.rename != nil
+                                        ? "\(fix.tanda.name) (\(fix.fixedSongCount) track(s), renamed)"
+                                        : "\(fix.tanda.name) (\(fix.fixedSongCount) track(s))"
                                     )
                                     .font(.system(size: 14))
 
@@ -284,6 +297,18 @@ struct RescanTandaView: View {
                                     )
                                     .font(.system(size: 12, design: .monospaced))
                                     .foregroundStyle(.secondary)
+                                    .strikethrough(
+                                        fix.rename != nil
+                                    )
+
+                                    if let rename = fix.rename {
+
+                                        Text(
+                                            "→ \(rename.newFolder.pathComponents.suffix(2).joined(separator: "/"))/\(rename.newName).json"
+                                        )
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundStyle(.blue)
+                                    }
                                 }
                                 .padding(
                                     .horizontal, 8
@@ -339,7 +364,8 @@ struct RescanTandaView: View {
             tandaStore.previewRescan(
                 byID: libraryStore.songsByID,
                 byPath: libraryStore.songsByNormalizedPath,
-                missingSongIDs: libraryStore.missingSongIDs
+                missingSongIDs: libraryStore.missingSongIDs,
+                settings: settings
             )
 
         isApplied = false
