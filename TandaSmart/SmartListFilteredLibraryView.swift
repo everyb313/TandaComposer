@@ -549,8 +549,8 @@ struct SmartListFilteredLibraryView:
 
         normalizedGenre.contains("milonga")
             || normalizedGenre.contains("candombe")
-            || normalizedGenre.contains("foxtrot")
-            || normalizedGenre.contains("otra")
+//            || normalizedGenre.contains("foxtrot")
+//            || normalizedGenre.contains("otra")
     }
 }
 

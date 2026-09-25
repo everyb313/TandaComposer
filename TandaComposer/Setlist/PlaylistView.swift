@@ -1006,10 +1006,13 @@ private struct PlaylistTableView: NSViewRepresentable {
                         in: .whitespacesAndNewlines
                     )
 
+//            if normalized.contains("milonga") ||
+//               normalized.contains("candombe") ||
+//               normalized.contains("otra") ||
+//               normalized.contains("foxtrot") {
+                
             if normalized.contains("milonga") ||
-               normalized.contains("candombe") ||
-               normalized.contains("otra") ||
-               normalized.contains("foxtrot") {
+                normalized.contains("candombe") {
 
                 return .milonga
             }

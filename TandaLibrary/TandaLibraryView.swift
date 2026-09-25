@@ -121,6 +121,205 @@ enum TandaDanceFilter:
 }
 
 
+// MARK: - Shared "Setlist → Tanda" Drop Handling
+//
+// Both drop targets in this file (TandaLibraryView's own background —
+// "create a new Tanda" — and each individual TandaBlock — "append to
+// this Tanda") accept a drag carrying the "setlist-to-tanda" marker
+// and share this exact logic; only WHAT happens on a successful drop
+// differs, passed in via `onDrop`.
+
+/// Identifies which SINGLE "Setlist → Tanda" drop target currently has
+/// an active drag hovering over it — the background lane (create new)
+/// or one specific TandaBlock (append). Using one shared value instead
+/// of independent per-target booleans is what guarantees exactly one
+/// blue border shows at a time: whichever target's dropUpdated fires
+/// most recently simply overwrites this, automatically "turning off"
+/// whichever OTHER target was previously set — without needing
+/// dropExited (unreliable for this drag on macOS, see below) to fire
+/// on the one being left. Two independent booleans could easily both
+/// end up true at once (background stuck true from before + a
+/// TandaBlock now also true), which is exactly the double-border bug
+/// this replaces.
+private enum SetlistDropTarget: Equatable {
+    case background
+    case tanda(URL)
+}
+
+// Uses the DropDelegate protocol rather than the isTargeted-closure
+// form of .onDrop specifically so dropUpdated(info:) can return an
+// explicit `.forbidden` DropProposal while the Library is locked.
+// THAT is what makes macOS show the system "not allowed" cursor
+// during hover instead of the misleading "+N" badge — the old
+// closure-form code only rejected the drop AFTER it was released
+// (inside the closure's own `guard !libraryStore.isLocked else {
+// return false }`), which is too late to affect the hover cursor;
+// the "+N" had already been shown for the whole hover.
+//
+// One more macOS quirk this delegate works around: dropEntered/
+// dropExited turned out not to fire reliably for this kind of drag,
+// while dropUpdated (confirmed by the cursor itself correctly
+// flipping color) does, continuously, while hovering. So dropUpdated
+// below is the ONLY reliable place `current` gets set — there's no
+// dropEntered override at all, and dropExited (kept anyway, for the
+// cases where it does fire) is explicitly best-effort.
+
+private struct SetlistToTandaDropDelegate: DropDelegate {
+
+    let isLocked: Bool
+    /// Which target THIS delegate instance represents (.background for
+    /// TandaLibraryView's own drop zone, .tanda(url) for one TandaBlock).
+    let target: SetlistDropTarget
+    /// The one shared "currently hovered target" — see
+    /// SetlistDropTarget's doc comment above for why this is a single
+    /// value instead of a per-target Bool.
+    let current: Binding<SetlistDropTarget?>
+    let onDrop: () -> Void
+
+    /// Best-effort cleanup (see the struct-level note above) — only
+    /// clears if WE are still the current target, so a stale/late
+    /// call for a target you've already left doesn't wipe out
+    /// whatever you've since moved onto.
+    func dropExited(info: DropInfo) {
+
+        if current.wrappedValue == target {
+            current.wrappedValue = nil
+        }
+    }
+
+    /// The reliable source of both the hover cursor feedback AND the
+    /// border feedback (see the struct-level note above for why this,
+    /// not dropEntered, is where `current` gets set). Unconditionally
+    /// overwriting `current` with our own `target` on every call is
+    /// what makes setlistDropFeedback's accepted-state ring appear for
+    /// exactly one target at a time — moving onto a different target
+    /// just overwrites this again.
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+
+        current.wrappedValue = target
+
+        return DropProposal(
+            operation:
+                isLocked
+                ? .forbidden
+                : .copy
+        )
+    }
+
+    func validateDrop(info: DropInfo) -> Bool {
+
+        !isLocked &&
+        info.hasItemsConforming(
+            to: [.text]
+        )
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+
+        current.wrappedValue = nil
+
+        guard !isLocked else {
+            return false
+        }
+
+        guard
+            let provider =
+                info.itemProviders(for: [.text]).first
+        else {
+            return false
+        }
+
+        _ =
+            provider.loadObject(
+                ofClass:
+                    NSString.self
+            ) { reading, _ in
+
+                guard
+                    let marker =
+                        reading as? String,
+                    marker == "setlist-to-tanda"
+                else {
+                    return
+                }
+
+                DispatchQueue.main.async {
+
+                    onDrop()
+                }
+            }
+
+        return true
+    }
+}
+
+
+/// Accent-colored ring shown while a "Setlist → Tanda" drag hovers
+/// over a target that would actually accept it (Library unlocked).
+/// Shown nothing while locked — Part A (SetlistToTandaDropDelegate's
+/// `.forbidden` DropProposal, which drives the system cursor itself)
+/// is the sole locked-state feedback; a previous version of this also
+/// drew a red ring + text message here for the locked case, removed
+/// again as redundant/not rendering usefully in practice.
+@ViewBuilder
+private func setlistDropFeedback(
+    isTargeted: Bool,
+    isLocked: Bool,
+    cornerRadius: CGFloat
+) -> some View {
+
+    if isTargeted && !isLocked {
+
+        RoundedRectangle(
+            cornerRadius: cornerRadius
+        )
+        .stroke(
+            Color.accentColor,
+            lineWidth: 3
+        )
+        .padding(4)
+    }
+}
+
+
+/// The permanent "drop here to create a new Tanda" lane running
+/// alongside every row in the Tanda Library — see the ForEach in
+/// TandaLibraryView.body for why this needs to run the FULL height of
+/// the list rather than appearing once. Draws no border/onDrop of its
+/// own; it's deliberately plain empty space that the ScrollView's own
+/// onDrop (see setlistDropFeedback/SetlistToTandaDropDelegate above)
+/// picks up simply because nothing else claims it.
+/// The permanent "drop here to create a new Tanda" lane running
+/// alongside every row in the Tanda Library — see the ForEach in
+/// TandaLibraryView.body for why this needs to run the FULL height of
+/// the list rather than appearing once. Just a plain tintable rectangle,
+/// no icon of its own — the single "+" hint lives once, centered on the
+/// ScrollView's own (viewport-fixed) overlay below, not repeated per
+/// row. Draws no border/onDrop of its own; it's deliberately plain
+/// empty space that the ScrollView's own onDrop (see
+/// setlistDropFeedback/SetlistToTandaDropDelegate above) picks up
+/// simply because nothing else claims it.
+/// The permanent "drop here to create a new Tanda" lane running
+/// alongside every row in the Tanda Library — see the ForEach in
+/// TandaLibraryView.body for why this needs to run the FULL height of
+/// the list rather than appearing once. Completely empty on purpose —
+/// no per-row fill/tint — the ONLY visual feedback for this lane is
+/// the single "+" and the big accent border, both centered/drawn once
+/// on the ScrollView's own overlay below, not repeated per row.
+private struct NewTandaLaneMarker: View {
+
+    static let width: CGFloat = 36
+
+    var body: some View {
+
+        Color.clear
+            .frame(
+                width: Self.width
+            )
+    }
+}
+
+
 // MARK: - Tanda Library View
 
 struct TandaLibraryView:
@@ -201,10 +400,13 @@ struct TandaLibraryView:
     private var saveErrorMessage:
         String?
 
-    // Drop-hover visual feedback for the Setlist-to-Tanda drag.
+    // Drop-hover visual feedback for the Setlist-to-Tanda drag — shared
+    // across the background lane AND every TandaBlock, so exactly one
+    // border can show at a time. See SetlistDropTarget's doc comment
+    // above for why this is one value instead of independent booleans.
     @State
-    private var isTargetedForTandaSave =
-        false
+    private var currentDropTarget:
+        SetlistDropTarget?
 
     // Status data (Status dots + bottom-bar counts) — starts empty and
     // fills in asynchronously AFTER the first frame, not before it.
@@ -262,52 +464,168 @@ struct TandaLibraryView:
                         filteredTandas
                     ) { tanda in
 
-                        TandaBlock(
-                            tanda:
-                                tanda,
-                            insertionMode:
-                                insertionMode,
-                            isSelected:
-                                tanda.sourceURL ==
-                                    selectedTandaURL,
-                            libraryByID:
-                                libraryByID,
-                            libraryByPath:
-                                libraryByPath,
-                            missingSongIDs:
-                                libraryStore.missingSongIDs,
-                            onSelectHeader: {
+                        HStack(
+                            spacing:
+                                8
+                        ) {
 
-                                selectedTandaURL =
-                                    tanda.sourceURL
-                            },
-                            onCommitComment: { newComment in
+                            // =========================================
+                            // NEW-TANDA LANE
+                            //
+                            // Runs alongside EVERY row (not just once at
+                            // the top) so the "drop here to create a new
+                            // Tanda" target is always within reach of
+                            // wherever you're scrolled to — dropping
+                            // directly on a Tanda block appends to it
+                            // instead (TandaBlock's own onDrop below).
+                            // This view draws no border/onDrop itself —
+                            // it's plain empty space that belongs to the
+                            // ScrollView's own onDrop by simply not being
+                            // claimed by anything else, so hovering here
+                            // triggers the SAME feedback as the ScrollView
+                            // background (see the .overlay/.onDrop moved
+                            // onto the ScrollView itself, below).
+                            NewTandaLaneMarker()
 
-                                commitComment(
-                                    newComment,
-                                    for: tanda
-                                )
-                            },
-                            onDeleteSong: { songIndex in
+                            TandaBlock(
+                                tanda:
+                                    tanda,
+                                insertionMode:
+                                    insertionMode,
+                                isSelected:
+                                    tanda.sourceURL ==
+                                        selectedTandaURL,
+                                libraryByID:
+                                    libraryByID,
+                                libraryByPath:
+                                    libraryByPath,
+                                missingSongIDs:
+                                    libraryStore.missingSongIDs,
+                                currentDropTarget:
+                                    $currentDropTarget,
+                                onSelectHeader: {
 
-                                deleteSong(
-                                    at: songIndex,
-                                    from: tanda
-                                )
-                            },
-                            onDropAppend: {
+                                    selectedTandaURL =
+                                        tanda.sourceURL
+                                },
+                                onCommitComment: { newComment in
 
-                                appendSetlistSelectionToTanda(
-                                    tanda
-                                )
-                            }
-                        )
+                                    commitComment(
+                                        newComment,
+                                        for: tanda
+                                    )
+                                },
+                                onDeleteSong: { songIndex in
+
+                                    deleteSong(
+                                        at: songIndex,
+                                        from: tanda
+                                    )
+                                },
+                                onDropAppend: {
+
+                                    appendSetlistSelectionToTanda(
+                                        tanda
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
                 .padding(
                     8
                 )
             }
+
+
+            // =====================================================
+            // SETLIST → TANDA (SAVE AS TANDA BY DROP)
+            //
+            // Attached to the ScrollView itself (list content only)
+            // rather than the whole TandaLibraryView pane — moved here
+            // from the outer VStack specifically so the accepted-drop
+            // border matches "the table + the new-Tanda lane", not the
+            // Set-header row or the bottom bar too, AND so it tracks
+            // the ScrollView's own (viewport-sized) frame rather than
+            // the LazyVStack's full, mostly-off-screen-while-scrolled
+            // content height — attaching it inside the ScrollView, to
+            // the LazyVStack, would mean the border's edges are
+            // themselves scrolled out of view most of the time. The
+            // drag itself carries no song data (see PlaylistView's
+            // pasteboardWriterForRow) — it's only a trigger. What
+            // actually gets saved is whatever is CURRENTLY selected in
+            // the Setlist at the moment of the drop, exactly like the
+            // Save Tanda button. Drop position within this area is
+            // irrelevant as long as it isn't a specific TandaBlock
+            // (which appends instead, via ITS OWN onDrop — see
+            // TandaBlock/SetlistToTandaDropDelegate — which SwiftUI
+            // resolves to in preference to this one whenever the drop
+            // point is actually over a block).
+            // =====================================================
+
+            .overlay(
+                setlistDropFeedback(
+                    isTargeted:
+                        currentDropTarget == .background,
+                    isLocked:
+                        libraryStore.isLocked,
+                    cornerRadius:
+                        8
+                )
+            )
+            // Single "+" hint for the new-Tanda lane — one, centered
+            // on the ScrollView's own fixed viewport, NOT one per row
+            // (that looked cluttered with a long Tanda list). Its
+            // horizontal offset (8 + half the lane width) centers it
+            // within the lane column, matching the LazyVStack's own
+            // 8pt padding above. Hidden entirely while the Library is
+            // locked — dropping here wouldn't work anyway (same lock
+            // that gates Delete Tanda etc.), so showing it would just
+            // invite a drop that's guaranteed to fail.
+            .overlay(
+                alignment:
+                    .leading
+            ) {
+
+                if !libraryStore.isLocked {
+
+                    Image(
+                        systemName: "plus"
+                    )
+                    .font(
+                        .system(size: 15, weight: .bold)
+                    )
+                    .foregroundStyle(
+                        currentDropTarget == .background
+                        ? Color.accentColor
+                        : Color.secondary.opacity(0.35)
+                    )
+                    .frame(
+                        width: NewTandaLaneMarker.width
+                    )
+                    .padding(
+                        .leading,
+                        8
+                    )
+                }
+            }
+            .onDrop(
+                of:
+                    [.text],
+                delegate:
+                    SetlistToTandaDropDelegate(
+                        isLocked:
+                            libraryStore.isLocked,
+                        target:
+                            .background,
+                        current:
+                            $currentDropTarget,
+                        onDrop: {
+
+                            saveSetlistSelectionAsTanda()
+                        }
+                    )
+            )
 
 
             Divider()
@@ -552,89 +870,6 @@ struct TandaLibraryView:
             Task {
                 await refreshStatus()
             }
-        }
-
-
-        // =====================================================
-        // SETLIST → TANDA (SAVE AS TANDA BY DROP)
-        //
-        // The drag itself carries no song data (see PlaylistView's
-        // pasteboardWriterForRow) — it's only a trigger. What actually
-        // gets saved is whatever is CURRENTLY selected in the Setlist
-        // at the moment of the drop, exactly like the Save Tanda button.
-        // Drop position within this view is irrelevant, so the whole
-        // view is one drop target. This only exists at all while
-        // Tandas mode is showing (this view isn't in the hierarchy
-        // otherwise), which is what satisfies "only works when the
-        // Tanda library can be dropped into".
-        // =====================================================
-
-        .overlay(
-            isTargetedForTandaSave &&
-            !libraryStore.isLocked
-            ? RoundedRectangle(
-                cornerRadius:
-                    8
-            )
-            .stroke(
-                Color.accentColor,
-                lineWidth:
-                    3
-            )
-            .padding(
-                4
-            )
-            : nil
-        )
-        .onDrop(
-            of:
-                [.text],
-            isTargeted:
-                $isTargetedForTandaSave
-        ) { providers in
-
-            // Adding to the Tanda library is only allowed while the
-            // Library is unlocked — same lock that gates Delete Tanda
-            // and the Save Tanda button in PlaylistView. Rejected
-            // silently (standard "not allowed" drop feedback), matching
-            // how a disabled button behaves — no popup for a drag the
-            // user can already see isn't highlighted as acceptable.
-            guard
-                !libraryStore.isLocked
-            else {
-                return false
-            }
-
-
-            guard
-                let provider =
-                    providers.first
-            else {
-                return false
-            }
-
-            _ =
-                provider.loadObject(
-                    ofClass:
-                        NSString.self
-                ) { reading, _ in
-
-                    guard
-                        let marker =
-                            reading as? String,
-                        marker == "setlist-to-tanda"
-                    else {
-                        return
-                    }
-
-
-                    DispatchQueue.main.async {
-
-                        saveSetlistSelectionAsTanda()
-                    }
-                }
-
-            return true
         }
         .task(
             id:
@@ -1072,6 +1307,14 @@ private struct TandaBlock:
     let missingSongIDs:
         Set<Int64>
 
+    /// The ONE shared "which target is currently hovered" state from
+    /// TandaLibraryView — see SetlistDropTarget's doc comment for why
+    /// this is passed in rather than each TandaBlock keeping its own
+    /// independent @State (that's exactly what let two borders show
+    /// at once before).
+    let currentDropTarget:
+        Binding<SetlistDropTarget?>
+
     let onSelectHeader:
         () -> Void
 
@@ -1105,12 +1348,47 @@ private struct TandaBlock:
     private var commentFieldIsFocused:
         Bool
 
-    // Drop-hover visual feedback for the Setlist-to-THIS-Tanda
-    // append drag — separate from the Tanda Library's own
-    // isTargetedForTandaSave (background = create new).
-    @State
-    private var isTargetedForAppend =
-        false
+    /// Whether THIS Tanda is the one currently hovered for an append
+    /// drop — computed from the shared `currentDropTarget`, not its
+    /// own @State (see that property's doc comment above).
+    private var isTargetedForAppend:
+        Bool {
+
+        currentDropTarget.wrappedValue ==
+            .tanda(tanda.sourceURL)
+    }
+
+    /// Whether Tanda A's "selected" indicators — the accent border AND
+    /// the per-row delete "x"s — should currently show. Both are tied
+    /// to this ONE property (not to `isSelected` directly) so they
+    /// always change together, never one without the other:
+    /// - Not selected at all → false, always.
+    /// - Selected, no Setlist drag active right now → true.
+    /// - Selected, AND a drag is currently hovering somewhere ELSE
+    ///   (the background lane, or a different Tanda) → false. Seeing
+    ///   this Tanda's "you can delete tracks here" x's while a drag is
+    ///   visibly aimed at a DIFFERENT Tanda would be a stale, confusing
+    ///   signal — so both stand down together while that's happening.
+    /// - Selected, AND the drag is hovering THIS Tanda (about to
+    ///   append here) → true. Being the current drop target doesn't
+    ///   conflict with being selected — they're about the same block,
+    ///   so both stay visible (deliberately chosen; the alternative of
+    ///   also hiding them here was considered and rejected).
+    private var showsSelectionState:
+        Bool {
+
+        guard isSelected else {
+            return false
+        }
+
+        guard
+            let target = currentDropTarget.wrappedValue
+        else {
+            return true
+        }
+
+        return target == .tanda(tanda.sourceURL)
+    }
 
     // Gates the append-drop and the per-row delete button, same lock
     // as everything else that mutates a Tanda (Delete Tanda, Add
@@ -1118,13 +1396,6 @@ private struct TandaBlock:
     @EnvironmentObject
     private var libraryStore:
         LibraryStore
-
-    // Read at append-drop time for the Setlist's current selection —
-    // same source TandaLibraryView's own saveSetlistSelectionAsTanda()
-    // reads from.
-    @EnvironmentObject
-    private var playlistStore:
-        PlaylistStore
 
     /// Fixed width of the leading delete-button column, shared between
     /// the column header (as a leading spacer) and every song row, so
@@ -1514,13 +1785,13 @@ private struct TandaBlock:
                             .leading
                     )
                     .opacity(
-                        isSelected &&
+                        showsSelectionState &&
                         !libraryStore.isLocked
                         ? 1
                         : 0
                     )
                     .disabled(
-                        !isSelected
+                        !showsSelectionState
                         || libraryStore.isLocked
                         || tanda.songs.count <= 3
                     )
@@ -1584,19 +1855,27 @@ private struct TandaBlock:
             vertical:
                 false
         )
+        // Selection border (from clicking the header) — tied to the
+        // same `showsSelectionState` as the per-row delete "x"s above,
+        // so both always change together (see that property's doc
+        // comment for the exact cases). Falls back to the plain
+        // unselected look whenever they're standing down; the
+        // selection itself isn't cleared, just visually stood down —
+        // it reappears exactly as it was once showsSelectionState goes
+        // back to true (drag ends, or moves onto this Tanda itself).
         .overlay(
             RoundedRectangle(
                 cornerRadius:
                     6
             )
             .stroke(
-                isSelected
+                showsSelectionState
                 ? Color.accentColor
                 : Color.secondary.opacity(
                     0.25
                 ),
                 lineWidth:
-                    isSelected
+                    showsSelectionState
                     ? 2
                     : 1
             )
@@ -1616,61 +1895,30 @@ private struct TandaBlock:
         // =========================================================
 
         .overlay(
-            isTargetedForAppend &&
-            !libraryStore.isLocked
-            ? RoundedRectangle(
+            setlistDropFeedback(
+                isTargeted:
+                    isTargetedForAppend,
+                isLocked:
+                    libraryStore.isLocked,
                 cornerRadius:
                     6
             )
-            .stroke(
-                Color.accentColor,
-                lineWidth:
-                    3
-            )
-            : nil
         )
         .onDrop(
             of:
                 [.text],
-            isTargeted:
-                $isTargetedForAppend
-        ) { providers in
-
-            guard
-                !libraryStore.isLocked
-            else {
-                return false
-            }
-
-            guard
-                let provider =
-                    providers.first
-            else {
-                return false
-            }
-
-            _ =
-                provider.loadObject(
-                    ofClass:
-                        NSString.self
-                ) { reading, _ in
-
-                    guard
-                        let marker =
-                            reading as? String,
-                        marker == "setlist-to-tanda"
-                    else {
-                        return
-                    }
-
-                    DispatchQueue.main.async {
-
-                        onDropAppend()
-                    }
-                }
-
-            return true
-        }
+            delegate:
+                SetlistToTandaDropDelegate(
+                    isLocked:
+                        libraryStore.isLocked,
+                    target:
+                        .tanda(tanda.sourceURL),
+                    current:
+                        currentDropTarget,
+                    onDrop:
+                        onDropAppend
+                )
+        )
 
 
         // =========================================================

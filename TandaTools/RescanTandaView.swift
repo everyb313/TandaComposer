@@ -35,7 +35,10 @@ struct RescanTandaView: View {
         TandaStore()
 
     /// The pending preview from `previewRescan` — nil before the
-    /// first scan, or once its fixes have been applied/discarded.
+    /// first scan, or once explicitly discarded. Deliberately stays
+    /// populated after Apply too (applyPendingFixes never clears it) —
+    /// the applied view still needs it to know WHICH Tandas were
+    /// touched; see lastSummary below for the actual outcome counts.
     @State
     private var pendingFixes: [TandaRescanFix]?
 
@@ -223,11 +226,28 @@ struct RescanTandaView: View {
 
                 } else {
 
+                    // Before Apply: these are what the preview FOUND
+                    // (an intent), read from pendingFixes. After Apply:
+                    // deliberately read the ACTUAL outcome from
+                    // lastSummary instead of recomputing the same shape
+                    // from pendingFixes again — pendingFixes still holds
+                    // every fix that was ATTEMPTED, which would silently
+                    // over-count if any of them ended up in
+                    // lastSummary.failedWrites below.
                     let totalFixed =
-                        pendingFixes.reduce(0) { $0 + $1.fixedSongCount }
+                        isApplied
+                        ? (lastSummary?.fixedReferenceCount ?? 0)
+                        : pendingFixes.reduce(0) { $0 + $1.fixedSongCount }
 
                     let totalRenamed =
-                        pendingFixes.filter { $0.rename != nil }.count
+                        isApplied
+                        ? (lastSummary?.renamedTandaCount ?? 0)
+                        : pendingFixes.filter { $0.rename != nil }.count
+
+                    let tandaCount =
+                        isApplied
+                        ? (lastSummary?.updatedTandaCount ?? 0)
+                        : pendingFixes.count
 
                     let summarySubject =
                         totalRenamed > 0
@@ -236,8 +256,8 @@ struct RescanTandaView: View {
 
                     Label(
                         isApplied
-                        ? "\(summarySubject) fixed across \(pendingFixes.count) Tanda(s)."
-                        : "\(summarySubject) found across \(pendingFixes.count) Tanda(s) — click \"Apply Fixes\" to fix and save them.",
+                        ? "\(summarySubject) fixed across \(tandaCount) Tanda(s)."
+                        : "\(summarySubject) found across \(tandaCount) Tanda(s) — click \"Apply Fixes\" to fix and save them.",
                         systemImage:
                             isApplied
                             ? "checkmark.circle.fill"

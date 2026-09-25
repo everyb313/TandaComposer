@@ -2161,7 +2161,7 @@ private struct LibraryModeHelpView: View {
                 "and saving them as Tandas. The system " +
                 "automatically recognizes the orchestra and " +
                 "singer combinations and adds the corresponding " +
-                "Tandas to the Smartlist. This allows you to " +
+                "Tandas to a Tanda Folder. This allows you to " +
                 "quickly find the right Tandas by orchestra and " +
                 "singer when building your setlist."
         ),
