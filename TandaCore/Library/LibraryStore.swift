@@ -180,6 +180,65 @@ public final class LibraryStore: ObservableObject {
         try reload()
     }
 
+    // MARK: - Tag Editing
+    //
+    // Applies already-written-to-disk tag values to the matching
+    // cached rows — call this AFTER TagEditingActions has
+    // successfully written the SAME values to the actual audio files
+    // via AudioTagKit, never instead of it. Deliberately takes plain
+    // optional values rather than AudioTagKit's own TagChanges, so
+    // LibraryStore (part of TandaCore) stays free of any dependency
+    // on AudioTagKit — that translation is TagEditingActions' job.
+    //
+    // Reuses the exact same "write to DB, then reload()" shape
+    // deleteSongs(ids:) above already uses, rather than surgically
+    // patching `songs` in memory.
+    //
+    // A nil parameter leaves that field untouched on every song (same
+    // meaning as a nil TagChanges field) — there's no way to
+    // explicitly blank out a tag through this method; leaving a field
+    // empty in the UI is indistinguishable from never having touched
+    // it. Wiping a tag entirely, if ever needed, is a separate
+    // concern (see AudioTagKit's TagWriter.strip).
+    public func updateSongTags(
+        ids: Set<Int64>,
+        title: String?,
+        artist: String?,
+        albumArtist: String?,
+        genre: String?,
+        year: Int?,
+        comment: String?
+    ) throws {
+
+        guard
+            !ids.isEmpty,
+            title != nil || artist != nil || albumArtist != nil
+                || genre != nil || year != nil || comment != nil
+        else {
+            return
+        }
+
+        try db.dbQueue.write { db in
+
+            var songsToUpdate =
+                try Song.filter(ids: ids).fetchAll(db)
+
+            for index in songsToUpdate.indices {
+
+                if let v = title { songsToUpdate[index].title = v }
+                if let v = artist { songsToUpdate[index].artist = v }
+                if let v = albumArtist { songsToUpdate[index].albumArtist = v }
+                if let v = genre { songsToUpdate[index].genre = v }
+                if let v = year { songsToUpdate[index].year = v }
+                if let v = comment { songsToUpdate[index].comment = v }
+
+                try songsToUpdate[index].update(db)
+            }
+        }
+
+        try reload()
+    }
+
     // MARK: - Import Sources
     //
     // "Add Files"/"Add Folder" records one `ImportSource` row per

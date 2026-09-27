@@ -33,6 +33,7 @@ struct MP4TagWriter: TagWriter {
 
         setOrReplace(&items, key: .iTunesMetadataKeySongName, value: changes.title)
         setOrReplace(&items, key: .iTunesMetadataKeyArtist, value: changes.artist)
+        setOrReplace(&items, key: .iTunesMetadataKeyAlbumArtist, value: changes.albumArtist)
         setOrReplace(&items, key: .iTunesMetadataKeyAlbum, value: changes.album)
         setOrReplace(&items, key: .iTunesMetadataKeyUserGenre, value: changes.genre)
         setOrReplace(&items, key: .iTunesMetadataKeyTrackNumber, value: changes.track)

@@ -158,6 +158,22 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   <div class="callout">
     <strong>These are filters, not musical recommendations.</strong> The classification is based on the track's Genre information and the application's matching rules.
   </div>
+
+  <h3>Edit track tags (experimental)</h3>
+  <p class="lead">Select one or more tracks, then click <strong>Edit Tags…</strong> to change Title, Orchestra, Singer, Genre, Year or Comment directly on the audio file(s) — no need to leave TandaComposer for a separate tagging tool.</p>
+  <ul class="bullets">
+    <li><strong>Select several tracks</strong> to edit them together — a field only shows a value if every selected track already shares it; otherwise it starts blank ("Multiple Values"). Typing something into a field sets it for <strong>all</strong> selected tracks.</li>
+    <li><strong>Leaving a field blank leaves it unchanged</strong> — there is currently no way to clear a tag to empty through this dialog.</li>
+    <li>Changes are written to the file itself (a backup of the original is kept automatically), then reflected in the Library.</li>
+  </ul>
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — Edit Tags</b>
+    The Edit Tags dialog for one or more selected tracks.
+  </div>
+  <div class="callout"><strong>Library lock applies here too.</strong> Edit Tags needs the Library unlocked, same as Add Files.</div>
+  <div class="callout">
+    <strong>Experimental.</strong> This is a new feature and hasn't seen as much real-world testing yet as the rest of the app. It covers FLAC, MP3, M4A/AAC and AIFF files.
+  </div>
 </section>
 
 <section class="chapter" id="setlist">
@@ -219,6 +235,22 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     <li><strong>Drag the selection to the Tanda Library</strong><p>TandaComposer validates the selection and saves the Tanda.</p></li>
     <li><strong>Organize it for later</strong><p>Place it in the appropriate Tanda Library folder / Smartlist structure if desired.</p></li>
   </ol>
+
+  <h3>Edit a saved Tanda</h3>
+  <p class="lead">You don't need to delete and recreate a Tanda just to add or remove a track — an existing Tanda can be edited directly in the Tanda Library.</p>
+  <ul class="bullets">
+    <li><strong>Select a Tanda</strong> — click its title / track-count. Click it again to deselect. (Clicking elsewhere in the same header, such as the comment field, does not select or deselect it.)</li>
+    <li><strong>Add tracks from the Setlist</strong> — select them in the Setlist, then drag the selection directly onto the Tanda you want to add them to (rather than onto empty space, which creates a new Tanda instead).</li>
+    <li><strong>Remove a single track</strong> — with the Tanda selected, click the small red "x" next to the track. It only appears for the selected Tanda, and only once at least 4 tracks remain (a Tanda can't go below 3).</li>
+  </ul>
+  <div class="shot small-shot">
+    <b>SCREENSHOT PLACEHOLDER — Editing a Tanda</b>
+    A selected Tanda with the per-track remove control visible.
+  </div>
+  <div class="callout"><strong>The Library lock applies here too.</strong> Both actions above need the Library unlocked, same as creating or deleting a Tanda.</div>
+  <div class="callout">
+    <strong>The Tanda's name and folder don't update automatically.</strong> A Tanda's file name and Tanda Library folder are chosen once, from the Orchestra/Singer/Genre of its tracks at the time it's created. Editing its tracks afterwards never renames or moves the file — even if the change means the name no longer quite fits. If that drift bothers you, <strong>Rescan TandaLibrary</strong> (see Maintenance) will offer to rename/refile it to match.
+  </div>
 </section>
 
 <section class="chapter" id="smartlists">
@@ -317,7 +349,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
 
 <section class="chapter" id="maintenance">
   <div class="head"><span class="chapter-num">10</span><h2>Maintenance</h2></div>
-  <p class="lead">Normally you only need Maintenance when music files have been moved, renamed, deleted or are temporarily unavailable.</p>
+  <p class="lead">Normally you only need Maintenance when music files have been moved, renamed, deleted or are temporarily unavailable — or, for Tandas, after editing a Tanda's tracks leaves its saved name a poor fit.</p>
 
   <div class="shot half-shot">
     <b>SCREENSHOT PLACEHOLDER — Maintenance menu</b>
@@ -333,7 +365,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   <div class="cardgrid">
     <div class="card"><h4>Rescan TrackLibrary</h4><p>Re-check imported folders for new, moved or missing files.</p></div>
     <div class="card"><h4>Rescan Setlist</h4><p>Re-check the current Setlist against the Library.</p></div>
-    <div class="card"><h4>Rescan TandaLibrary</h4><p>Re-check saved Tandas against the Library, including outdated saved paths.</p></div>
+    <div class="card"><h4>Rescan TandaLibrary</h4><p>Re-check saved Tandas against the Library, including outdated saved paths and Tandas whose name/folder no longer matches their current tracks.</p></div>
     <div class="card"><h4>Rescan Saved Setlists</h4><p>Re-check saved Setlists, including ones that are not currently open.</p></div>
   </div>
 
@@ -402,6 +434,10 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Reuse tracks from an old Setlist</td><td>Select tracks in a saved Setlist → copy/drag to the current Setlist</td></tr>
       <tr><td>Use a prepared Tanda</td><td>Find it in Tanda Library → drag to Setlist</td></tr>
       <tr><td>Create a Tanda</td><td>Select 3–8 Setlist tracks → drag to Tanda Library</td></tr>
+      <tr><td>Select / deselect a Tanda</td><td>Click its title / track-count; click again to deselect</td></tr>
+      <tr><td>Add tracks to an existing Tanda</td><td>Select Setlist tracks → drag onto that Tanda</td></tr>
+      <tr><td>Remove a track from a Tanda</td><td>Select the Tanda → click the red "x" next to the track</td></tr>
+      <tr><td>Edit track tags (experimental)</td><td>Select track(s) in Track Library → Edit Tags…</td></tr>
       <tr><td>Narrow a large Track Library</td><td>Apply a Track Smartlist</td></tr>
       <tr><td>Quick type filter</td><td>A / T / V / M / X buttons</td></tr>
       <tr><td>Filter Tanda Library</td><td>Double-click a Tanda Library folder / Smartlist; optionally use A / T / V / M / X</td></tr>

@@ -33,12 +33,13 @@ public struct CanonicalTags {
     public var grouping: String?
     public var comment: String?
 
-    /// albumArtist and grouping are deliberately NOT carried into
-    /// TagChanges — the writers (FLACWriter/ID3Writer/AIFFWriter/
-    /// MP4TagWriter) don't support writing them yet, so these are
-    /// read-only additions for now.
+    /// grouping is deliberately NOT carried into TagChanges — none of
+    /// the writers (FLACWriter/ID3Writer/AIFFWriter/MP4TagWriter)
+    /// support writing it yet, so it's a read-only addition for now.
+    /// albumArtist WAS in that same boat until the writers gained
+    /// support for it — now carried through like every other field.
     public func asTagChanges() -> TagChanges {
-        TagChanges(title: title, artist: artist, album: album, genre: genre, track: track, year: year, comment: comment)
+        TagChanges(title: title, artist: artist, albumArtist: albumArtist, album: album, genre: genre, track: track, year: year, comment: comment)
     }
 
     public static func extract(from metadata: [String: Any]) -> CanonicalTags {

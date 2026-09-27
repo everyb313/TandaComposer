@@ -39,6 +39,7 @@ enum TagWriteError: Error, CustomStringConvertible {
 public struct TagChanges {
     public var title: String?
     public var artist: String?
+    public var albumArtist: String?
     public var album: String?
     public var genre: String?
     public var track: String?
@@ -48,6 +49,7 @@ public struct TagChanges {
     public init(
         title: String? = nil,
         artist: String? = nil,
+        albumArtist: String? = nil,
         album: String? = nil,
         genre: String? = nil,
         track: String? = nil,
@@ -56,6 +58,7 @@ public struct TagChanges {
     ) {
         self.title = title
         self.artist = artist
+        self.albumArtist = albumArtist
         self.album = album
         self.genre = genre
         self.track = track
@@ -64,7 +67,7 @@ public struct TagChanges {
     }
 
     public var isEmpty: Bool {
-        title == nil && artist == nil && album == nil
+        title == nil && artist == nil && albumArtist == nil && album == nil
             && genre == nil && track == nil && year == nil && comment == nil
     }
 }

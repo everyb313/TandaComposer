@@ -68,6 +68,9 @@ struct SmartListFilteredLibraryView:
     @State private var cleanUpErrorMessage:
         String?
 
+    @State private var isShowingEditTagsSheet =
+        false
+
 
     var body: some View {
 
@@ -141,6 +144,33 @@ struct SmartListFilteredLibraryView:
                         : "Remove tracks that were not found on disk at the last check from the Library"
                     )
                 }
+
+
+                // MARK: Edit Tags…
+
+                Button {
+
+                    isShowingEditTagsSheet = true
+
+                } label: {
+
+                    Label(
+                        "Edit Tags…",
+                        systemImage:
+                            "tag"
+                    )
+                }
+                .disabled(
+                    libraryStore.isLocked
+                    || selectedSongsForTagEdit.isEmpty
+                )
+                .help(
+                    libraryStore.isLocked
+                    ? "Unlock the Library to edit tags"
+                    : selectedSongsForTagEdit.isEmpty
+                    ? "Select one or more tracks first"
+                    : "Edit Title/Orchestra/Singer/Genre/Year/Comment for the selected track(s)"
+                )
 
 
                 // MARK: Add Files
@@ -305,6 +335,27 @@ struct SmartListFilteredLibraryView:
             )
         }
 
+        // MARK: Edit Tags Sheet
+
+        .sheet(
+            isPresented:
+                $isShowingEditTagsSheet
+        ) {
+
+            EditTagsView(
+                songs:
+                    selectedSongsForTagEdit,
+                onCancel: {
+                    isShowingEditTagsSheet = false
+                },
+                onApply: { changes in
+
+                    isShowingEditTagsSheet = false
+                    applyTagChanges(changes)
+                }
+            )
+        }
+
         .alert(
             "Couldn't Clean Up Library",
             isPresented:
@@ -353,6 +404,55 @@ struct SmartListFilteredLibraryView:
 
             cleanUpErrorMessage =
                 error.localizedDescription
+        }
+    }
+
+
+    // MARK: - Edit Tags
+    //
+    // tableSelection is Set<Int64?> (LibraryTableView's row-selection
+    // type — an optional per-row id, not necessarily every row having
+    // one), so this maps it down to actual Song values rather than
+    // passing raw ids around.
+
+    private var selectedSongsForTagEdit:
+        [Song] {
+
+        let selectedIDs =
+            Set(tableSelection.compactMap { $0 })
+
+        return filteredSongs.filter {
+            $0.id.map(selectedIDs.contains) ?? false
+        }
+    }
+
+    /// Fire-and-forget, matching how every other mutating action in
+    /// this view already reports failure (the shared `libraryErrorMessage`
+    /// alert) rather than keeping the sheet open with its own progress
+    /// state — EditTagsView itself has none, by design (see its own
+    /// doc comment).
+    private func applyTagChanges(
+        _ changes: TagChanges
+    ) {
+
+        let songs =
+            selectedSongsForTagEdit
+
+        Task {
+
+            let failedFilenames =
+                await TagEditingActions.apply(
+                    changes,
+                    to: songs,
+                    libraryStore: libraryStore
+                )
+
+            guard !failedFilenames.isEmpty else {
+                return
+            }
+
+            libraryErrorMessage =
+                "Couldn't update tags for: \(failedFilenames.joined(separator: ", "))"
         }
     }
 
@@ -549,8 +649,8 @@ struct SmartListFilteredLibraryView:
 
         normalizedGenre.contains("milonga")
             || normalizedGenre.contains("candombe")
-//            || normalizedGenre.contains("foxtrot")
-//            || normalizedGenre.contains("otra")
+            || normalizedGenre.contains("foxtrot")
+            || normalizedGenre.contains("otra")
     }
 }
 

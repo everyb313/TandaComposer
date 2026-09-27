@@ -72,10 +72,39 @@ struct FLACWriter: TagWriter {
     private static func apply(_ changes: TagChanges, to comments: inout [String: String]) {
         if let v = changes.title { comments["TITLE"] = v }
         if let v = changes.artist { comments["ARTIST"] = v }
+        if let v = changes.albumArtist {
+            setCanonical("ALBUMARTIST", aliases: ["ALBUM ARTIST", "ALBUM_ARTIST"], to: v, in: &comments)
+        }
         if let v = changes.album { comments["ALBUM"] = v }
         if let v = changes.genre { comments["GENRE"] = v }
         if let v = changes.track { comments["TRACKNUMBER"] = v }
-        if let v = changes.year { comments["DATE"] = v }
+        if let v = changes.year {
+            setCanonical("DATE", aliases: ["YEAR"], to: v, in: &comments)
+        }
         if let v = changes.comment { comments["COMMENT"] = v }
+    }
+
+    /// Writes `value` under `canonicalKey`, and ALSO refreshes any of
+    /// `aliasKeys` that ALREADY exist in `comments` with the same
+    /// value — never deletes an alias, never invents one that wasn't
+    /// already there. Vorbis comments have no single official spelling
+    /// for fields like album artist or year (real-world taggers
+    /// disagree — see CanonicalTags' own read-side fallback chains for
+    /// these same keys), so removing whichever spelling this file
+    /// happened to use, just because it isn't the one WE prefer, risks
+    /// breaking another program that specifically looks for it. Keeping
+    /// every present spelling in sync sidesteps that without ever
+    /// discarding data another tool might rely on.
+    private static func setCanonical(
+        _ canonicalKey: String,
+        aliases aliasKeys: [String] = [],
+        to value: String,
+        in comments: inout [String: String]
+    ) {
+        comments[canonicalKey] = value
+
+        for alias in aliasKeys where comments[alias] != nil {
+            comments[alias] = value
+        }
     }
 }

@@ -505,8 +505,16 @@ struct TandaLibraryView:
                                     $currentDropTarget,
                                 onSelectHeader: {
 
+                                    // Toggle: clicking the header of the
+                                    // ALREADY-selected Tanda deselects
+                                    // it, rather than only ever being
+                                    // able to select a DIFFERENT one to
+                                    // get away from the current
+                                    // selection.
                                     selectedTandaURL =
-                                        tanda.sourceURL
+                                        selectedTandaURL == tanda.sourceURL
+                                        ? nil
+                                        : tanda.sourceURL
                                 },
                                 onCommitComment: { newComment in
 
@@ -1528,37 +1536,62 @@ private struct TandaBlock:
 
             HStack {
 
-                Text(
-                    tanda.name
-                )
-                .font(
-                    .headline
-                )
-                .fontWeight(
-                    .semibold
-                )
+                // =================================================
+                // TITLE / TRACK COUNT — the select/deselect target
+                //
+                // Deliberately its OWN tap target, not the whole
+                // header row — the comment field below needs the
+                // row's old click-through behavior preserved (see its
+                // own comment), and a plain toggle on the whole row
+                // would mean clicking into an ALREADY-selected Tanda's
+                // comment field to edit it also deselects it in the
+                // same click. Narrowing the toggle to just this
+                // title/count group avoids that; the row-wide
+                // background highlight below is untouched, only the
+                // CLICKABLE area for select/deselect is smaller now.
+                // =================================================
+
+                HStack {
+
+                    Text(
+                        tanda.name
+                    )
+                    .font(
+                        .headline
+                    )
+                    .fontWeight(
+                        .semibold
+                    )
 
 
-                Text(
-                    "\(tanda.songs.count) tracks"
+                    Text(
+                        "\(tanda.songs.count) tracks"
+                    )
+                    .font(
+                        .caption2
+                    )
+                    .foregroundStyle(
+                        .secondary
+                    )
+                }
+                .contentShape(
+                    Rectangle()
                 )
-                .font(
-                    .caption2
-                )
-                .foregroundStyle(
-                    .secondary
-                )
+                .onTapGesture {
+
+                    onSelectHeader()
+                }
 
 
                 // =================================================
                 // COMMENT
                 //
-                // Inline, right next to the track count. The row's
-                // own select-on-click below uses simultaneousGesture
-                // (not onTapGesture) specifically so it doesn't
-                // intercept the click a user needs to focus/type into
-                // this field — onTapGesture claims the touch
-                // exclusively, simultaneousGesture lets both fire.
+                // Inline, right next to the track count. No longer
+                // shares a gesture with the select/deselect toggle at
+                // all — that now lives ONLY on the title/track-count
+                // group above, specifically so clicking in here to
+                // edit the comment never also toggles this Tanda's
+                // selection off (see that group's own comment).
                 // =================================================
 
                 TextField(
@@ -1637,16 +1670,6 @@ private struct TandaBlock:
             )
             .contentShape(
                 Rectangle()
-            )
-            .simultaneousGesture(
-                TapGesture(
-                    count:
-                        1
-                )
-                .onEnded {
-
-                    onSelectHeader()
-                }
             )
 
 

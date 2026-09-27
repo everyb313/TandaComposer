@@ -36,6 +36,7 @@ struct ID3Writer: TagWriter {
         var newFrames: [Data] = []
         if let v = changes.title { newFrames.append(ID3FrameCodec.textFrame("TIT2", v)) }
         if let v = changes.artist { newFrames.append(ID3FrameCodec.textFrame("TPE1", v)) }
+        if let v = changes.albumArtist { newFrames.append(ID3FrameCodec.textFrame("TPE2", v)) }
         if let v = changes.album { newFrames.append(ID3FrameCodec.textFrame("TALB", v)) }
         if let v = changes.genre { newFrames.append(ID3FrameCodec.textFrame("TCON", v)) }
         if let v = changes.track { newFrames.append(ID3FrameCodec.textFrame("TRCK", v)) }
