@@ -148,21 +148,29 @@ private enum SetlistDropTarget: Equatable {
 
 // Uses the DropDelegate protocol rather than the isTargeted-closure
 // form of .onDrop specifically so dropUpdated(info:) can return an
-// explicit `.forbidden` DropProposal while the Library is locked.
-// THAT is what makes macOS show the system "not allowed" cursor
-// during hover instead of the misleading "+N" badge — the old
-// closure-form code only rejected the drop AFTER it was released
-// (inside the closure's own `guard !libraryStore.isLocked else {
-// return false }`), which is too late to affect the hover cursor;
-// the "+N" had already been shown for the whole hover.
+// explicit `.forbidden` DropProposal while the Library is locked,
+// instead of the closure form's "accept the hover, reject only after
+// release" behavior (which is too late to affect the hover cursor).
 //
-// One more macOS quirk this delegate works around: dropEntered/
-// dropExited turned out not to fire reliably for this kind of drag,
-// while dropUpdated (confirmed by the cursor itself correctly
-// flipping color) does, continuously, while hovering. So dropUpdated
-// below is the ONLY reliable place `current` gets set — there's no
-// dropEntered override at all, and dropExited (kept anyway, for the
-// cases where it does fire) is explicitly best-effort.
+// Two macOS/SwiftUI quirks this delegate works around:
+//
+// 1. dropEntered/dropExited turned out not to fire reliably for this
+//    kind of drag, while dropUpdated does, continuously, while
+//    hovering. So dropUpdated below is the ONLY reliable place
+//    `current` gets set — there's no dropEntered override at all, and
+//    dropExited (kept anyway, for the cases where it does fire) is
+//    explicitly best-effort.
+//
+// 2. SwiftUI only calls dropEntered/dropUpdated/dropExited for drags
+//    that validateDrop ACCEPTED. validateDrop used to reject while the
+//    Library was locked — which silenced dropUpdated entirely, so
+//    nothing could react to a drag hovering over a locked Library (no
+//    hint was possible, and the red cursor seen then most likely came
+//    from that rejection, not from the `.forbidden` proposal below,
+//    which never ran). validateDrop now only checks the drag's type;
+//    the lock is enforced in dropUpdated (`.forbidden`) and
+//    performDrop (returns false), and `onLockedAttempt` tells the
+//    parent so it can show a "Library is locked" hint.
 
 private struct SetlistToTandaDropDelegate: DropDelegate {
 
@@ -175,6 +183,11 @@ private struct SetlistToTandaDropDelegate: DropDelegate {
     /// value instead of a per-target Bool.
     let current: Binding<SetlistDropTarget?>
     let onDrop: () -> Void
+    /// Called whenever a drag hovers over (dropUpdated) or is released
+    /// on (performDrop) this target WHILE THE LIBRARY IS LOCKED — the
+    /// parent shows a short "Library is locked" hint in response.
+    /// Never called while unlocked.
+    let onLockedAttempt: () -> Void
 
     /// Best-effort cleanup (see the struct-level note above) — only
     /// clears if WE are still the current target, so a stale/late
@@ -187,28 +200,43 @@ private struct SetlistToTandaDropDelegate: DropDelegate {
         }
     }
 
-    /// The reliable source of both the hover cursor feedback AND the
-    /// border feedback (see the struct-level note above for why this,
-    /// not dropEntered, is where `current` gets set). Unconditionally
-    /// overwriting `current` with our own `target` on every call is
-    /// what makes setlistDropFeedback's accepted-state ring appear for
-    /// exactly one target at a time — moving onto a different target
-    /// just overwrites this again.
+    /// The reliable source of the hover cursor feedback, the border
+    /// feedback, AND the locked-Library hint (see the struct-level
+    /// notes above).
+    ///
+    /// While locked: only reports the attempt and answers `.forbidden`
+    /// — deliberately does NOT touch `current`, so a locked hover never
+    /// draws the accepted-state ring or stands down the selected
+    /// Tanda's own border/x's, and can't leave a stale `current`
+    /// behind if the drag ends without dropExited firing.
+    ///
+    /// While unlocked: unconditionally overwrites `current` with our
+    /// own `target` on every call, which is what makes
+    /// setlistDropFeedback's accepted-state ring appear for exactly
+    /// one target at a time — moving onto a different target just
+    /// overwrites this again.
     func dropUpdated(info: DropInfo) -> DropProposal? {
+
+        if isLocked {
+
+            onLockedAttempt()
+
+            return DropProposal(
+                operation: .forbidden
+            )
+        }
 
         current.wrappedValue = target
 
         return DropProposal(
-            operation:
-                isLocked
-                ? .forbidden
-                : .copy
+            operation: .copy
         )
     }
 
+    /// Type check only — the lock is NOT checked here anymore, see
+    /// note 2 in the struct-level comment above for why.
     func validateDrop(info: DropInfo) -> Bool {
 
-        !isLocked &&
         info.hasItemsConforming(
             to: [.text]
         )
@@ -219,6 +247,13 @@ private struct SetlistToTandaDropDelegate: DropDelegate {
         current.wrappedValue = nil
 
         guard !isLocked else {
+
+            // May not be reached at all if the system refuses to
+            // deliver a drop it was told is `.forbidden` — the hover
+            // hint from dropUpdated is the primary signal; this just
+            // extends it if the release does arrive.
+            onLockedAttempt()
+
             return false
         }
 
@@ -256,11 +291,12 @@ private struct SetlistToTandaDropDelegate: DropDelegate {
 
 /// Accent-colored ring shown while a "Setlist → Tanda" drag hovers
 /// over a target that would actually accept it (Library unlocked).
-/// Shown nothing while locked — Part A (SetlistToTandaDropDelegate's
-/// `.forbidden` DropProposal, which drives the system cursor itself)
-/// is the sole locked-state feedback; a previous version of this also
-/// drew a red ring + text message here for the locked case, removed
-/// again as redundant/not rendering usefully in practice.
+/// Draws nothing while locked — the locked-state feedback is the
+/// separate "Library is locked" hint banner on the ScrollView (see
+/// showLockedHint below), driven by the delegate's onLockedAttempt.
+/// An earlier attempt drew a red ring + message from THIS function
+/// instead, but never appeared: at that point validateDrop was still
+/// rejecting locked drags, so no hover callback ever ran to trigger it.
 @ViewBuilder
 private func setlistDropFeedback(
     isTargeted: Bool,
@@ -408,6 +444,20 @@ struct TandaLibraryView:
     private var currentDropTarget:
         SetlistDropTarget?
 
+    // "Library is locked" hint shown while a Setlist drag hovers over (or
+    // is released on) the Tanda Library while it's locked. Visible for
+    // a short moment after the LAST such event rather than until an
+    // exit callback — dropExited doesn't fire reliably for this drag
+    // (see SetlistToTandaDropDelegate), so a hint that waited for one
+    // could get stuck on screen.
+    @State
+    private var isShowingLockedHint =
+        false
+
+    @State
+    private var lockedHintTask:
+        Task<Void, Never>?
+
     // Status data (Status dots + bottom-bar counts) — starts empty and
     // fills in asynchronously AFTER the first frame, not before it.
     // Used to be computed synchronously inline in `body`, which meant
@@ -535,6 +585,10 @@ struct TandaLibraryView:
                                     appendSetlistSelectionToTanda(
                                         tanda
                                     )
+                                },
+                                onLockedDropAttempt: {
+
+                                    showLockedHint()
                                 }
                             )
                         }
@@ -617,6 +671,58 @@ struct TandaLibraryView:
                     )
                 }
             }
+            // "Library is locked" hint — shown while a Setlist drag
+            // hovers over / is released on the Tanda Library while
+            // it's locked (see showLockedHint). Not hit-testable, so
+            // it can never get in the way of the drop targets under it.
+            .overlay(
+                alignment:
+                    .top
+            ) {
+
+                if isShowingLockedHint &&
+                    libraryStore.isLocked {
+
+                    Label(
+                        "Library is locked — unlock it to add tracks",
+                        systemImage:
+                            "lock.fill"
+                    )
+                    .font(
+                        .system(size: 12, weight: .semibold)
+                    )
+                    .foregroundStyle(
+                        .white
+                    )
+                    .padding(
+                        .horizontal,
+                        12
+                    )
+                    .padding(
+                        .vertical,
+                        6
+                    )
+                    .background(
+                        Color.orange,
+                        in: Capsule()
+                    )
+                    .padding(
+                        .top,
+                        10
+                    )
+                    .allowsHitTesting(
+                        false
+                    )
+                    .transition(
+                        .opacity
+                    )
+                }
+            }
+            .animation(
+                .easeInOut(duration: 0.15),
+                value:
+                    isShowingLockedHint
+            )
             .onDrop(
                 of:
                     [.text],
@@ -631,6 +737,10 @@ struct TandaLibraryView:
                         onDrop: {
 
                             saveSetlistSelectionAsTanda()
+                        },
+                        onLockedAttempt: {
+
+                            showLockedHint()
                         }
                     )
             )
@@ -992,6 +1102,37 @@ struct TandaLibraryView:
     }
 
 
+    // MARK: - Locked-Library Hint
+    //
+    // Called by both drop targets (the background lane and every
+    // TandaBlock) each time a Setlist drag hovers over or is released
+    // on them while the Library is locked. Shows the hint right away
+    // and (re)starts a short timer that hides it again — every further
+    // hover update just pushes that timer back, so it stays up while
+    // the drag keeps hovering and fades shortly after it stops or
+    // leaves, without depending on any exit callback.
+
+    private func showLockedHint() {
+
+        isShowingLockedHint = true
+
+        lockedHintTask?.cancel()
+
+        lockedHintTask = Task { @MainActor in
+
+            try? await Task.sleep(
+                nanoseconds: 1_500_000_000
+            )
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            isShowingLockedHint = false
+        }
+    }
+
+
     // MARK: - Delete Song From Tanda
 
     private func deleteSong(
@@ -1341,6 +1482,13 @@ private struct TandaBlock:
     /// this only triggers the parent to read the Setlist's current
     /// selection.
     let onDropAppend:
+        () -> Void
+
+    /// Fired when a Setlist drag hovers over or is released on THIS
+    /// block while the Library is locked — the parent shows its
+    /// "Library is locked" hint. Passed straight through to this
+    /// block's SetlistToTandaDropDelegate.
+    let onLockedDropAttempt:
         () -> Void
 
     // Local editable copy — TextField needs a two-way Binding, and
@@ -1939,7 +2087,9 @@ private struct TandaBlock:
                     current:
                         currentDropTarget,
                     onDrop:
-                        onDropAppend
+                        onDropAppend,
+                    onLockedAttempt:
+                        onLockedDropAttempt
                 )
         )
 

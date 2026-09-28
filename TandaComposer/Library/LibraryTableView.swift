@@ -575,6 +575,31 @@ struct LibraryTableView:
                     [NSSortDescriptor]
         ) {
 
+            // Captured BEFORE re-sorting: how far down from the top of
+            // the currently visible area the selected row currently
+            // sits, in points. Restoring this exact offset afterward
+            // (rather than just calling scrollRowToVisible, which only
+            // scrolls the minimum distance needed and so almost always
+            // lands the row right at the top or bottom edge) is what
+            // keeps the row's ON-SCREEN position stable across a
+            // re-sort instead of visibly jumping to an edge.
+            var offsetFromViewportTop: CGFloat?
+
+            if let scrollView = tableView.enclosingScrollView,
+                let firstSelectedRow =
+                    tableView.selectedRowIndexes.first {
+
+                let rowRect =
+                    tableView.rect(ofRow: firstSelectedRow)
+
+                let visibleRect =
+                    scrollView.contentView.documentVisibleRect
+
+                offsetFromViewportTop =
+                    rowRect.origin.y - visibleRect.origin.y
+            }
+
+
             currentSortDescriptors =
                 tableView.sortDescriptors
 
@@ -583,6 +608,55 @@ struct LibraryTableView:
             tableView.reloadData()
 
             restoreSelection()
+
+            // Deliberately only here, not inside restoreSelection()
+            // itself — that's also called after ordinary data reloads
+            // (e.g. a tag edit or rescan changing some song's fields),
+            // where re-positioning the scroll on every such change
+            // would be a surprising jump unrelated to what the user
+            // actually just did.
+            if let offsetFromViewportTop,
+                let scrollView = tableView.enclosingScrollView,
+                let firstSelectedRow =
+                    tableView.selectedRowIndexes.first {
+
+                let newRowRect =
+                    tableView.rect(ofRow: firstSelectedRow)
+
+                let targetY =
+                    newRowRect.origin.y - offsetFromViewportTop
+
+                // Sorting reorders rows but never changes how many
+                // there are, so the document's total height (and
+                // therefore the valid scroll range) is unchanged —
+                // still clamped defensively rather than assumed, in
+                // case that ever stops being true.
+                let visibleHeight =
+                    scrollView.contentView.documentVisibleRect.height
+
+                let maxY =
+                    max(
+                        0,
+                        tableView.bounds.height - visibleHeight
+                    )
+
+                let clampedY =
+                    min(
+                        max(0, targetY),
+                        maxY
+                    )
+
+                scrollView.contentView.scroll(
+                    to: NSPoint(
+                        x: scrollView.contentView.bounds.origin.x,
+                        y: clampedY
+                    )
+                )
+
+                scrollView.reflectScrolledClipView(
+                    scrollView.contentView
+                )
+            }
         }
 
 
