@@ -121,7 +121,7 @@ public struct ImportSource: Codable, FetchableRecord, PersistableRecord, Identif
 
 // NOTE: The `Playlist` / `PlaylistSong` GRDB models that used to back
 // the `playlists` / `playlist_songs` tables were removed here — Setlists
-// are stored as JSON now (see PlaylistStore), so nothing in the app
+// are stored as JSON now (see SetlistStore), so nothing in the app
 // reads or writes those two structs anymore. The underlying SQLite
 // tables are intentionally left in place (see DatabaseManager) since
 // they're part of the migration history of every existing library

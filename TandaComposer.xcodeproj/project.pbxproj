@@ -7,25 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CD2C0F2F304E910200809E89 /* screenshots in Resources */ = {isa = PBXBuildFile; fileRef = CD2C0F2E304E90F800809E89 /* screenshots */; platformFilters = (macos, ); };
 		CD2C16783021DEE0001CC889 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CD2C16773021DEE0001CC889 /* GRDB */; };
-		CD7DB68330519EEA009287EE /* help_en.html in Resources */ = {isa = PBXBuildFile; fileRef = CD7DB68230519EEA009287EE /* help_en.html */; };
 		CDACF616302115B9005EBF39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDACF60F302115B9005EBF39 /* Assets.xcassets */; };
-		CDD4E2573032C7E80050A8DC /* HelpWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD4E2563032C7E80050A8DC /* HelpWebView.swift */; };
-		CDD4E2593032C7FF0050A8DC /* HelpWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD4E2583032C7FF0050A8DC /* HelpWindowView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		CD2C0F2E304E90F800809E89 /* screenshots */ = {isa = PBXFileReference; lastKnownFileType = folder; path = screenshots; sourceTree = "<group>"; };
 		CD36340A303613D7005C9DF7 /* NOTICE */ = {isa = PBXFileReference; lastKnownFileType = text; path = NOTICE; sourceTree = "<group>"; };
 		CD68E10230210DC000899C4B /* TandaComposer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TandaComposer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CD7DB68230519EEA009287EE /* help_en.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = help_en.html; sourceTree = "<group>"; };
 		CD7E0D0B3033664800E84A2B /* LICENSE_MIT */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE_MIT; sourceTree = "<group>"; };
 		CD7E0D0E30336C6100E84A2B /* GRDB.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = GRDB.txt; sourceTree = "<group>"; };
 		CD7E0D1030336D9A00E84A2B /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		CDACF60F302115B9005EBF39 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		CDD4E2563032C7E80050A8DC /* HelpWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpWebView.swift; sourceTree = "<group>"; };
-		CDD4E2583032C7FF0050A8DC /* HelpWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpWindowView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -39,16 +31,6 @@
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CD060897303217370035329E /* TandaDuplicates */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TandaDuplicates;
-			sourceTree = "<group>";
-		};
-		CD48813F30275AD900A6A99D /* TandaSmart */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TandaSmart;
-			sourceTree = "<group>";
-		};
 		CD68E10430210DC000899C4B /* TandaComposer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -57,29 +39,9 @@
 			path = TandaComposer;
 			sourceTree = "<group>";
 		};
-		CD68E1363021125200899C4B /* TandaKit */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TandaKit;
-			sourceTree = "<group>";
-		};
 		CD68E1373021126800899C4B /* TandaCore */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = TandaCore;
-			sourceTree = "<group>";
-		};
-		CD832CA6304216050044B09B /* TandaLibrary */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TandaLibrary;
-			sourceTree = "<group>";
-		};
-		CD84681C302A45B50060E09E /* TandaPreviewPlayer */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TandaPreviewPlayer;
-			sourceTree = "<group>";
-		};
-		CDC70597304133B700AFC09E /* TandaTools */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TandaTools;
 			sourceTree = "<group>";
 		};
 		CDD7061330380EB200EC5020 /* AudioTagKit */ = {
@@ -107,18 +69,11 @@
 				CD7E0D1030336D9A00E84A2B /* LICENSE */,
 				CD36340A303613D7005C9DF7 /* NOTICE */,
 				CD7E0D0A3033628800E84A2B /* Third-Party_Notices */,
-				CDD4E2533032C3300050A8DC /* Help */,
-				CD060897303217370035329E /* TandaDuplicates */,
-				CD84681C302A45B50060E09E /* TandaPreviewPlayer */,
-				CD48813F30275AD900A6A99D /* TandaSmart */,
 				CD68E1373021126800899C4B /* TandaCore */,
-				CD68E1363021125200899C4B /* TandaKit */,
 				CD68E10430210DC000899C4B /* TandaComposer */,
-				CDC70597304133B700AFC09E /* TandaTools */,
 				CD68E10330210DC000899C4B /* Products */,
 				CDACF60F302115B9005EBF39 /* Assets.xcassets */,
 				CDD7061330380EB200EC5020 /* AudioTagKit */,
-				CD832CA6304216050044B09B /* TandaLibrary */,
 			);
 			sourceTree = "<group>";
 		};
@@ -139,17 +94,6 @@
 			path = "Third-Party_Notices";
 			sourceTree = "<group>";
 		};
-		CDD4E2533032C3300050A8DC /* Help */ = {
-			isa = PBXGroup;
-			children = (
-				CD7DB68230519EEA009287EE /* help_en.html */,
-				CD2C0F2E304E90F800809E89 /* screenshots */,
-				CDD4E2583032C7FF0050A8DC /* HelpWindowView.swift */,
-				CDD4E2563032C7E80050A8DC /* HelpWebView.swift */,
-			);
-			path = Help;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -166,14 +110,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				CD060897303217370035329E /* TandaDuplicates */,
-				CD48813F30275AD900A6A99D /* TandaSmart */,
 				CD68E10430210DC000899C4B /* TandaComposer */,
-				CD68E1363021125200899C4B /* TandaKit */,
 				CD68E1373021126800899C4B /* TandaCore */,
-				CD832CA6304216050044B09B /* TandaLibrary */,
-				CD84681C302A45B50060E09E /* TandaPreviewPlayer */,
-				CDC70597304133B700AFC09E /* TandaTools */,
 				CDD7061330380EB200EC5020 /* AudioTagKit */,
 			);
 			name = TandaComposer;
@@ -228,8 +166,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				CDACF616302115B9005EBF39 /* Assets.xcassets in Resources */,
-				CD2C0F2F304E910200809E89 /* screenshots in Resources */,
-				CD7DB68330519EEA009287EE /* help_en.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,8 +176,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CDD4E2593032C7FF0050A8DC /* HelpWindowView.swift in Sources */,
-				CDD4E2573032C7E80050A8DC /* HelpWebView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,18 +311,19 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = F62X2JJ3T9;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tandacomposer.TandaComposer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -412,18 +347,19 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = F62X2JJ3T9;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tandacomposer.TandaComposer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

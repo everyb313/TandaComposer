@@ -24,7 +24,7 @@ import GRDB
 /// Owns the active GRDB connection and its database schema.
 ///
 /// The active database can be switched at runtime. LibraryStore,
-/// PlaylistStore and LibraryScanner all keep the same DatabaseManager
+/// SetlistStore and LibraryScanner all keep the same DatabaseManager
 /// instance, so switching the database automatically switches the
 /// database used by all three stores.
 public final class DatabaseManager {

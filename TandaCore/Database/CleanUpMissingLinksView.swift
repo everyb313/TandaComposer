@@ -240,7 +240,7 @@ struct CleanUpMissingLinksView: View {
     // MARK: - Cross-Reference Scan
     //
     // Read-only: loads every saved Setlist (via SetlistMetadataExporter
-    // directly, NOT the app's live PlaylistStore, so this never
+    // directly, NOT the app's live SetlistStore, so this never
     // disturbs whatever Setlist the user currently has open) and every
     // saved Tanda (a fresh, throwaway TandaStore — same pattern
     // RescanTandaView already uses), and checks which ones reference
@@ -252,7 +252,7 @@ struct CleanUpMissingLinksView: View {
             Set(missingSongs.compactMap(\.id))
 
         // Runs on the MainActor like everything else in this project
-        // (PlaylistStore/TandaStore aren't Sendable and are MainActor-
+        // (SetlistStore/TandaStore aren't Sendable and are MainActor-
         // isolated) — fine for this size of work (a few dozen Setlist/
         // Tanda files at most), just wrapped in `Task` so `isScanning`
         // still paints before the work starts.
@@ -261,7 +261,7 @@ struct CleanUpMissingLinksView: View {
             var setlistNames: [String] = []
 
             if let playlistNames =
-                try? PlaylistStore.listPlaylistNamesOnDisk() {
+                try? SetlistStore.listPlaylistNamesOnDisk() {
 
                 for name in playlistNames {
 
@@ -269,7 +269,7 @@ struct CleanUpMissingLinksView: View {
                         let export =
                             try? SetlistMetadataExporter.load(
                                 from:
-                                    PlaylistStore.fileURLOnDisk(
+                                    SetlistStore.fileURLOnDisk(
                                         forName: name
                                     )
                             )

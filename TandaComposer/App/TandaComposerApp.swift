@@ -72,7 +72,7 @@ struct TandaComposerApp: App {
                 .environmentObject(settings)
                 .environmentObject(audioOutputManager)
                 .environmentObject(environment.libraryStore)
-                .environmentObject(environment.playlistStore)
+                .environmentObject(environment.setlistStore)
                 .environmentObject(environment.scanner)
                 .environmentObject(environment.smartlistStore)
                 .environmentObject(switchConfirmationCenter)
@@ -93,8 +93,8 @@ struct TandaComposerApp: App {
 
             CommandGroup(replacing: .newItem) { }
 
-            PlaylistCommands(
-                playlistStore: environment.playlistStore,
+            SetlistCommands(
+                setlistStore: environment.setlistStore,
                 libraryStore: environment.libraryStore,
                 switchConfirmationCenter: switchConfirmationCenter
             )
@@ -102,7 +102,7 @@ struct TandaComposerApp: App {
             LibraryCommands(
                 libraryStore: environment.libraryStore,
                 switchConfirmationCenter: switchConfirmationCenter,
-                playlistStore: environment.playlistStore,
+                setlistStore: environment.setlistStore,
                 smartlistStore: environment.smartlistStore,
                 settings: settings
             )
@@ -114,7 +114,7 @@ struct TandaComposerApp: App {
             RescanCommands(
                 db: environment.db,
                 libraryStore: environment.libraryStore,
-                playlistStore: environment.playlistStore,
+                setlistStore: environment.setlistStore,
                 smartlistStore: environment.smartlistStore
             )
 
@@ -208,7 +208,7 @@ struct TandaComposerApp: App {
 
             RescanSetlistView()
                 .environmentObject(environment.libraryStore)
-                .environmentObject(environment.playlistStore)
+                .environmentObject(environment.setlistStore)
                 .environmentObject(settings)
                 .preferredColorScheme(settings.colorScheme)
         }
@@ -283,7 +283,7 @@ struct TandaComposerApp: App {
             LibraryActions.recoverFromStartupLibraryError(
                 failedLibraryName: failedLibraryName,
                 libraryStore: environment.libraryStore,
-                playlistStore: environment.playlistStore,
+                setlistStore: environment.setlistStore,
                 smartlistStore: environment.smartlistStore,
                 settings: settings
             )
@@ -297,7 +297,7 @@ struct TandaComposerApp: App {
 
         do {
 
-            try environment.playlistStore.load(
+            try environment.setlistStore.load(
                 playlistName: lastSetlist
             )
 
@@ -328,7 +328,7 @@ struct TandaComposerApp: App {
     // to run automatically with no confirmation step, unlike Rescan.
     //
     // Once missingSongIDs updates, everything downstream already
-    // reacts on its own: PlaylistView has `.onChange(of: libraryStore.
+    // reacts on its own: SetlistView has `.onChange(of: libraryStore.
     // missingSongIDs)` re-resolving Setlist entry statuses, and
     // TandaLibraryView/LibraryTableView/SmartlistView read
     // libraryStore.missingSongIDs directly in their body, so SwiftUI
@@ -408,7 +408,7 @@ final class AppEnvironment {
 
     let db: DatabaseManager
     let libraryStore: LibraryStore
-    let playlistStore: PlaylistStore
+    let setlistStore: SetlistStore
     let scanner: LibraryScanner
     let smartlistStore: SmartlistStore
 
@@ -436,7 +436,7 @@ final class AppEnvironment {
 
                 db = try DatabaseManager()
                 libraryStore = LibraryStore(db: db)
-                playlistStore = PlaylistStore(db: db)
+                setlistStore = SetlistStore(db: db)
                 scanner = LibraryScanner(db: db)
                 smartlistStore = SmartlistStore()
 
@@ -459,7 +459,7 @@ final class AppEnvironment {
 
                 db = try! DatabaseManager()
                 libraryStore = LibraryStore(db: db)
-                playlistStore = PlaylistStore(db: db)
+                setlistStore = SetlistStore(db: db)
                 scanner = LibraryScanner(db: db)
                 smartlistStore = SmartlistStore()
 
@@ -535,7 +535,7 @@ final class AppEnvironment {
             )
         }
 
-        playlistStore = PlaylistStore(db: db)
+        setlistStore = SetlistStore(db: db)
 
         scanner = LibraryScanner(
             db: db
