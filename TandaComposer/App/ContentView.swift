@@ -213,6 +213,12 @@ struct ContentView: View {
     // Owns the currently-viewed saved Setlist (Setlist mode) — entirely
     // separate from `setlistStore`, so viewing a saved Setlist here
     // never touches the actively-edited one in the Set column.
+    /// Duplicate check of the middle view (saved Setlist vs. active
+    /// Setlist). Owned here because its toggle lives in the column
+    /// header, next to the Library lock.
+    @State private var savedSetlistDuplicateCheckEnabled:
+        Bool = false
+
     @StateObject private var savedSetlistViewer =
         SavedSetlistViewerStore()
 
@@ -302,7 +308,9 @@ struct ContentView: View {
 
                             SavedSetlistViewer(
                                 viewerStore:
-                                    savedSetlistViewer
+                                    savedSetlistViewer,
+                                duplicateCheckEnabled:
+                                    $savedSetlistDuplicateCheckEnabled
                             )
                         }
                     }
@@ -1084,6 +1092,59 @@ struct ContentView: View {
                             )
                         }
                     }
+                }
+
+
+                // =====================================================
+                // SAVED SETLIST DUPLICATE CHECK
+                //
+                // Only in SavedSetlist mode while a saved Setlist is
+                // shown. Sits directly left of the Library lock.
+                // =====================================================
+
+                if libraryDisplayMode == .savedsetlist,
+                   savedSetlistViewer.setlistName != nil {
+
+                    Button {
+
+                        savedSetlistDuplicateCheckEnabled.toggle()
+
+                    } label: {
+
+                        Image(
+                            systemName:
+                                savedSetlistDuplicateCheckEnabled
+                                ? "doc.on.doc.fill"
+                                : "doc.on.doc"
+                        )
+                        .foregroundStyle(
+                            savedSetlistDuplicateCheckEnabled
+                            ? Color.orange
+                            : Color.gray
+                        )
+                        .font(
+                            .system(size: 18)
+                        )
+                    }
+                    .buttonStyle(
+                        .plain
+                    )
+                    .help(
+                        savedSetlistDuplicateCheckEnabled
+                        ? "Duplicate check is on — highlight tracks already in the active Setlist"
+                        : "Duplicate check is off"
+                    )
+                    .accessibilityLabel(
+                        "Duplicate check"
+                    )
+                    .accessibilityValue(
+                        savedSetlistDuplicateCheckEnabled
+                        ? "On"
+                        : "Off"
+                    )
+                    .accessibilityHint(
+                        "Toggles duplicate checking against the active Setlist"
+                    )
                 }
 
 

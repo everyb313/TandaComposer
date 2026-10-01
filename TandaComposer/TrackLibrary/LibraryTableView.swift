@@ -81,6 +81,12 @@ struct LibraryTableView:
     var allowsSorting:
         Bool = true
 
+    // Optional row highlighting supplied by callers that need to compare
+    // this table's songs with another set of track references. Defaults
+    // to empty so existing Library/Smartlist tables are unchanged.
+    var highlightedSongKeys:
+        Set<LibraryReferenceResolver.TrackIdentity> = []
+
 
     func makeCoordinator() -> Coordinator {
 
@@ -94,7 +100,9 @@ struct LibraryTableView:
             insertionMode:
                 insertionMode,
             settings:
-                settings
+                settings,
+            highlightedSongKeys:
+                highlightedSongKeys
         )
     }
 
@@ -376,6 +384,13 @@ struct LibraryTableView:
         context.coordinator.insertionMode =
             insertionMode
 
+        let highlightedKeysChanged =
+            context.coordinator.highlightedSongKeys !=
+            highlightedSongKeys
+
+        context.coordinator.highlightedSongKeys =
+            highlightedSongKeys
+
 
         let tagSourceChanged =
             context.coordinator.settings.orchestraSource != settings.orchestraSource ||
@@ -432,7 +447,7 @@ struct LibraryTableView:
 
             table.reloadData()
 
-        } else if tagSourceChanged {
+        } else if highlightedKeysChanged || tagSourceChanged {
 
             // Orchestra/Singer source changed in Settings — update
             // the two column headers' "(Artist)"/"(AlbumArtist)"/
@@ -487,6 +502,9 @@ struct LibraryTableView:
         var settings:
             AppSettings
 
+        var highlightedSongKeys:
+            Set<LibraryReferenceResolver.TrackIdentity>
+
         weak var tableView:
             NSTableView?
 
@@ -504,7 +522,9 @@ struct LibraryTableView:
             insertionMode:
                 SetInsertionMode,
             settings:
-                AppSettings
+                AppSettings,
+            highlightedSongKeys:
+                Set<LibraryReferenceResolver.TrackIdentity>
         ) {
 
             self.songs =
@@ -521,6 +541,9 @@ struct LibraryTableView:
 
             self.settings =
                 settings
+
+            self.highlightedSongKeys =
+                highlightedSongKeys
 
             super.init()
         }
@@ -878,6 +901,31 @@ struct LibraryTableView:
 
 
             return item
+        }
+
+
+        // MARK: Row View
+
+        func tableView(
+            _ tableView: NSTableView,
+            rowViewForRow row: Int
+        ) -> NSTableRowView? {
+
+            let rowView =
+                LibraryTableRowView()
+
+            guard songs.indices.contains(row) else {
+                return rowView
+            }
+
+            rowView.isCrossSetlistDuplicate =
+                LibraryReferenceResolver.identity(
+                    for: songs[row]
+                ).map {
+                    highlightedSongKeys.contains($0)
+                } ?? false
+
+            return rowView
         }
 
 
@@ -1378,4 +1426,33 @@ extension Notification.Name {
         Notification.Name(
             "tandaLibraryAddSelectedToSet"
         )
+}
+
+
+// MARK: - Cross-Setlist Duplicate Row
+
+private final class LibraryTableRowView: NSTableRowView {
+
+    var isCrossSetlistDuplicate = false {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    override func drawBackground(
+        in dirtyRect: NSRect
+    ) {
+
+        super.drawBackground(in: dirtyRect)
+
+        guard isCrossSetlistDuplicate else {
+            return
+        }
+
+        NSColor.systemOrange
+            .withAlphaComponent(0.25)
+            .setFill()
+
+        dirtyRect.fill()
+    }
 }

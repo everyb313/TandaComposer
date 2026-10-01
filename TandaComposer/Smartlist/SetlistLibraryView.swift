@@ -42,6 +42,10 @@ struct SavedSetlistViewer:
     var viewerStore:
         SavedSetlistViewerStore
 
+    @EnvironmentObject
+    private var setlistStore:
+        SetlistStore
+
     @State
     private var selection:
         Set<Int64?> = []
@@ -49,6 +53,79 @@ struct SavedSetlistViewer:
     @State
     private var insertionMode:
         SetInsertionMode = .add
+
+    /// Controls whether the middle view compares its saved Setlist
+    /// against the currently active Setlist. Owned by ContentView —
+    /// the toggle icon lives in the library column's title row.
+    @Binding
+    var duplicateCheckEnabled:
+        Bool
+
+    /// Tracks in the saved Setlist that already occur in the active
+    /// Setlist. Identity follows LibraryReferenceResolver: ID first,
+    /// normalized path fallback. This is intentionally derived state —
+    /// it never changes either Setlist.
+    private var duplicateSongKeys:
+        Set<LibraryReferenceResolver.TrackIdentity> {
+
+        Set(
+            setlistStore.songs.compactMap {
+                LibraryReferenceResolver.identity(for: $0)
+            }
+        )
+    }
+
+    private var savedSetlistTrustsIDs:
+        Bool {
+
+        viewerStore.savedAgainstLibraryName ==
+            AppPaths.currentLibraryName
+    }
+
+    private var highlightedSongKeys:
+        Set<LibraryReferenceResolver.TrackIdentity> {
+
+        guard duplicateCheckEnabled else {
+            return []
+        }
+
+        return Set(
+            viewerStore.songs.compactMap { song in
+                guard
+                    let identity = LibraryReferenceResolver.identity(
+                        for: song,
+                        trustID: savedSetlistTrustsIDs
+                    ),
+                    duplicateSongKeys.contains(identity)
+                else {
+                    return nil
+                }
+
+                return identity
+            }
+        )
+    }
+
+    private var crossSetlistDuplicates:
+        [Song] {
+
+        guard duplicateCheckEnabled else {
+            return []
+        }
+
+        return viewerStore.songs.filter { song in
+            guard
+                let identity = LibraryReferenceResolver.identity(
+                    for: song,
+                    trustID: savedSetlistTrustsIDs
+                )
+            else {
+                return false
+            }
+
+            return duplicateSongKeys.contains(identity)
+        }
+    }
 
 
     var body:
@@ -87,7 +164,9 @@ struct SavedSetlistViewer:
                     insertionMode:
                         insertionMode,
                     allowsSorting:
-                        false
+                        false,
+                    highlightedSongKeys:
+                        highlightedSongKeys
                 )
             }
 
@@ -110,6 +189,22 @@ struct SavedSetlistViewer:
                 .foregroundStyle(
                     .secondary
                 )
+
+                if !crossSetlistDuplicates.isEmpty {
+
+                    Text(
+                        "· \(crossSetlistDuplicates.count) already in active set"
+                    )
+                    .font(
+                        .caption
+                    )
+                    .foregroundStyle(
+                        .orange
+                    )
+                    .help(
+                        "These tracks also occur in the Setlist currently being edited."
+                    )
+                }
 
 
                 Spacer()

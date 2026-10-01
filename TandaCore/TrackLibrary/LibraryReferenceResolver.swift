@@ -43,6 +43,35 @@ import Foundation
 
 public enum LibraryReferenceResolver {
 
+    /// Stable identity used when comparing track references across
+    /// views/files. IDs are preferred because they survive file moves;
+    /// normalized paths are the fallback for legacy/unresolved songs
+    /// that have no usable ID.
+    public enum TrackIdentity: Hashable {
+        case id(Int64)
+        case normalizedPath(String)
+    }
+
+    /// Returns the same identity notion used by the saved-reference
+    /// resolver: library ID first, normalized path as fallback. Empty
+    /// paths are deliberately ignored rather than turning into a
+    /// false shared identity.
+    public static func identity(
+        for song: Song,
+        trustID: Bool = true
+    ) -> TrackIdentity? {
+
+        if trustID, let id = song.id {
+            return .id(id)
+        }
+
+        guard !song.normalizedPath.isEmpty else {
+            return nil
+        }
+
+        return .normalizedPath(song.normalizedPath)
+    }
+
     /// The result of resolving one saved `Song` against the current
     /// Library. `live` is nil when the song couldn't be matched at
     /// all (no id match, and no path match either) — callers decide
