@@ -95,6 +95,17 @@ public final class SetlistStore: ObservableObject {
     /// under the currently active library.
     @Published public private(set) var savedAgainstLibraryName: String?
 
+    /// True while the open Setlist has edits (add / insert / move /
+    /// remove, incl. their Undo/Redo) that are not in its saved file.
+    /// Reset by save, load and new. Library-status refreshes
+    /// (`resolveAgainstLibrary`) are not edits and don't set it.
+    public private(set) var hasUnsavedChanges = false
+
+    /// Bumped when the user switches away from a Setlist that has
+    /// nothing left to save — SetlistView answers with its short
+    /// "Saved" badge instead of the app showing a dialog.
+    @Published public private(set) var alreadySavedNoticeTick = 0
+
     private let db: DatabaseManager
 
     public weak var undoManager: UndoManager?
@@ -138,7 +149,11 @@ public final class SetlistStore: ObservableObject {
             // old name/entries on screen would silently show stale
             // data as if it were still current. Start fresh instead,
             // same as opening the app with nothing selected.
-            newPlaylist()
+            //
+            // Deliberately NOT newPlaylist(): that also deletes the
+            // recovery file, and by now AppPaths already points at
+            // the other Library's folder.
+            resetToEmpty(named: "Untitled Set")
             return
         }
 
@@ -150,6 +165,7 @@ public final class SetlistStore: ObservableObject {
 
         duplicateSongIDs = []
         selectedRowIndexes = []
+        hasUnsavedChanges = false
     }
 
     // MARK: - Selection
@@ -187,11 +203,12 @@ public final class SetlistStore: ObservableObject {
             store.entries.removeSubrange(
                 insertIndex..<(insertIndex + newEntries.count)
             )
+            store.noteEdited()
         }
 
         entries.append(contentsOf: newEntries)
 
-        try? autosave()
+        noteEdited()
 
         refreshDuplicatesIfActive()
     }
@@ -212,11 +229,12 @@ public final class SetlistStore: ObservableObject {
             store.entries.removeSubrange(
                 clampedIndex..<(clampedIndex + newEntries.count)
             )
+            store.noteEdited()
         }
 
         entries.insert(contentsOf: newEntries, at: clampedIndex)
 
-        try? autosave()
+        noteEdited()
 
         refreshDuplicatesIfActive()
     }
@@ -230,6 +248,7 @@ public final class SetlistStore: ObservableObject {
 
         registerUndo(actionName: "Reorder Set") { store in
             store.entries = before
+            store.noteEdited()
         }
 
         entries = Self.moved(
@@ -238,7 +257,7 @@ public final class SetlistStore: ObservableObject {
             toOffset: destination
         )
 
-        try? autosave()
+        noteEdited()
     }
 
     public func remove(atOffsets offsets: IndexSet) {
@@ -266,6 +285,8 @@ public final class SetlistStore: ObservableObject {
                     )
                 )
             }
+
+            store.noteEdited()
         }
 
         for index in offsets.sorted(by: >) {
@@ -274,7 +295,7 @@ public final class SetlistStore: ObservableObject {
 
         selectedRowIndexes = []
 
-        try? autosave()
+        noteEdited()
 
         refreshDuplicatesIfActive()
     }
@@ -459,9 +480,9 @@ public final class SetlistStore: ObservableObject {
     /// its entry, then saves the Setlist to its real file (this is a
     /// deliberate, user-approved fix, not an ordinary edit, so unlike
     /// add/remove/move it writes straight to the saved file rather
-    /// than only the "(autosaved)" backup). Returns false if the save
+    /// than only the recovery file). Returns false if the save
     /// itself failed (the fixes are still applied in memory and were
-    /// written to the autosave backup as a fallback).
+    /// written to the recovery file as a fallback).
     @discardableResult
     public func applyRescan(_ fixes: [RescanFix]) -> Bool {
 
@@ -491,7 +512,7 @@ public final class SetlistStore: ObservableObject {
             try save()
             return true
         } catch {
-            try? autosave()
+            noteEdited()
             return false
         }
     }
@@ -639,6 +660,9 @@ public final class SetlistStore: ObservableObject {
             to: newURL
         )
 
+        // The real file is on disk now — nothing left to recover.
+        clearRecovery()
+
         if deleteOldName && oldName != trimmedName {
 
             let oldURL =
@@ -651,21 +675,6 @@ public final class SetlistStore: ObservableObject {
                 try FileManager.default.removeItem(
                     at: oldURL
                 )
-
-                let oldAutosaveURL =
-                    fileURL(
-                        forName:
-                            "\(oldName) (autosaved)"
-                    )
-
-                if FileManager.default.fileExists(
-                    atPath: oldAutosaveURL.path
-                ) {
-
-                    try? FileManager.default.removeItem(
-                        at: oldAutosaveURL
-                    )
-                }
             }
         }
 
@@ -679,24 +688,145 @@ public final class SetlistStore: ObservableObject {
         refreshSavedPlaylistNames()
     }
 
-    // MARK: - Autosave
+    // MARK: - Recovery (unsaved edits)
+    //
+    // One recovery file per TrackLibrary, in that Library's Setlists
+    // folder, holding the open Setlist's current state while it has
+    // edits that aren't saved yet. The real Setlist file is never
+    // touched by it. Deleted on save, load and new; if the app ends
+    // with it still there, the next start offers to restore it (see
+    // `pendingRecoveryInfo()` / `restoreFromRecovery()`).
+    //
+    // The name ends in " (autosaved)" so listPlaylistNamesOnDisk()
+    // keeps it out of the Setlist lists.
 
-    private var autosaveName: String {
-        "\(name) (autosaved)"
+    private static let recoveryName = "Recovery (autosaved)"
+
+    private static var recoveryURLOnDisk: URL {
+        fileURLOnDisk(forName: recoveryName)
     }
 
-    public func autosave() throws {
+    /// Every user edit goes through here.
+    private func noteEdited() {
 
-        try FileManager.default.createDirectory(
+        hasUnsavedChanges = true
+
+        try? FileManager.default.createDirectory(
             at: AppPaths.playlistsFolder,
             withIntermediateDirectories: true
         )
 
-        try SetlistMetadataExporter.export(
+        try? SetlistMetadataExporter.export(
             songs: self.songs,
             playlistName: self.name,
-            to: fileURL(forName: autosaveName)
+            to: Self.recoveryURLOnDisk,
+            savedAgainstLibraryName: savedAgainstLibraryName
         )
+    }
+
+    private func clearRecovery() {
+
+        hasUnsavedChanges = false
+
+        try? FileManager.default.removeItem(
+            at: Self.recoveryURLOnDisk
+        )
+    }
+
+    /// What the start-up question needs to show.
+    public struct RecoveryInfo {
+        public let name: String
+        public let songCount: Int
+        public let savedAt: Date
+        /// Song count of the saved file with the same name, if any.
+        public let savedFileSongCount: Int?
+        /// The saved file was modified after the recovered edits.
+        public let savedFileIsNewer: Bool
+    }
+
+    /// Non-nil if a previous session ended with unsaved edits.
+    public static func pendingRecoveryInfo() -> RecoveryInfo? {
+
+        guard
+            FileManager.default.fileExists(
+                atPath: recoveryURLOnDisk.path
+            ),
+            let recovered = try? SetlistMetadataExporter.load(
+                from: recoveryURLOnDisk
+            )
+        else {
+            return nil
+        }
+
+        let originalURL =
+            fileURLOnDisk(forName: recovered.playlistName)
+
+        let original =
+            try? SetlistMetadataExporter.load(from: originalURL)
+
+        let originalModified =
+            (try? FileManager.default.attributesOfItem(
+                atPath: originalURL.path
+            ))?[.modificationDate] as? Date
+
+        return RecoveryInfo(
+            name: recovered.playlistName,
+            songCount: recovered.songs.count,
+            savedAt: recovered.savedAt,
+            savedFileSongCount: original?.songs.count,
+            savedFileIsNewer:
+                (originalModified ?? .distantPast) > recovered.savedAt
+        )
+    }
+
+    /// Opens the recovered state as the current Setlist. The saved
+    /// file stays untouched until the user saves; the recovery file
+    /// stays until then too.
+    public func restoreFromRecovery() throws {
+
+        let recovered = try SetlistMetadataExporter.load(
+            from: Self.recoveryURLOnDisk
+        )
+
+        name = recovered.playlistName
+
+        entries = recovered.songs.map {
+            SetlistEntry(song: $0)
+        }
+
+        savedAgainstLibraryName = recovered.savedAgainstLibraryName
+
+        duplicateSongIDs = []
+        selectedRowIndexes = []
+
+        UserDefaults.standard.set(
+            name,
+            forKey: AppPaths.lastPlaylistDefaultsKey
+        )
+
+        refreshSavedPlaylistNames()
+
+        hasUnsavedChanges = true
+    }
+
+    public func discardRecovery() {
+        clearRecovery()
+    }
+
+    // MARK: - Switching Feedback
+
+    /// True if the open Setlist exists as a saved file and has no
+    /// edits since — i.e. switching away loses nothing.
+    public var isSavedAndUnchanged: Bool {
+
+        !hasUnsavedChanges
+        && FileManager.default.fileExists(
+            atPath: fileURL(forName: name).path
+        )
+    }
+
+    public func announceAlreadySaved() {
+        alreadySavedNoticeTick += 1
     }
 
     // MARK: - Load
@@ -726,6 +856,9 @@ public final class SetlistStore: ObservableObject {
             name,
             forKey: AppPaths.lastPlaylistDefaultsKey
         )
+
+        // Whatever was open is saved or deliberately discarded by now.
+        clearRecovery()
 
         refreshSavedPlaylistNames()
     }
@@ -776,11 +909,23 @@ public final class SetlistStore: ObservableObject {
 
     public func newPlaylist(named newName: String) {
 
+        resetToEmpty(named: newName)
+
+        // Whatever was open is saved or deliberately discarded by now.
+        clearRecovery()
+    }
+
+    /// The reset itself, without touching any file — also used by
+    /// `refreshAfterExternalDataChange()`, where AppPaths may already
+    /// point at a different Library's folder.
+    private func resetToEmpty(named newName: String) {
+
         name = newName
         entries = []
         savedAgainstLibraryName = AppPaths.currentLibraryName
         duplicateSongIDs = []
         selectedRowIndexes = []
+        hasUnsavedChanges = false
 
         refreshSavedPlaylistNames()
 
@@ -810,13 +955,6 @@ public final class SetlistStore: ObservableObject {
         }
 
         try FileManager.default.removeItem(at: url)
-
-        let autosaveURL =
-            fileURL(forName: "\(playlistName) (autosaved)")
-
-        if FileManager.default.fileExists(atPath: autosaveURL.path) {
-            try? FileManager.default.removeItem(at: autosaveURL)
-        }
 
         refreshSavedPlaylistNames()
     }

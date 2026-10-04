@@ -233,13 +233,27 @@ private struct SetlistToTandaDropDelegate: DropDelegate {
         )
     }
 
-    /// Type check only — the lock is NOT checked here anymore, see
-    /// note 2 in the struct-level comment above for why.
+    /// True only for a drag that started in the Setlist table — it
+    /// carries SetlistDragMarker's pasteboard type. A Tanda dragged
+    /// out of this very Library is plain text too, so the `.text`
+    /// check alone can't tell the two apart; without this, dragging a
+    /// Tanda toward the Setlist made the "Library is locked" hint
+    /// appear while the drag was still hovering over this Library.
+    private var isSetlistRowDrag: Bool {
+
+        NSPasteboard(name: .drag)
+            .types?
+            .contains(SetlistDragMarker.pasteboardType) == true
+    }
+
+    /// Type check plus origin check — the lock is NOT checked here
+    /// anymore, see note 2 in the struct-level comment above for why.
     func validateDrop(info: DropInfo) -> Bool {
 
         info.hasItemsConforming(
             to: [.text]
         )
+        && isSetlistRowDrag
     }
 
     func performDrop(info: DropInfo) -> Bool {
@@ -561,6 +575,13 @@ struct TandaLibraryView:
                                     // able to select a DIFFERENT one to
                                     // get away from the current
                                     // selection.
+                                    //
+                                    // Also drops any leftover drop-hover
+                                    // target: a drag that ended without
+                                    // dropExited firing would otherwise
+                                    // leave a stale accepted-state ring.
+                                    currentDropTarget = nil
+
                                     selectedTandaURL =
                                         selectedTandaURL == tanda.sourceURL
                                         ? nil
@@ -744,6 +765,20 @@ struct TandaLibraryView:
                         }
                     )
             )
+            // The accepted-state drop ring is only drawn while
+            // unlocked, so a stale `currentDropTarget` (a drag that
+            // ended without dropExited — see SetlistToTandaDropDelegate)
+            // stays invisible while locked and used to pop up as a
+            // second, inner border around a Tanda the moment the
+            // Library was unlocked. Nothing is being dragged when the
+            // lock is toggled, so there is never a valid target to keep.
+            .onChange(
+                of:
+                    libraryStore.isLocked
+            ) { _, _ in
+
+                currentDropTarget = nil
+            }
 
 
             Divider()

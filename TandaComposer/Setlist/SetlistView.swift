@@ -252,6 +252,11 @@ struct SetlistView: View {
                 missingSongIDs: libraryStore.missingSongIDs
             )
         }
+
+        .onChange(of: setlistStore.alreadySavedNoticeTick) { _, _ in
+
+            flashSavedBadge()
+        }
     }
 
     // MARK: - Selection
@@ -273,27 +278,34 @@ struct SetlistView: View {
 
             try setlistStore.save()
 
-            withAnimation {
-
-                showSavedConfirmation = true
-            }
-
-            Task {
-
-                try? await Task.sleep(
-                    nanoseconds: 1_500_000_000
-                )
-
-                withAnimation {
-
-                    showSavedConfirmation = false
-                }
-            }
+            flashSavedBadge()
 
         } catch {
 
             saveErrorTitle = "Couldn't Save Set"
             saveErrorMessage = error.localizedDescription
+        }
+    }
+
+    /// The short green "Saved" badge next to the Save button — after
+    /// a save, and when a switch found nothing left to save.
+    private func flashSavedBadge() {
+
+        withAnimation {
+
+            showSavedConfirmation = true
+        }
+
+        Task {
+
+            try? await Task.sleep(
+                nanoseconds: 1_500_000_000
+            )
+
+            withAnimation {
+
+                showSavedConfirmation = false
+            }
         }
     }
 
@@ -307,6 +319,19 @@ struct SetlistView: View {
 }
 
 // MARK: - Playlist Table
+
+/// Pasteboard marker carried by every drag that starts in the Setlist
+/// table (rows being reordered or dragged out, e.g. onto the Tanda
+/// Library). A Tanda drag from the Tanda Library does NOT carry it —
+/// it is plain text only — which is how the Tanda Library's drop
+/// targets tell the two apart while the drag is still hovering.
+enum SetlistDragMarker {
+
+    static let pasteboardType =
+        NSPasteboard.PasteboardType(
+            "com.tandacomposer.playlist-song"
+        )
+}
 
 private struct PlaylistTableView: NSViewRepresentable {
 
@@ -699,9 +724,7 @@ private struct PlaylistTableView: NSViewRepresentable {
         NSDraggingSource {
 
         static let internalDragType =
-            NSPasteboard.PasteboardType(
-                "com.tandacomposer.playlist-song"
-            )
+            SetlistDragMarker.pasteboardType
 
         var entries: [SetlistEntry]
 

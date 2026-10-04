@@ -30,6 +30,15 @@ struct SetlistCommands: Commands {
 @ObservedObject var switchConfirmationCenter:
     SwitchConfirmationCenter
 
+@ObservedObject var specialImportSession:
+    SpecialImportSession
+
+@ObservedObject var settings:
+    AppSettings
+
+@Environment(\.openWindow)
+private var openWindow
+
 
 var body: some Commands {
 
@@ -158,6 +167,24 @@ var body: some Commands {
                     libraryStore,
                 switchConfirmationCenter:
                     switchConfirmationCenter
+            )
+        }
+
+        Button("Import Setlist (Pick Tracks)…") {
+
+            SetlistActions.specialImport(
+                session:
+                    specialImportSession,
+                libraryStore:
+                    libraryStore,
+                settings:
+                    settings,
+                openWindow: {
+                    openWindow(
+                        id:
+                            "special-import"
+                    )
+                }
             )
         }
     }

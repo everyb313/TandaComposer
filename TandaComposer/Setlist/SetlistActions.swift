@@ -40,6 +40,17 @@ enum SetlistActions {
         setlistStore: SetlistStore
     ) {
 
+        // Nothing unsaved — no question, straight to naming the new one.
+        if canSwitchWithoutAsking(setlistStore) {
+
+            promptForNewPlaylistName(
+                setlistStore:
+                    setlistStore
+            )
+
+            return
+        }
+
         let saveAlert =
             NSAlert()
 
@@ -246,6 +257,26 @@ enum SetlistActions {
             return
         }
 
+        // Nothing unsaved — open the requested Setlist right away.
+        if canSwitchWithoutAsking(setlistStore) {
+
+            do {
+
+                try setlistStore.load(
+                    playlistName:
+                        targetName
+                )
+
+            } catch {
+
+                presentError(
+                    error
+                )
+            }
+
+            return
+        }
+
         let existing =
             (try? setlistStore.listPlaylistNames())
             ?? []
@@ -305,6 +336,78 @@ enum SetlistActions {
                 }
             }
         )
+    }
+
+
+    // MARK: - Switching Without Unsaved Edits
+
+    /// True when the open Setlist has no unsaved edits, so the
+    /// Save / Don't Save question can be skipped. If the Setlist is
+    /// already on disk, SetlistView shows its short "Saved" badge as
+    /// feedback.
+    private static func canSwitchWithoutAsking(
+        _ setlistStore: SetlistStore
+    ) -> Bool {
+
+        guard !setlistStore.hasUnsavedChanges else {
+            return false
+        }
+
+        if setlistStore.isSavedAndUnchanged {
+            setlistStore.announceAlreadySaved()
+        }
+
+        return true
+    }
+
+
+    // MARK: - Restore Unsaved Edits (App Start)
+
+    /// Asked at start-up when the last session ended with unsaved
+    /// edits. Returns true for "Restore", false for "Discard".
+    static func askToRestoreUnsavedEdits(
+        _ info: SetlistStore.RecoveryInfo
+    ) -> Bool {
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+
+        var text =
+            "TandaComposer was closed with unsaved changes to "
+            + "\"\(info.name)\" (\(info.songCount) songs, last change "
+            + "\(formatter.string(from: info.savedAt)))."
+
+        if let savedCount = info.savedFileSongCount {
+
+            text += " The saved version has \(savedCount) songs."
+
+        } else {
+
+            text += " This Setlist has not been saved yet."
+        }
+
+        if info.savedFileIsNewer {
+
+            text += "\n\nNote: the saved file was changed after these edits."
+        }
+
+        text += "\n\nRestoring leaves the saved file as it is until you save."
+
+        let alert = NSAlert()
+
+        alert.messageText = "Restore unsaved changes?"
+        alert.informativeText = text
+        alert.alertStyle = .informational
+
+        alert.addButton(withTitle: "Restore")
+
+        let discardButton =
+            alert.addButton(withTitle: "Discard")
+
+        discardButton.hasDestructiveAction = true
+
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
 
@@ -532,6 +635,21 @@ enum SetlistActions {
             return
         }
 
+        // Nothing unsaved — import right away.
+        if canSwitchWithoutAsking(setlistStore) {
+
+            performImport(
+                from:
+                    sourceURL,
+                setlistStore:
+                    setlistStore,
+                libraryStore:
+                    libraryStore
+            )
+
+            return
+        }
+
         let existing =
             (try? setlistStore.listPlaylistNames())
             ?? []
@@ -752,6 +870,276 @@ enum SetlistActions {
         )
 
         alert.runModal()
+    }
+
+
+    // MARK: - Special Import (M3U8, manual assignment)
+
+    /// Manual intermediate stage next to the normal M3U8 import, which
+    /// stays untouched. Parses the file, matches every line against the
+    /// current TrackLibrary and opens the Special Import window, where
+    /// non-exact lines are assigned by hand. Nothing happens to the open
+    /// Setlist until "Create Setlist" is pressed there.
+    static func specialImport(
+        session: SpecialImportSession,
+        libraryStore: LibraryStore,
+        settings: AppSettings,
+        openWindow: () -> Void
+    ) {
+
+        let panel =
+            NSOpenPanel()
+
+        panel.title =
+            "Import Setlist (Pick Tracks)"
+
+        panel.message =
+            "Choose an M3U8 playlist or a text file with one track per line (with or without path or file suffix). Tracks without an exact path match can be picked manually."
+
+        panel.allowedContentTypes =
+            [
+                UTType(filenameExtension: "m3u8"),
+                UTType(filenameExtension: "m3u"),
+                UTType.plainText
+            ]
+            .compactMap { $0 }
+
+        panel.allowsMultipleSelection =
+            false
+
+        panel.canChooseDirectories =
+            false
+
+        guard
+            panel.runModal() == .OK,
+            let sourceURL = panel.url
+        else {
+            return
+        }
+
+        do {
+
+            let fileExtension =
+                sourceURL.pathExtension.lowercased()
+
+            let isPlaylist =
+                fileExtension == "m3u8"
+                || fileExtension == "m3u"
+
+            let tracks: [ImportedTrack]
+
+            if isPlaylist {
+
+                tracks =
+                    try M3U8Importer.importTracks(
+                        from:
+                            sourceURL
+                    )
+
+            } else {
+
+                tracks =
+                    try TextListImporter.importTracks(
+                        from:
+                            sourceURL
+                    )
+            }
+
+            guard !tracks.isEmpty else {
+
+                let alert =
+                    NSAlert()
+
+                alert.messageText =
+                    "Nothing to Import"
+
+                alert.informativeText =
+                    "The file contains no usable track entries."
+
+                alert.alertStyle =
+                    .informational
+
+                alert.runModal()
+
+                return
+            }
+
+            session.begin(
+                sourceURL:
+                    sourceURL,
+                tracks:
+                    tracks,
+                songs:
+                    libraryStore.songs,
+                settings:
+                    settings
+            )
+
+            openWindow()
+
+        } catch {
+
+            presentError(
+                error
+            )
+        }
+    }
+
+
+    /// Lands the adopted Library songs of a Special Import as a new,
+    /// saved Setlist. Same save-before-replacing question as New
+    /// Setlist; returns false when nothing was created (cancelled,
+    /// nothing adopted, or an error).
+    @discardableResult
+    static func createSetlistFromSpecialImport(
+        session: SpecialImportSession,
+        setlistStore: SetlistStore,
+        libraryStore: LibraryStore
+    ) -> Bool {
+
+        let songs =
+            session.adoptedSongs
+
+        guard !songs.isEmpty else {
+            return false
+        }
+
+        if !canSwitchWithoutAsking(setlistStore) {
+
+            let saveAlert =
+                NSAlert()
+
+            saveAlert.messageText =
+                "Save Setlist"
+
+            saveAlert.informativeText =
+                "Save \"\(setlistStore.name)\" before creating the imported Setlist?"
+
+            saveAlert.alertStyle =
+                .informational
+
+            saveAlert.addButton(
+                withTitle:
+                    "Save"
+            )
+
+            saveAlert.addButton(
+                withTitle:
+                    "Cancel"
+            )
+
+            let dontSaveButton =
+                saveAlert.addButton(
+                    withTitle:
+                        "Don't Save"
+                )
+
+            dontSaveButton.hasDestructiveAction =
+                true
+
+            switch saveAlert.runModal() {
+
+            case .alertFirstButtonReturn:
+
+                do {
+
+                    try setlistStore.save()
+
+                } catch {
+
+                    presentError(
+                        error
+                    )
+
+                    return false
+                }
+
+            case .alertThirdButtonReturn:
+
+                break
+
+            default:
+
+                return false
+            }
+        }
+
+        let existing =
+            (try? setlistStore.listPlaylistNames())
+            ?? []
+
+        let uniqueName =
+            uniqueSetlistName(
+                base:
+                    session.sourceName,
+                existingNames:
+                    existing
+            )
+
+        do {
+
+            setlistStore.newPlaylist(
+                named:
+                    uniqueName
+            )
+
+            setlistStore.add(
+                songs
+            )
+
+            try setlistStore.saveAs(
+                name:
+                    uniqueName,
+                deleteOldName:
+                    false
+            )
+
+        } catch {
+
+            presentError(
+                error
+            )
+
+            return false
+        }
+
+        setlistStore.resolveAgainstLibrary(
+            byID:
+                libraryStore.songsByID,
+            byPath:
+                libraryStore.songsByNormalizedPath,
+            missingSongIDs:
+                libraryStore.missingSongIDs
+        )
+
+        let left =
+            session.count(of: .open)
+            + session.count(of: .skipped)
+
+        let alert =
+            NSAlert()
+
+        alert.messageText =
+            "Setlist \"\(uniqueName)\" Created"
+
+        alert.informativeText =
+            left == 0
+            ? "\(songs.count) song(s) added."
+            : "\(songs.count) song(s) added, \(left) track(s) left out (open or skipped)."
+
+        alert.alertStyle =
+            .informational
+
+        alert.addButton(
+            withTitle:
+                "OK"
+        )
+
+        alert.runModal()
+
+        session.reset()
+
+        return true
     }
 
 

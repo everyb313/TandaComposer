@@ -32,6 +32,7 @@ struct TandaComposerApp: App {
 
     @StateObject private var settings: AppSettings
     @StateObject private var switchConfirmationCenter = SwitchConfirmationCenter()
+    @StateObject private var specialImportSession = SpecialImportSession()
     @StateObject private var audioOutputManager = AudioOutputManager.shared
 
     @Environment(\.openWindow)
@@ -96,7 +97,9 @@ struct TandaComposerApp: App {
             SetlistCommands(
                 setlistStore: environment.setlistStore,
                 libraryStore: environment.libraryStore,
-                switchConfirmationCenter: switchConfirmationCenter
+                switchConfirmationCenter: switchConfirmationCenter,
+                specialImportSession: specialImportSession,
+                settings: settings
             )
 
             LibraryCommands(
@@ -175,6 +178,20 @@ struct TandaComposerApp: App {
 
             DuplicateFinderView()
                 .environmentObject(environment.libraryStore)
+                .environmentObject(settings)
+                .preferredColorScheme(settings.colorScheme)
+        }
+        .windowResizability(.contentSize)
+
+        Window(
+            "Import Setlist (Pick Tracks)",
+            id: "special-import"
+        ) {
+
+            SpecialImportView()
+                .environmentObject(specialImportSession)
+                .environmentObject(environment.libraryStore)
+                .environmentObject(environment.setlistStore)
                 .environmentObject(settings)
                 .preferredColorScheme(settings.colorScheme)
         }
@@ -287,6 +304,33 @@ struct TandaComposerApp: App {
                 smartlistStore: environment.smartlistStore,
                 settings: settings
             )
+        }
+
+        // The last session ended with unsaved Setlist edits — ask
+        // before anything loads over them. "Restore" keeps the saved
+        // file untouched until the user saves.
+        if let recovery = SetlistStore.pendingRecoveryInfo() {
+
+            if SetlistActions.askToRestoreUnsavedEdits(recovery) {
+
+                do {
+
+                    try environment.setlistStore.restoreFromRecovery()
+
+                    return
+
+                } catch {
+
+                    print(
+                        "SETLIST RECOVERY ERROR:",
+                        error.localizedDescription
+                    )
+                }
+
+            } else {
+
+                environment.setlistStore.discardRecovery()
+            }
         }
 
         guard let lastSetlist = UserDefaults.standard.string(

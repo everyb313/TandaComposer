@@ -41,11 +41,11 @@ enum AppearanceMode:
     case dark
     case auto
 
-    var id: String {
+    public var id: String {
         rawValue
     }
 
-    var displayName: String {
+    public var displayName: String {
 
         switch self {
 
@@ -73,7 +73,7 @@ enum AppearanceMode:
 /// whichever raw tag field the user designates here — independently
 /// configurable, so e.g. Orchestra can come from Artist while Singer
 /// comes from Grouping.
-enum TagSource:
+public enum TagSource:
     String,
     Codable,
     CaseIterable,
@@ -83,7 +83,7 @@ enum TagSource:
     case albumArtist
     case grouping
 
-    var id: String {
+    public var id: String {
         rawValue
     }
 
