@@ -34,6 +34,13 @@ final class SpecialImportSession: ObservableObject {
 
     @Published private(set) var sourceName: String = ""
 
+    /// True while the rows are being computed off the main thread.
+    @Published private(set) var isPreparing: Bool = false
+
+    /// Distinguishes the running import from an older one that is
+    /// still computing when a new file is chosen or the session resets.
+    private var generation = 0
+
     // MARK: - Lifecycle
 
     func begin(
@@ -48,16 +55,41 @@ final class SpecialImportSession: ObservableObject {
                 .deletingPathExtension()
                 .lastPathComponent
 
-        rows =
-            SpecialImportPlanner.makeRows(
-                tracks: tracks,
-                songs: songs,
-                orchestraSource: settings.orchestraSource,
-                singerSource: settings.singerSource
-            )
+        generation += 1
+        let token = generation
+
+        rows = []
+        isPreparing = true
+
+        let orchestraSource = settings.orchestraSource
+        let singerSource = settings.singerSource
+
+        Task.detached(priority: .userInitiated) {
+
+            let built =
+                SpecialImportPlanner.makeRows(
+                    tracks: tracks,
+                    songs: songs,
+                    orchestraSource: orchestraSource,
+                    singerSource: singerSource
+                )
+
+            await MainActor.run {
+
+                guard token == self.generation else {
+                    return
+                }
+
+                self.rows = built
+                self.isPreparing = false
+            }
+        }
     }
 
     func reset() {
+
+        generation += 1
+        isPreparing = false
 
         rows = []
         sourceName = ""

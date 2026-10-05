@@ -472,6 +472,31 @@ public enum TextListImporter {
             }
         }
 
+        // Known names are stronger evidence than the position of a dash,
+        // but only where they stand on their own (see `recognizeNames`).
+        // A name that is merely part of a title ("Flores negras",
+        // "Mi dulce Amor") is left alone.
+        if let known = recognizeNames(in: text) {
+
+            if singer == nil {
+                singer = known.singer
+            }
+
+            if let orchestra = known.orchestra {
+                return Reading(
+                    artist: orchestra,
+                    title: known.title,
+                    year: year,
+                    singer: singer
+                )
+            }
+
+            // Only a singer was recognized: continue with the rest.
+            text = known.title
+        }
+
+        // Generic fallback for files without a known orchestra.
+        // This preserves the existing Artist - Title behavior.
         // "Artist - Title".
         let unified =
             text
@@ -509,6 +534,232 @@ public enum TextListImporter {
             year: year,
             singer: singer
         )
+    }
+
+    // MARK: - Known names
+
+    private struct KnownNames {
+        var orchestra: String?
+        var singer: String?
+        var title: String
+    }
+
+    /// Takes orchestra / singer names out of a line, but never out of
+    /// the middle of a title.
+    ///
+    /// - With dashes ("Di Sarli - Poema - Jorge Maciel") a part counts
+    ///   only if it consists of nothing but known names. Every other
+    ///   part stays untouched and verbatim, punctuation included.
+    /// - Without dashes ("Biagi Por una cabeza") names are taken only
+    ///   from the very start or end. Single-word singer names are never
+    ///   taken there: "Mi dulce Amor" is a title, not a singer.
+    ///
+    /// Nil when no name was recognized or nothing would be left as the
+    /// title.
+    private static func recognizeNames(
+        in line: String
+    ) -> KnownNames? {
+
+        let text = line.precomposedStringWithCanonicalMapping
+
+        let unified =
+            text
+                .replacingOccurrences(of: " \u{2013} ", with: " - ")
+                .replacingOccurrences(of: " \u{2014} ", with: " - ")
+
+        let parts =
+            unified
+                .components(separatedBy: " - ")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+        if parts.count >= 2 {
+            return recognizeNameParts(parts)
+        }
+
+        guard let only = parts.first else {
+            return nil
+        }
+
+        return recognizeEdgeNames(in: only)
+    }
+
+    private static func recognizeNameParts(
+        _ parts: [String]
+    ) -> KnownNames? {
+
+        var orchestra: String?
+        var singer: String?
+        var titleParts: [String] = []
+
+        for part in parts {
+
+            let orchestras = TracklibImportReferenceStore.matches(
+                in: part,
+                kind: .orchestra
+            )
+
+            let singers = TracklibImportReferenceStore.matches(
+                in: part,
+                kind: .singer
+            )
+
+            let all = orchestras + singers
+
+            if !all.isEmpty, consistsOnlyOfNames(part, matches: all) {
+
+                if orchestra == nil {
+                    orchestra = orchestras.first?.entry.name
+                }
+
+                if singer == nil {
+                    singer = singers.first?.entry.name
+                }
+
+            } else {
+                titleParts.append(part)
+            }
+        }
+
+        guard orchestra != nil || singer != nil,
+              !titleParts.isEmpty
+        else {
+            return nil
+        }
+
+        return KnownNames(
+            orchestra: orchestra,
+            singer: singer,
+            title: titleParts.joined(separator: " - ")
+        )
+    }
+
+    private static func recognizeEdgeNames(
+        in line: String
+    ) -> KnownNames? {
+
+        var rest = line
+        var orchestra: String?
+        var singer: String?
+
+        for _ in 0..<4 {
+
+            typealias Hit = (
+                isOrchestra: Bool,
+                match: TracklibImportReferenceStore.NameMatch
+            )
+
+            var hits: [Hit] = []
+
+            for match in TracklibImportReferenceStore.matches(
+                in: rest,
+                kind: .orchestra
+            ) {
+                hits.append((true, match))
+            }
+
+            for match in TracklibImportReferenceStore.matches(
+                in: rest,
+                kind: .singer
+            ) where rest[match.range].contains(where: \.isWhitespace) {
+                hits.append((false, match))
+            }
+
+            let atStart = hits
+                .filter { $0.match.range.lowerBound == rest.startIndex }
+                .max {
+                    rest.distance(
+                        from: $0.match.range.lowerBound,
+                        to: $0.match.range.upperBound
+                    ) < rest.distance(
+                        from: $1.match.range.lowerBound,
+                        to: $1.match.range.upperBound
+                    )
+                }
+
+            let atEnd = hits
+                .filter { $0.match.range.upperBound == rest.endIndex }
+                .max {
+                    rest.distance(
+                        from: $0.match.range.lowerBound,
+                        to: $0.match.range.upperBound
+                    ) < rest.distance(
+                        from: $1.match.range.lowerBound,
+                        to: $1.match.range.upperBound
+                    )
+                }
+
+            guard let pick = atStart ?? atEnd else {
+                break
+            }
+
+            if pick.isOrchestra {
+                orchestra = orchestra ?? pick.match.entry.name
+            } else {
+                singer = singer ?? pick.match.entry.name
+            }
+
+            rest.replaceSubrange(pick.match.range, with: " ")
+            rest = trimmedEdges(rest)
+        }
+
+        guard orchestra != nil || singer != nil, !rest.isEmpty else {
+            return nil
+        }
+
+        return KnownNames(
+            orchestra: orchestra,
+            singer: singer,
+            title: rest
+        )
+    }
+
+    /// True when `part` is nothing but the given names plus separators
+    /// and connecting words ("Di Sarli, Durán", "Biagi y Ibáñez").
+    private static func consistsOnlyOfNames(
+        _ part: String,
+        matches: [TracklibImportReferenceStore.NameMatch]
+    ) -> Bool {
+
+        var rest = part
+
+        for match in matches.sorted(
+            by: { $0.range.lowerBound > $1.range.lowerBound }
+        ) {
+            rest.replaceSubrange(match.range, with: " ")
+        }
+
+        rest = rest.replacingOccurrences(
+            of: #"\b(?:y|und|and|con|with|feat|ft|mit)\b\.?"#,
+            with: " ",
+            options: [.regularExpression, .caseInsensitive]
+        )
+
+        rest = rest.replacingOccurrences(
+            of: #"[\s\-\x{2013}\x{2014},:;|&()\[\]{}]"#,
+            with: "",
+            options: .regularExpression
+        )
+
+        return rest.isEmpty
+    }
+
+    /// Removes empty bracket pairs left behind by a removed name and
+    /// separators at both ends. Brackets that carry text stay.
+    private static func trimmedEdges(_ value: String) -> String {
+
+        let withoutEmptyBrackets =
+            value.replacingOccurrences(
+                of: #"[(\[{]\s*[)\]}]"#,
+                with: " ",
+                options: .regularExpression
+            )
+
+        let separators =
+            CharacterSet.whitespacesAndNewlines
+                .union(CharacterSet(charactersIn: "-\u{2013}\u{2014},:;|"))
+
+        return withoutEmptyBrackets.trimmingCharacters(in: separators)
     }
 
     /// "Gesang: Enrique Carbel" → "Enrique Carbel".

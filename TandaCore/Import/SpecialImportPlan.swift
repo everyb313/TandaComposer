@@ -237,8 +237,14 @@ public enum SpecialImportPlanner {
 
             // Same file name (without suffix): strongest evidence.
             var hits: [ScoredSong] =
-                index.songs(forFilenameStem: variant.title)
-                    .map { ScoredSong(song: $0, score: 1_000) }
+                matcher.filterCandidates(
+                    index.songs(forFilenameStem: variant.title),
+                    for: track.replacing(
+                        title: variant.title,
+                        artist: variant.artist
+                    )
+                )
+                .map { ScoredSong(song: $0, score: 1_000) }
 
             let retry = matcher.match(
                 track.replacing(

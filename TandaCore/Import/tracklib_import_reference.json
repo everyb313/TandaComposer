@@ -1,0 +1,473 @@
+{
+  "version": 1,
+  "description": "Reference data for TXT setlist import. Canonical names are the values used by Tracklib; aliases are recognition variants.",
+  "orchestras": [
+    {
+      "name": "Biagi",
+      "aliases": [
+        "Biagi",
+        "Rodolfo Biagi"
+      ]
+    },
+    {
+      "name": "Calo",
+      "aliases": [
+        "Calo",
+        "Caló",
+        "Miguel Caló",
+        "Miguel Calo"
+      ]
+    },
+    {
+      "name": "Canaro",
+      "aliases": [
+        "Canaro",
+        "Francisco Canaro"
+      ]
+    },
+    {
+      "name": "Carabelli",
+      "aliases": [
+        "Carabelli",
+        "Típica Carabelli",
+        "Tipica Carabelli"
+      ]
+    },
+    {
+      "name": "Demare",
+      "aliases": [
+        "Demare",
+        "Lucio Demare"
+      ]
+    },
+    {
+      "name": "Donato",
+      "aliases": [
+        "Donato",
+        "Edgardo Donato"
+      ]
+    },
+    {
+      "name": "Federico",
+      "aliases": [
+        "Federico",
+        "Enrique Federico"
+      ]
+    },
+    {
+      "name": "Firpo",
+      "aliases": [
+        "Firpo",
+        "Roberto Firpo"
+      ]
+    },
+    {
+      "name": "Fresedo",
+      "aliases": [
+        "Fresedo",
+        "Osvaldo Fresedo"
+      ]
+    },
+    {
+      "name": "Gobbi",
+      "aliases": [
+        "Gobbi",
+        "César Gobbi",
+        "Cesar Gobbi"
+      ]
+    },
+    {
+      "name": "Laurenz",
+      "aliases": [
+        "Laurenz",
+        "Pedro Laurenz"
+      ]
+    },
+    {
+      "name": "Lomuto",
+      "aliases": [
+        "Lomuto",
+        "Francisco Lomuto"
+      ]
+    },
+    {
+      "name": "Pirincho",
+      "aliases": [
+        "Pirincho"
+      ]
+    },
+    {
+      "name": "Pugliese",
+      "aliases": [
+        "Pugliese",
+        "Osvaldo Pugliese"
+      ]
+    },
+    {
+      "name": "Rodriguez",
+      "aliases": [
+        "Rodriguez",
+        "Rodríguez",
+        "Enrique Rodríguez",
+        "Enrique Rodriguez"
+      ]
+    },
+    {
+      "name": "Tanturi",
+      "aliases": [
+        "Tanturi",
+        "Ricardo Tanturi"
+      ]
+    },
+    {
+      "name": "Troilo",
+      "aliases": [
+        "Troilo",
+        "Aníbal Troilo",
+        "Anibal Troilo"
+      ]
+    },
+    {
+      "name": "Victor",
+      "aliases": [
+        "Victor"
+      ]
+    },
+    {
+      "name": "d'Agostino",
+      "aliases": [
+        "d'Agostino",
+        "Angel D'Agostino",
+        "Ángel D'Agostino"
+      ]
+    },
+    {
+      "name": "d'Arienzo",
+      "aliases": [
+        "d'Arienzo",
+        "Juan D'Arienzo",
+        "Arienzo"
+      ]
+    },
+    {
+      "name": "de Angelis",
+      "aliases": [
+        "de Angelis",
+        "Alfredo De Angelis"
+      ]
+    },
+    {
+      "name": "de Caro",
+      "aliases": [
+        "de Caro",
+        "deCaro"
+      ]
+    },
+    {
+      "name": "di Sarli",
+      "aliases": [
+        "di Sarli",
+        "Carlos Di Sarli"
+      ]
+    }
+  ],
+  "singers": [
+    {
+      "name": "Acuna",
+      "aliases": [
+        "Acuna",
+        "Acuña",
+        "Carlos Acuña",
+        "Carlos Acuna"
+      ]
+    },
+    {
+      "name": "Amor",
+      "aliases": [
+        "Amor",
+        "Jorge Omar",
+        "Jorge Amor"
+      ]
+    },
+    {
+      "name": "Duval",
+      "aliases": [
+        "Duval",
+        "Andrés Falgás",
+        "Andres Falgas"
+      ]
+    },
+    {
+      "name": "Falgas",
+      "aliases": [
+        "Falgas",
+        "Falgás",
+        "Andrés Falgás",
+        "Andres Falgas"
+      ]
+    },
+    {
+      "name": "Ibanez",
+      "aliases": [
+        "Ibanez",
+        "Ibáñez"
+      ]
+    },
+    {
+      "name": "Ortiz",
+      "aliases": [
+        "Ortiz",
+        "Carlos Ortiz"
+      ]
+    },
+    {
+      "name": "Beron",
+      "aliases": [
+        "Beron",
+        "Berón",
+        "Raúl Berón",
+        "Raul Beron"
+      ]
+    },
+    {
+      "name": "Iriarte",
+      "aliases": [
+        "Iriarte",
+        "Roberto Iriarte"
+      ]
+    },
+    {
+      "name": "Podesta",
+      "aliases": [
+        "Podesta",
+        "Podestá",
+        "Alberto Podestá",
+        "Alberto Podesta"
+      ]
+    },
+    {
+      "name": "Fama",
+      "aliases": [
+        "Fama",
+        "Ada Falcón",
+        "Ada Falcone"
+      ]
+    },
+    {
+      "name": "Maida",
+      "aliases": [
+        "Maida"
+      ]
+    },
+    {
+      "name": "Roldan",
+      "aliases": [
+        "Roldan",
+        "Roldán"
+      ]
+    },
+    {
+      "name": "Arrieta",
+      "aliases": [
+        "Arrieta",
+        "Horacio Arrieta"
+      ]
+    },
+    {
+      "name": "Miranda",
+      "aliases": [
+        "Miranda",
+        "Juan Carlos Miranda"
+      ]
+    },
+    {
+      "name": "Quintana",
+      "aliases": [
+        "Quintana"
+      ]
+    },
+    {
+      "name": "Lagos",
+      "aliases": [
+        "Lagos"
+      ]
+    },
+    {
+      "name": "Varela",
+      "aliases": [
+        "Varela"
+      ]
+    },
+    {
+      "name": "Mayel",
+      "aliases": [
+        "Mayel"
+      ]
+    },
+    {
+      "name": "Ray",
+      "aliases": [
+        "Ray"
+      ]
+    },
+    {
+      "name": "Ruiz",
+      "aliases": [
+        "Ruiz"
+      ]
+    },
+    {
+      "name": "Serpa",
+      "aliases": [
+        "Serpa"
+      ]
+    },
+    {
+      "name": "Casas",
+      "aliases": [
+        "Casas",
+        "Jorge Linares"
+      ]
+    },
+    {
+      "name": "Chanel",
+      "aliases": [
+        "Chanel"
+      ]
+    },
+    {
+      "name": "Maciel",
+      "aliases": [
+        "Maciel",
+        "Jorge Maciel"
+      ]
+    },
+    {
+      "name": "Moran",
+      "aliases": [
+        "Moran",
+        "Morán",
+        "Alberto Morán",
+        "Alberto Moran"
+      ]
+    },
+    {
+      "name": "Flores",
+      "aliases": [
+        "Flores"
+      ]
+    },
+    {
+      "name": "Moreno",
+      "aliases": [
+        "Moreno"
+      ]
+    },
+    {
+      "name": "Campos",
+      "aliases": [
+        "Campos",
+        "Enrique Campos"
+      ]
+    },
+    {
+      "name": "Castillo",
+      "aliases": [
+        "Castillo",
+        "Alberto Castillo"
+      ]
+    },
+    {
+      "name": "Fiorentino",
+      "aliases": [
+        "Fiorentino",
+        "Francisco Fiorentino"
+      ]
+    },
+    {
+      "name": "Marino",
+      "aliases": [
+        "Marino",
+        "Raúl Marino",
+        "Raul Marino"
+      ]
+    },
+    {
+      "name": "Vargas",
+      "aliases": [
+        "Vargas",
+        "Ángel Vargas",
+        "Angel Vargas"
+      ]
+    },
+    {
+      "name": "Maure",
+      "aliases": [
+        "Maure",
+        "Héctor Maure",
+        "Hector Maure"
+      ]
+    },
+    {
+      "name": "Reynal",
+      "aliases": [
+        "Reynal"
+      ]
+    },
+    {
+      "name": "Dante",
+      "aliases": [
+        "Dante"
+      ]
+    },
+    {
+      "name": "Martel",
+      "aliases": [
+        "Martel",
+        "Carlos Dante Martel"
+      ]
+    },
+    {
+      "name": "Casares",
+      "aliases": [
+        "Casares"
+      ]
+    },
+    {
+      "name": "Duran",
+      "aliases": [
+        "Duran",
+        "Durán"
+      ]
+    },
+    {
+      "name": "Florio",
+      "aliases": [
+        "Florio"
+      ]
+    },
+    {
+      "name": "Rufino",
+      "aliases": [
+        "Rufino",
+        "Roberto Rufino"
+      ]
+    },
+    {
+      "name": "Echague",
+      "aliases": [
+        "Echague",
+        "Echagüe",
+        "Alberto Echagüe",
+        "Alberto Echague"
+      ]
+    },
+    {
+      "name": "Cabral",
+      "aliases": [
+        "Cabral",
+        "Carlos Cabral"
+      ]
+    }
+  ]
+}

@@ -81,7 +81,19 @@ struct SpecialImportView: View {
 
             Divider()
 
-            if session.rows.isEmpty {
+            if session.isPreparing {
+
+                VStack {
+
+                    Spacer()
+
+                    ProgressView("Matching tracks…")
+
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+
+            } else if session.rows.isEmpty {
 
                 VStack {
 

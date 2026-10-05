@@ -964,6 +964,24 @@ enum SetlistActions {
                 return
             }
 
+            if let problem =
+                TracklibImportReferenceStore.loadProblem
+            {
+                let warning =
+                    NSAlert()
+
+                warning.messageText =
+                    "Name List Unavailable"
+
+                warning.informativeText =
+                    "Orchestra and singer names cannot be recognized, so matching is less precise.\n\n\(problem)"
+
+                warning.alertStyle =
+                    .warning
+
+                warning.runModal()
+            }
+
             session.begin(
                 sourceURL:
                     sourceURL,

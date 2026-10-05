@@ -80,14 +80,25 @@ public struct LibraryTrackMatcher {
 
     private let orchestraSource: TagSource
     private let singerSource: TagSource
+    private let trustLibraryID: Bool
 
+    private let roleCache = RoleCache()
+
+    /// - Parameter trustLibraryID: Whether `ImportedTrack.libraryID`
+    ///   refers to THIS library. Song IDs are auto-incremented per
+    ///   database, so an ID from another library is a coincidence, not
+    ///   an identity, and would silently pick the wrong song. Leave it
+    ///   `false` for anything that did not come from the active
+    ///   TrackLibrary (see `LibraryReferenceResolver` / `trustID`).
     public init(
         songs: [Song],
         orchestraSource: TagSource = .artist,
-        singerSource: TagSource = .albumArtist
+        singerSource: TagSource = .albumArtist,
+        trustLibraryID: Bool = false
     ) {
         self.orchestraSource = orchestraSource
         self.singerSource = singerSource
+        self.trustLibraryID = trustLibraryID
 
         var byID: [Int64: Song] = [:]
         var byPath: [String: Song] = [:]
@@ -145,8 +156,10 @@ public struct LibraryTrackMatcher {
         _ importedTrack: ImportedTrack
     ) -> Result {
 
-        // 1. Library ID.
-        if let id = importedTrack.libraryID,
+        // 1. Library ID — only when the caller vouches that it belongs
+        //    to this library.
+        if trustLibraryID,
+           let id = importedTrack.libraryID,
            let song = byID[id]
         {
             return Result(
@@ -231,6 +244,14 @@ public struct LibraryTrackMatcher {
             candidates = byFilename[filename] ?? []
         }
 
+        // A recognized orchestra/singer is a hard constraint. It is not
+        // merely a scoring hint: once the source identifies a known role,
+        // candidates from another orchestra/singer must not be shown.
+        candidates = filterByRecognizedRoles(
+            candidates,
+            profile: profile
+        )
+
         guard !candidates.isEmpty else {
             return Result(
                 importedTrack: importedTrack,
@@ -287,6 +308,150 @@ public struct LibraryTrackMatcher {
             candidates: scored,
             status: status
         )
+    }
+
+    /// Filters candidates using only roles that were positively recognized
+    /// from the Tracklib reference data. Unknown/free-form artist text is
+    /// deliberately ignored, so we do not turn uncertain metadata into a
+    /// false negative.
+    public func filterCandidates(
+        _ songs: [Song],
+        for importedTrack: ImportedTrack
+    ) -> [Song] {
+        let profile = TrackMetadataProfile(
+            importedTrack: importedTrack,
+            orchestraSource: orchestraSource,
+            singerSource: singerSource
+        )
+
+        return filterByRecognizedRoles(
+            songs,
+            profile: profile
+        )
+    }
+
+    private func filterByRecognizedRoles(
+        _ songs: [Song],
+        profile: TrackMetadataProfile
+    ) -> [Song] {
+        let recognizedOrchestras = recognizedReferenceNames(
+            values: profile.orchestraValues,
+            kind: .orchestra
+        )
+
+        let recognizedSingers = recognizedReferenceNames(
+            values: profile.singerValues,
+            kind: .singer
+        )
+
+        // No recognized role -> keep the old broad title/filename search.
+        if recognizedOrchestras.isEmpty && recognizedSingers.isEmpty {
+            return songs
+        }
+
+        return songs.filter { song in
+            let roles = recognizedRoles(of: song)
+
+            if !recognizedOrchestras.isEmpty,
+               recognizedOrchestras.isDisjoint(with: roles.orchestras) {
+                return false
+            }
+
+            if !recognizedSingers.isEmpty,
+               recognizedSingers.isDisjoint(with: roles.singers) {
+                return false
+            }
+
+            return true
+        }
+    }
+
+    private func recognizedReferenceNames(
+        values: [String],
+        kind: TracklibImportReferenceStore.Kind
+    ) -> Set<String> {
+        var result = Set<String>()
+
+        for value in values {
+            let matches = TracklibImportReferenceStore.matches(
+                in: value.precomposedStringWithCanonicalMapping,
+                kind: kind
+            )
+
+            for match in matches {
+                if let normalized = TrackTextNormalizer.normalize(match.entry.name) {
+                    result.insert(normalized)
+                }
+            }
+        }
+
+        return result
+    }
+
+    // MARK: - Per-song role cache
+
+    private struct RecognizedRoles {
+        let orchestras: Set<String>
+        let singers: Set<String>
+    }
+
+    /// Library tags do not change while one matcher lives, and the same
+    /// songs are filtered again for every imported line. Recognizing
+    /// them once is what keeps a long import list fast.
+    private final class RoleCache {
+
+        private let lock = NSLock()
+        private var storage: [Int64: RecognizedRoles] = [:]
+
+        func roles(
+            for id: Int64,
+            compute: () -> RecognizedRoles
+        ) -> RecognizedRoles {
+
+            lock.lock()
+            let cached = storage[id]
+            lock.unlock()
+
+            if let cached {
+                return cached
+            }
+
+            let value = compute()
+
+            lock.lock()
+            storage[id] = value
+            lock.unlock()
+
+            return value
+        }
+    }
+
+    private func recognizedRoles(of song: Song) -> RecognizedRoles {
+
+        let compute = { () -> RecognizedRoles in
+            let profile = TrackMetadataProfile(
+                song: song,
+                orchestraSource: orchestraSource,
+                singerSource: singerSource
+            )
+
+            return RecognizedRoles(
+                orchestras: recognizedReferenceNames(
+                    values: profile.orchestraValues,
+                    kind: .orchestra
+                ),
+                singers: recognizedReferenceNames(
+                    values: profile.singerValues,
+                    kind: .singer
+                )
+            )
+        }
+
+        guard let id = song.id else {
+            return compute()
+        }
+
+        return roleCache.roles(for: id, compute: compute)
     }
 
     private func score(
