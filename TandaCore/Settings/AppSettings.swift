@@ -193,6 +193,17 @@ final class AppSettings:
 
 
     // =============================================================
+    // MARK: Pick Tracks Import
+    // =============================================================
+
+    /// When the same recording exists in several files, the Pick
+    /// Tracks import suggests the best one (FLAC, then AIFF by sample
+    /// rate). Suggestions are marked "auto-picked" and can be removed.
+    @Published var autoPickBestFile:
+        Bool = true
+
+
+    // =============================================================
     // MARK: Current TrackLibrary
     // =============================================================
 
@@ -341,6 +352,14 @@ final class AppSettings:
             }
 
 
+            if let autoPick =
+                values.autoPickBestFile
+            {
+                autoPickBestFile =
+                    autoPick
+            }
+
+
             if
                 let name =
                     values.currentLibraryName,
@@ -403,6 +422,9 @@ final class AppSettings:
 
                 singerSource:
                     singerSource.rawValue,
+
+                autoPickBestFile:
+                    autoPickBestFile,
 
                 currentLibraryName:
                     currentLibraryName
@@ -475,6 +497,9 @@ private struct SettingsData:
 
     let singerSource:
         String?
+
+    let autoPickBestFile:
+        Bool?
 
     let currentLibraryName:
         String?

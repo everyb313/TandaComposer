@@ -25,8 +25,11 @@ import Foundation
 ///
 /// - An exact path match is adopted automatically (`autoMatched`).
 /// - Otherwise `candidates` holds the same-named Library tracks and the
-///   user picks one by hand. Nothing is ever preselected, not even when
-///   there is only a single candidate.
+///   user picks one by hand. Nothing is preselected, not even when there
+///   is only a single candidate.
+/// - One exception, only when "Auto-pick best file" is on: if all
+///   candidates are the SAME recording in different files, the best file
+///   is suggested (`autoPicked`). The user can always remove it.
 ///
 /// Every song a row can end up with is a current-Library `Song`, never
 /// a snapshot from the imported file.
@@ -37,6 +40,9 @@ public struct SpecialImportRow: Identifiable, Equatable {
         case matched
         /// Picked manually from the candidates.
         case chosen
+        /// Suggested because the same recording exists in several
+        /// files; not yet confirmed by the user.
+        case autoPicked
         /// No decision yet.
         case open
         /// Left out of the new Setlist.
@@ -57,17 +63,23 @@ public struct SpecialImportRow: Identifiable, Equatable {
 
     public private(set) var isSkipped: Bool
 
+    /// `chosenSong` was suggested by "Auto-pick best file", not picked
+    /// by the user.
+    public private(set) var isAutoPicked: Bool
+
     public init(
         track: ImportedTrack,
         candidates: [Song],
         autoMatched: Bool,
-        chosenSong: Song?
+        chosenSong: Song?,
+        autoPicked: Bool = false
     ) {
         self.track = track
         self.candidates = candidates
         self.autoMatched = autoMatched
         self.chosenSong = chosenSong
         self.isSkipped = false
+        self.isAutoPicked = autoPicked && chosenSong != nil
     }
 
     public var state: State {
@@ -77,7 +89,12 @@ public struct SpecialImportRow: Identifiable, Equatable {
         }
 
         if chosenSong != nil {
-            return autoMatched ? .matched : .chosen
+
+            if autoMatched {
+                return .matched
+            }
+
+            return isAutoPicked ? .autoPicked : .chosen
         }
 
         return .open
@@ -110,6 +127,7 @@ public struct SpecialImportRow: Identifiable, Equatable {
     /// Picks `song` — only meaningful for rows with candidates.
     public mutating func choose(_ song: Song) {
         chosenSong = song
+        isAutoPicked = false
         isSkipped = false
     }
 
@@ -121,6 +139,7 @@ public struct SpecialImportRow: Identifiable, Equatable {
         }
 
         chosenSong = nil
+        isAutoPicked = false
     }
 
     public mutating func setSkipped(_ skipped: Bool) {
@@ -145,7 +164,8 @@ public enum SpecialImportPlanner {
         tracks: [ImportedTrack],
         songs: [Song],
         orchestraSource: TagSource,
-        singerSource: TagSource
+        singerSource: TagSource,
+        autoPickBestFile: Bool = false
     ) -> [SpecialImportRow] {
 
         let matcher = LibraryTrackMatcher(
@@ -201,16 +221,161 @@ public enum SpecialImportPlanner {
                 }
             }
 
+            let ranked = rank(
+                found,
+                for: shown,
+                singerSource: singerSource
+            )
+
+            let picked =
+                autoPickBestFile
+                    ? bestFile(
+                        among: ranked,
+                        orchestraSource: orchestraSource,
+                        singerSource: singerSource
+                    )
+                    : nil
+
             return SpecialImportRow(
                 track: shown,
-                candidates: rank(
-                    found,
-                    for: shown,
-                    singerSource: singerSource
-                ),
+                candidates: ranked,
                 autoMatched: false,
-                chosenSong: nil
+                chosenSong: picked,
+                autoPicked: picked != nil
             )
+        }
+    }
+
+    // MARK: Auto-pick best file
+
+    /// The one best file, when `candidates` are all the SAME recording
+    /// stored in several files — nil otherwise.
+    ///
+    /// Same title is not enough ("Poema" exists in many versions), so
+    /// the candidates must agree on title, orchestra and singer, have
+    /// lengths within a few seconds of each other (copies of one
+    /// recording differ slightly), and share the year where one is
+    /// given. Several different recordings, a single candidate, or two
+    /// equally good files all give nil: the user then decides, as
+    /// before.
+    ///
+    /// Preference: FLAC (higher sample rate first), then AIFF at 96, 48
+    /// and 44.1 kHz, then other AIFF, then everything else.
+    /// Longest allowed difference, in seconds, between the shortest and
+    /// the longest copy. Copies of one recording from different sources
+    /// differ by a few seconds (2:18 / 2:16 / 2:15); other recordings of
+    /// the same tango differ by far more.
+    private static let maxLengthSpread = 5
+
+    static func bestFile(
+        among candidates: [Song],
+        orchestraSource: TagSource,
+        singerSource: TagSource
+    ) -> Song? {
+
+        guard candidates.count >= 2,
+              let first = candidates.first
+        else {
+            return nil
+        }
+
+        for other in candidates.dropFirst() {
+
+            guard isSameRecording(
+                first,
+                other,
+                orchestraSource: orchestraSource,
+                singerSource: singerSource
+            ) else {
+                return nil
+            }
+        }
+
+        // Every copy needs a length, and the lengths must be close.
+        let lengths = candidates.compactMap { $0.duration }
+
+        guard lengths.count == candidates.count,
+              let longest = lengths.max(),
+              let shortest = lengths.min(),
+              longest - shortest <= maxLengthSpread
+        else {
+            return nil
+        }
+
+        // Different years are different recordings. A missing year
+        // says nothing.
+        guard Set(candidates.compactMap { $0.year }).count <= 1 else {
+            return nil
+        }
+
+        let ranked = candidates
+            .map { (song: $0, key: filePreference($0)) }
+            .sorted {
+                $0.key.group != $1.key.group
+                    ? $0.key.group < $1.key.group
+                    : $0.key.rate < $1.key.rate
+            }
+
+        // An unambiguous winner only.
+        if ranked[0].key.group == ranked[1].key.group,
+           ranked[0].key.rate == ranked[1].key.rate
+        {
+            return nil
+        }
+
+        return ranked[0].song
+    }
+
+    private static func isSameRecording(
+        _ a: Song,
+        _ b: Song,
+        orchestraSource: TagSource,
+        singerSource: TagSource
+    ) -> Bool {
+
+        guard let titleA = TrackTextNormalizer.normalize(a.title),
+              let titleB = TrackTextNormalizer.normalize(b.title),
+              titleA == titleB
+        else {
+            return false
+        }
+
+        return TrackTextNormalizer.normalize(
+                a.rawTagValue(for: orchestraSource)
+            ) == TrackTextNormalizer.normalize(
+                b.rawTagValue(for: orchestraSource)
+            )
+            && TrackTextNormalizer.normalize(
+                a.rawTagValue(for: singerSource)
+            ) == TrackTextNormalizer.normalize(
+                b.rawTagValue(for: singerSource)
+            )
+    }
+
+    /// Lower is better: group first, then `rate` (negated sample rate,
+    /// so a higher sample rate sorts first).
+    private static func filePreference(
+        _ song: Song
+    ) -> (group: Int, rate: Int) {
+
+        let rate = song.sampleRate ?? 0
+
+        switch (song.fileType ?? "").uppercased() {
+
+        case "FLAC":
+            return (0, -rate)
+
+        case "AIFF", "AIF":
+
+            switch rate {
+            case 96_000: return (1, 0)
+            case 48_000: return (2, 0)
+            case 44_100: return (3, 0)
+            default: return (4, -rate)
+            }
+
+        default:
+            return (5, 0)
         }
     }
 

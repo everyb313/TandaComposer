@@ -33,6 +33,9 @@ struct RescanCommands: Commands {
     @ObservedObject var smartlistStore:
         SmartlistStore
 
+    @ObservedObject var settings:
+        AppSettings
+
     @Environment(\.openWindow)
     private var openWindow
 
@@ -94,6 +97,29 @@ struct RescanCommands: Commands {
             .disabled(
                 libraryStore.isLocked
             )
+
+
+            Divider()
+
+
+            // =====================================================
+            // EXPORT TANDALIBRARY FOR SHARING
+            //
+            // One text file (or M3U8) per Tanda, Tanda folders kept,
+            // zipped. Read-only, so no Library lock is needed.
+            // =====================================================
+
+            Button(
+                "Export TandaLibrary for Sharing…"
+            ) {
+
+                TandaLibraryExportActions.exportForSharing(
+                    libraryStore:
+                        libraryStore,
+                    settings:
+                        settings
+                )
+            }
         }
     }
 

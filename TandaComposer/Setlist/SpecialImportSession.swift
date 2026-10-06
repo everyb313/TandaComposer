@@ -63,6 +63,7 @@ final class SpecialImportSession: ObservableObject {
 
         let orchestraSource = settings.orchestraSource
         let singerSource = settings.singerSource
+        let autoPickBestFile = settings.autoPickBestFile
 
         Task.detached(priority: .userInitiated) {
 
@@ -71,7 +72,8 @@ final class SpecialImportSession: ObservableObject {
                     tracks: tracks,
                     songs: songs,
                     orchestraSource: orchestraSource,
-                    singerSource: singerSource
+                    singerSource: singerSource,
+                    autoPickBestFile: autoPickBestFile
                 )
 
             await MainActor.run {

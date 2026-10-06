@@ -118,7 +118,8 @@ struct TandaComposerApp: App {
                 db: environment.db,
                 libraryStore: environment.libraryStore,
                 setlistStore: environment.setlistStore,
-                smartlistStore: environment.smartlistStore
+                smartlistStore: environment.smartlistStore,
+                settings: settings
             )
 
             MaintenanceCommands()

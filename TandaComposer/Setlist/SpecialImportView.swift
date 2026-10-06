@@ -25,6 +25,9 @@
 //  Marks and colours:
 //    - Leading column, open circle  = candidate, click to use it
 //    - Leading column, green check  = candidate chosen for the import
+//    - Leading column, outlined green check
+//                                   = auto-picked best file (a suggestion;
+//                                     click to remove it)
 //    - Leading column, grey check   = exact path match (always imported)
 //    - Light blue row               = last track listened to
 //                                     (double-click a row to preview)
@@ -51,8 +54,10 @@ struct SpecialImportView: View {
     @Environment(\.dismiss)
     private var dismiss
 
+    /// Hides what is done: exact matches, chosen and skipped tracks.
+    /// Tracks still to do and auto-picked suggestions stay visible.
     @State
-    private var showOnlyOpen = false
+    private var hideDone = false
 
     /// The track most recently double-clicked for preview (also when
     /// the preview was started in another window). It only colours a
@@ -82,8 +87,10 @@ struct SpecialImportView: View {
 
     private var visibleRows: [SpecialImportRow] {
 
-        showOnlyOpen
-            ? session.rows.filter { $0.state == .open }
+        hideDone
+            ? session.rows.filter {
+                $0.state == .open || $0.state == .autoPicked
+            }
             : session.rows
     }
 
@@ -199,8 +206,8 @@ struct SpecialImportView: View {
                 Spacer()
 
                 Toggle(
-                    "Only open",
-                    isOn: $showOnlyOpen
+                    "Hide done",
+                    isOn: $hideDone
                 )
                 .toggleStyle(.checkbox)
 
@@ -242,14 +249,23 @@ struct SpecialImportView: View {
 
         let matched = session.count(of: .matched)
         let chosen = session.count(of: .chosen)
+        let autoPicked = session.count(of: .autoPicked)
         let open = session.count(of: .open)
         let skipped = session.count(of: .skipped)
 
+        var counts =
+            "\(matched) exact · \(chosen) chosen · "
+
+        if autoPicked > 0 {
+            counts += "\(autoPicked) auto-picked · "
+        }
+
+        counts += "\(open) to do · \(skipped) skipped. "
+
         return
             "\(session.rows.count) track(s): "
-            + "\(matched) exact · \(chosen) chosen · "
-            + "\(open) open · \(skipped) skipped. "
-            + "Open and skipped tracks are left out of the new Setlist."
+            + counts
+            + "Tracks still to do and skipped tracks are left out of the new Setlist."
     }
 
     // MARK: - Create
@@ -349,10 +365,7 @@ private struct SpecialImportRowBlock: View {
                     SpecialImportSongRow(
                         song: song,
                         columns: columns,
-                        mark:
-                            isChosen(song)
-                                ? .chosen
-                                : .open,
+                        mark: mark(for: song),
                         isPreviewed: isPreviewed(song),
                         isMissing: isMissing(song),
                         onToggle: {
@@ -508,6 +521,15 @@ private struct SpecialImportRowBlock: View {
 
     // MARK: Helpers
 
+    private func mark(for song: Song) -> SpecialImportMark {
+
+        guard isChosen(song) else {
+            return .open
+        }
+
+        return row.state == .autoPicked ? .autoPicked : .chosen
+    }
+
     private func isChosen(_ song: Song) -> Bool {
 
         row.chosenSong?.id == song.id
@@ -556,6 +578,9 @@ private struct SpecialImportRowBlock: View {
         case .matched, .chosen:
             return "checkmark.circle.fill"
 
+        case .autoPicked:
+            return "checkmark.circle"
+
         case .open:
             return "questionmark.circle.fill"
 
@@ -568,7 +593,7 @@ private struct SpecialImportRowBlock: View {
 
         switch row.state {
 
-        case .matched, .chosen:
+        case .matched, .chosen, .autoPicked:
             return .green
 
         case .open:
@@ -598,6 +623,10 @@ private enum SpecialImportMark {
 
     /// Candidate chosen for the import: green check, click to undo.
     case chosen
+
+    /// Suggested by "Auto-pick best file": outlined green check,
+    /// click to remove.
+    case autoPicked
 
     /// Exact path match: grey check, always imported, not clickable.
     case automatic
@@ -692,7 +721,7 @@ private struct SpecialImportSongRow: View {
                     "Exact path match — included in the new Setlist"
                 )
 
-        case .open, .chosen:
+        case .open, .chosen, .autoPicked:
 
             Button {
 
@@ -700,27 +729,61 @@ private struct SpecialImportSongRow: View {
 
             } label: {
 
-                Image(
-                    systemName:
-                        mark == .chosen
-                            ? "checkmark.circle.fill"
-                            : "circle"
-                )
-                .font(.system(size: markSize))
-                .foregroundStyle(
-                    mark == .chosen
-                        ? Color.green
-                        : Color.secondary.opacity(0.6)
-                )
-                .frame(width: width)
-                .contentShape(Rectangle())
+                Image(systemName: markSymbol)
+                    .font(.system(size: markSize))
+                    .foregroundStyle(markColor)
+                    .frame(width: width)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(
-                mark == .chosen
-                    ? "Remove this choice"
-                    : "Use this track"
-            )
+            .help(markHelp)
+        }
+    }
+
+    private var markSymbol: String {
+
+        switch mark {
+
+        case .chosen:
+            return "checkmark.circle.fill"
+
+        case .autoPicked:
+            return "checkmark.circle"
+
+        case .open, .automatic:
+            return "circle"
+        }
+    }
+
+    private var markColor: Color {
+
+        switch mark {
+
+        case .chosen, .autoPicked:
+            return .green
+
+        case .open, .automatic:
+            return Color.secondary.opacity(0.6)
+        }
+    }
+
+    private var markHelp: String {
+
+        switch mark {
+
+        case .chosen:
+            return "Remove this choice"
+
+        case .autoPicked:
+
+            if let type = song.fileType, !type.isEmpty {
+                return "Auto-picked best file (\(type)) — click to remove"
+            }
+
+            return "Auto-picked best file — click to remove"
+
+        case .open, .automatic:
+            return "Use this track"
         }
     }
 

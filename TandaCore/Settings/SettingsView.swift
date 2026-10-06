@@ -179,6 +179,36 @@ struct SettingsView:
             }
 
             // =====================================================
+            // Pick Tracks Import
+            // =====================================================
+
+            Section("Pick Tracks Import") {
+
+                Toggle(
+                    "Auto-pick best file",
+                    isOn:
+                        $settings.autoPickBestFile
+                )
+                .onChange(
+                    of:
+                        settings.autoPickBestFile
+                ) { _, _ in
+
+                    settings.save()
+                }
+
+                Text(
+                    "If a track exists as several files, suggest FLAC first, then AIFF (96, 48, 44.1 kHz). You can always change the suggestion."
+                )
+                .font(
+                    .caption
+                )
+                .foregroundStyle(
+                    .secondary
+                )
+            }
+
+            // =====================================================
             // Separator
             // =====================================================
 
