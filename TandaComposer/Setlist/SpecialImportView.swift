@@ -19,8 +19,15 @@
 //
 //  Manual stage of the M3U8 import: lines with an exact path match are
 //  adopted, for every other line the same-named TrackLibrary tracks are
-//  listed (same column layout as Find Duplicates) and the user clicks
+//  listed (same column layout as Find Duplicates) and the user ticks
 //  the one to adopt.
+//
+//  Marks and colours:
+//    - Leading column, open circle  = candidate, click to use it
+//    - Leading column, green check  = candidate chosen for the import
+//    - Leading column, grey check   = exact path match (always imported)
+//    - Light blue row               = last track listened to
+//                                     (double-click a row to preview)
 //
 
 import SwiftUI
@@ -47,14 +54,26 @@ struct SpecialImportView: View {
     @State
     private var showOnlyOpen = false
 
-    // Same columns as Find Duplicates / the Library, with the narrow
-    // leading spacer.
+    /// The track most recently double-clicked for preview (also when
+    /// the preview was started in another window). It only colours a
+    /// row light blue; it does not follow the player, so stopping
+    /// playback does not clear it.
+    @State
+    private var previewedSongID: Int64?
+
+    /// Width of the leading column that carries the check marks. Only
+    /// this window uses it; the shared 5 pt spacer of the Library and
+    /// Find Duplicates is left alone.
+    private static let markColumnWidth: CGFloat = 26
+
+    // Same columns as the Library / Find Duplicates, with a wider
+    // leading column for the check marks.
     private var columns: [(String, CGFloat)] {
 
         [
             (
                 "",
-                LibraryColumnDefaults.tandaLeadingSpacerWidth
+                Self.markColumnWidth
             )
         ]
         +
@@ -122,13 +141,23 @@ struct SpecialImportView: View {
 
                             SpecialImportRowBlock(
                                 row: row,
-                                columns: columns
+                                columns: columns,
+                                previewedSongID: previewedSongID
                             )
                         }
                     }
                     .padding(8)
                 }
             }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: .tandaPreviewSongDoubleClicked
+            )
+        ) { notification in
+
+            previewedSongID =
+                (notification.object as? Song)?.id
         }
         // Freely resizable: the window opens at the Library pane
         // width, but min/max no longer pin it to that size.
@@ -249,6 +278,8 @@ private struct SpecialImportRowBlock: View {
 
     let columns: [(String, CGFloat)]
 
+    let previewedSongID: Int64?
+
     @EnvironmentObject
     private var session: SpecialImportSession
 
@@ -281,9 +312,16 @@ private struct SpecialImportRowBlock: View {
                     SpecialImportSongRow(
                         song: song,
                         columns: columns,
-                        isChosen: false,
-                        isMissing: isMissing(song)
+                        mark: .automatic,
+                        isPreviewed: isPreviewed(song),
+                        isMissing: isMissing(song),
+                        onToggle: nil
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+
+                        preview(song)
+                    }
                 }
 
             } else if row.candidates.isEmpty {
@@ -311,25 +349,22 @@ private struct SpecialImportRowBlock: View {
                     SpecialImportSongRow(
                         song: song,
                         columns: columns,
-                        isChosen:
-                            row.chosenSong?.id == song.id
-                            && row.chosenSong != nil
-                            && !row.isSkipped,
-                        isMissing: isMissing(song)
+                        mark:
+                            isChosen(song)
+                                ? .chosen
+                                : .open,
+                        isPreviewed: isPreviewed(song),
+                        isMissing: isMissing(song),
+                        onToggle: {
+
+                            toggleChoice(song)
+                        }
                     )
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) {
 
                         // Listen before deciding.
-                        NotificationCenter.default.post(
-                            name:
-                                .tandaPreviewSongDoubleClicked,
-                            object: song
-                        )
-                    }
-                    .onTapGesture {
-
-                        toggleChoice(song)
+                        preview(song)
                     }
 
                     if index < row.candidates.count - 1 {
@@ -473,12 +508,30 @@ private struct SpecialImportRowBlock: View {
 
     // MARK: Helpers
 
+    private func isChosen(_ song: Song) -> Bool {
+
+        row.chosenSong?.id == song.id
+            && row.chosenSong != nil
+            && !row.isSkipped
+    }
+
+    private func isPreviewed(_ song: Song) -> Bool {
+
+        song.id != nil
+            && previewedSongID == song.id
+    }
+
+    private func preview(_ song: Song) {
+
+        NotificationCenter.default.post(
+            name: .tandaPreviewSongDoubleClicked,
+            object: song
+        )
+    }
+
     private func toggleChoice(_ song: Song) {
 
-        if row.chosenSong?.id == song.id,
-           row.chosenSong != nil,
-           !row.isSkipped
-        {
+        if isChosen(song) {
             session.clearChoice(for: row.id)
 
         } else {
@@ -535,6 +588,22 @@ private struct SpecialImportRowBlock: View {
 }
 
 
+// MARK: - Mark
+
+/// What the leading column of a candidate row shows.
+private enum SpecialImportMark {
+
+    /// Candidate, not chosen: open circle, click to use it.
+    case open
+
+    /// Candidate chosen for the import: green check, click to undo.
+    case chosen
+
+    /// Exact path match: grey check, always imported, not clickable.
+    case automatic
+}
+
+
 // MARK: - Song Row
 
 private struct SpecialImportSongRow: View {
@@ -543,9 +612,16 @@ private struct SpecialImportSongRow: View {
 
     let columns: [(String, CGFloat)]
 
-    let isChosen: Bool
+    let mark: SpecialImportMark
+
+    /// Last track listened to with a double-click.
+    let isPreviewed: Bool
 
     let isMissing: Bool
+
+    /// Called by the circle in the leading column. Nil for rows whose
+    /// mark is not clickable.
+    let onToggle: (() -> Void)?
 
     @EnvironmentObject
     private var settings: AppSettings
@@ -559,35 +635,98 @@ private struct SpecialImportSongRow: View {
                 id: \.0
             ) { column in
 
-                Text(
-                    text(for: column.0)
-                )
-                .font(
-                    .system(
-                        size: LibraryColumnDefaults.rowFontSize
+                if column.0.isEmpty {
+
+                    markCell(width: column.1)
+
+                } else {
+
+                    Text(
+                        text(for: column.0)
                     )
-                )
-                .foregroundStyle(
-                    isMissing ? Color.red : Color.primary
-                )
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(
-                    width: column.1,
-                    alignment: .leading
-                )
-                .help(
-                    text(for: column.0)
-                )
+                    .font(
+                        .system(
+                            size: LibraryColumnDefaults.rowFontSize
+                        )
+                    )
+                    .foregroundStyle(
+                        isMissing ? Color.red : Color.primary
+                    )
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(
+                        width: column.1,
+                        alignment: .leading
+                    )
+                    .help(
+                        text(for: column.0)
+                    )
+                }
             }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
+        // Light blue = last previewed track, as in the other tables.
+        // Whether a track is chosen is shown by the mark, not the row.
         .background(
-            isChosen
+            isPreviewed
                 ? Color.accentColor.opacity(0.22)
                 : Color.clear
         )
+    }
+
+    // MARK: Leading mark
+
+    @ViewBuilder
+    private func markCell(width: CGFloat) -> some View {
+
+        switch mark {
+
+        case .automatic:
+
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: markSize))
+                .foregroundStyle(Color.secondary)
+                .frame(width: width)
+                .help(
+                    "Exact path match — included in the new Setlist"
+                )
+
+        case .open, .chosen:
+
+            Button {
+
+                onToggle?()
+
+            } label: {
+
+                Image(
+                    systemName:
+                        mark == .chosen
+                            ? "checkmark.circle.fill"
+                            : "circle"
+                )
+                .font(.system(size: markSize))
+                .foregroundStyle(
+                    mark == .chosen
+                        ? Color.green
+                        : Color.secondary.opacity(0.6)
+                )
+                .frame(width: width)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(
+                mark == .chosen
+                    ? "Remove this choice"
+                    : "Use this track"
+            )
+        }
+    }
+
+    private var markSize: CGFloat {
+
+        LibraryColumnDefaults.rowFontSize + 3
     }
 
     private func text(

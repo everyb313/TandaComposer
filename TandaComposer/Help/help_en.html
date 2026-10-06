@@ -67,7 +67,8 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
 <ol class="steps"><li><strong>Add your music folders</strong><p>Add the folders that contain the audio files you want to use. TandaComposer scans these folders and creates a Library of the tracks it finds.</p></li><li><strong>Let the Library keep track of your music</strong><p>The audio files themselves are not copied into the Library. The Library keeps the information needed to find and use the music files in their existing locations.</p></li><li><strong>Lock the Library for normal work</strong><p>Once your Library is ready, leave it locked while you build Setlists. This protects the Library from accidental changes.</p></li></ol>
 <h3>What the lock means</h3><p class="lead">The Library lock controls whether the Library itself can be changed. The same Library lock applies when you are working in the <strong>Track Library</strong> or the <strong>Tanda Library</strong>.</p>
 <div class="lock-legend"><div class="lock-item"><span class="lock-icon lock-closed"><svg viewBox="0 0 20 20"><rect x="4.2" y="8.2" width="11.6" height="9" rx="1.7" fill="currentColor"/><path d="M6.7 8.2V5.9a3.3 3.3 0 0 1 6.6 0v2.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span><strong>Locked</strong> — Library protected from changes</span></div><div class="lock-item"><span class="lock-icon lock-open"><svg viewBox="0 0 20 20"><rect x="4.2" y="8.2" width="11.6" height="9" rx="1.7" fill="currentColor"/><path d="M7 8.2V6.1a3.3 3.3 0 0 1 6.5-.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span><strong>Unlocked</strong> — Library changes are enabled</span></div></div>
-<div class="callout"><strong>Keep it locked during normal Setlist work.</strong> Unlock the Library only when you want to change the Library itself — for example when importing music, changing import sources or performing Library maintenance. <strong>Unlocking is not needed to build a Setlist.</strong></div>
+<div class="callout"><strong>Keep it locked during normal Setlist work.</strong> Unlock the Library only when you want to change the Library itself — for example when importing music, changing import sources, performing Library maintenance or editing tags. <strong>Unlocking is not needed to build a Setlist.</strong></div>
+<div class="callout"><strong>Your audio files stay untouched — with one exception.</strong> Building Setlists, creating Tandas, using Smartlists and exporting do not change your music files. Only <strong>Edit Tags…</strong> (experimental, see <a href="#library">chapter 04</a>) writes into the audio files themselves.</div>
 <div class="shot">
   <b>SCREENSHOT PLACEHOLDER — Main workspace</b>
   TandaComposer main workspace showing the Library and Smartlists.
@@ -160,19 +161,40 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   </div>
 
   <h3>Edit track tags (experimental)</h3>
-  <p class="lead">Select one or more tracks, then click <strong>Edit Tags…</strong> to change Title, Orchestra, Singer, Genre, Year or Comment directly on the audio file(s) — no need to leave TandaComposer for a separate tagging tool.</p>
+  <div class="callout warn">
+    <strong>This changes your audio files.</strong> Unlike everything else in TandaComposer, <strong>Edit Tags…</strong> writes the new values into the music files themselves — not just into the Library. There is no Undo. Read this section before you use it, and try it on a few copies of tracks first.
+  </div>
+  <p class="lead">Select one or more tracks, then click <strong>Edit Tags…</strong> to change Title, Orchestra (Artist), Singer (AlbumArtist), Genre, Year or Comment directly in the audio file(s) — no need to leave TandaComposer for a separate tagging tool.</p>
   <ul class="bullets">
+    <li><strong>Apply writes immediately.</strong> There is no further confirmation after you click Apply.</li>
     <li><strong>Select several tracks</strong> to edit them together — a field only shows a value if every selected track already shares it; otherwise it starts blank ("Multiple Values"). Typing something into a field sets it for <strong>all</strong> selected tracks.</li>
     <li><strong>Leaving a field blank leaves it unchanged</strong> — there is currently no way to clear a tag to empty through this dialog.</li>
-    <li>Changes are written to the file itself (a backup of the original is kept automatically), then reflected in the Library.</li>
+    <li><strong>Every field that contains text is written</strong>, including prefilled values you did not touch. Changing only the Genre of a single track therefore also rewrites that track's Title, Orchestra, Singer, Year and Comment with the values shown.</li>
+    <li>After a successful write, the Library shows the new values right away.</li>
   </ul>
   <div class="shot small-shot">
     <b>SCREENSHOT PLACEHOLDER — Edit Tags</b>
     The Edit Tags dialog for one or more selected tracks.
   </div>
-  <div class="callout"><strong>Library lock applies here too.</strong> Edit Tags needs the Library unlocked, same as Add Files.</div>
+
+  <h3>The backup copy</h3>
+  <p class="lead">Before the first change to a file, TandaComposer saves a copy of the original next to it. The copy has the original file name plus <code>_original</code> — for example <code>track.flac</code> becomes <code>track.flac_original</code>.</p>
+  <ul class="bullets">
+    <li><strong>It is made once.</strong> If a backup already exists it is never overwritten, so later edits keep the true original.</li>
+    <li><strong>It is not deleted automatically.</strong> Each backup takes as much disk space as the track itself. Delete the <code>_original</code> files yourself once you are happy with the result.</li>
+    <li><strong>To go back,</strong> replace the edited file with its <code>_original</code> copy and give it the original name again, then run <strong>Rescan TrackLibrary</strong>. If the Library does not notice the restored file (it may look unchanged to the Library), the old tags can keep showing until the track is re-read.</li>
+    <li>The <code>_original</code> files are not added to the Library as tracks.</li>
+  </ul>
+
+  <h3>When something goes wrong</h3>
+  <ul class="bullets">
+    <li>If a file cannot be written (for example it is read-only, on a disconnected drive or in an unsupported format), that file stays as it was and TandaComposer names it in an error message. The other selected tracks are still updated.</li>
+    <li>If only the Library display fails to refresh, the files are correct; <strong>Rescan TrackLibrary</strong> brings the display up to date.</li>
+  </ul>
+
+  <div class="callout"><strong>Library lock applies here too.</strong> Edit Tags needs the Library unlocked, same as Add Files. Lock it again when you are done.</div>
   <div class="callout">
-    <strong>Experimental.</strong> This is a new feature and hasn't seen as much real-world testing yet as the rest of the app. It covers FLAC, MP3, M4A/AAC and AIFF files.
+    <strong>Experimental.</strong> This is a new feature and hasn't seen as much real-world testing yet as the rest of the app. It covers FLAC, MP3, M4A/AAC and AIFF files. <strong>Before editing many tracks, make sure you have a current backup of your music folder</strong> (for example with Time Machine).
   </div>
 </section>
 
@@ -343,6 +365,14 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   <div class="callout warn">
     <strong>The playlist does not contain the audio.</strong> The music files must remain accessible at the paths referenced by the M3U8 playlist.
   </div>
+
+  <h3>Import a Setlist from an M3U8 file (experimental)</h3>
+  <p class="lead">Use the Setlist menu and choose <strong>Import Setlist (M3U8)…</strong> to create a new Setlist from an <code>.m3u8</code> playlist.</p>
+  <ul class="bullets">
+    <li>A track is added only if its file path is found in your Track Library. Add the music folder to the Library first.</li>
+    <li>The tracks land in a new saved Setlist named after the playlist file. An existing Setlist is not overwritten; you may be asked whether to save the Setlist you are working on first.</li>
+    <li>When the import is done, a summary lists the paths that were not found in the Library and any lines that could not be read as file paths.</li>
+  </ul>
 </section>
 
 <div class="groove">Maintenance</div>
@@ -408,7 +438,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     <div class="card"><h4>Find Duplicates</h4><p>Inspect possible duplicate tracks in the Library.</p></div>
     <div class="card"><h4>Backup</h4><p>Export a backup before major changes or when moving to another Mac.</p></div>
     <div class="card"><h4>Settings</h4><p>Adjust available appearance and audio preferences.</p></div>
-    <div class="card"><h4>Locks</h4><p>Protected Library and Smartlist areas can be unlocked when you need to make changes.</p></div>
+    <div class="card"><h4>Locks</h4><p>Protected Library and Smartlist areas can be unlocked when you need to make changes. Editing tags needs the Library unlocked.</p></div>
   </div>
 
   <div class="shot half-shot">
@@ -437,7 +467,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Select / deselect a Tanda</td><td>Click its title / track-count; click again to deselect</td></tr>
       <tr><td>Add tracks to an existing Tanda</td><td>Select Setlist tracks → drag onto that Tanda</td></tr>
       <tr><td>Remove a track from a Tanda</td><td>Select the Tanda → click the red "x" next to the track</td></tr>
-      <tr><td>Edit track tags (experimental)</td><td>Select track(s) in Track Library → Edit Tags…</td></tr>
+      <tr><td>Edit track tags (experimental)</td><td>Unlock the Library → select track(s) in Track Library → Edit Tags… <strong>(writes into the audio files; a <code>_original</code> backup is kept)</strong></td></tr>
       <tr><td>Narrow a large Track Library</td><td>Apply a Track Smartlist</td></tr>
       <tr><td>Quick type filter</td><td>A / T / V / M / X buttons</td></tr>
       <tr><td>Filter Tanda Library</td><td>Double-click a Tanda Library folder / Smartlist; optionally use A / T / V / M / X</td></tr>
@@ -445,6 +475,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Tanda Coloring</td><td>Palette button in the Setlist header</td></tr>
       <tr><td>Save a Setlist</td><td>Save Set</td></tr>
       <tr><td>Export</td><td>Setlist → Export Setlist… → <code>.m3u8</code></td></tr>
+      <tr><td>Import an M3U8 playlist (experimental)</td><td>Setlist → Import Setlist (M3U8)…</td></tr>
       <tr><td>Find duplicates</td><td>Find Duplicates</td></tr>
       <tr><td>Rescan</td><td>Maintenance → appropriate Rescan action</td></tr>
       <tr><td>Remove links to permanently missing files</td><td>Clean Up Missing Links</td></tr>

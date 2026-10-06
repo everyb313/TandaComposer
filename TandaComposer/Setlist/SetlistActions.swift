@@ -564,7 +564,7 @@ enum SetlistActions {
             //    The user only selected the M3U8 file.
             //    The metadata file is created automatically.
             // ---------------------------------------------------------
-
+/*
             let metadataURL =
                 m3u8URL
                     .deletingPathExtension()
@@ -580,7 +580,7 @@ enum SetlistActions {
                 to:
                     metadataURL
             )
-
+*/
         } catch {
 
             presentError(

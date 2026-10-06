@@ -19,6 +19,7 @@ It is designed for DJs and dancers who want to prepare Setlists from their own m
 - Reuse tracks from previously saved Setlists
 - Add prepared Tandas to a Setlist
 - Import a Setlist from an M3U8 file (experimental)
+- Edit track tags directly in the audio files (experimental — see below)
 - Organize Tandas in folders and Smartlists
 - Filter tracks by dance type
 - Create Smartlists to find tracks matching specific criteria
@@ -35,13 +36,23 @@ Before building Setlists, you add the folders containing your music to the Track
 
 TandaComposer scans these folders and creates its own Library information for the tracks it finds. The Library keeps track of the music files and their locations; the audio files themselves are not copied into the Library.
 
-### Music files are never modified
+### Your music files stay untouched — except for Edit Tags
 
-**TandaComposer does not write tags or other metadata into your music files.**
+By default, TandaComposer does **not** change your audio files. It keeps its own Library information separately from the music files.
 
-Your original audio files remain unchanged. TandaComposer maintains its own Library information separately from the music files.
+Organizing tracks, creating Tandas, building Setlists, using Smartlists and exporting Setlists do **not** modify the tags of your audio files.
 
-Organizing tracks, creating Tandas, building Setlists or using Smartlists does **not** modify the tags of your audio files.
+### Edit Tags (experimental) writes into your files
+
+**Edit Tags…** is the one feature that **modifies your audio files**: it writes Title, Orchestra (Artist), Singer (AlbumArtist), Genre, Year and Comment directly into the selected files (FLAC, MP3, M4A/AAC and AIFF) and updates the Library to match.
+
+- It is **experimental** and has had less real-world testing than the rest of the app.
+- It is available only while the Library is **unlocked**.
+- Changes are written immediately. There is no Undo inside the app.
+- Before the first change to a file, a copy of the original is saved next to it as `<filename>_original` (for example `track.flac_original`). An existing backup is never overwritten, and backups are not deleted automatically.
+- Every field that contains text is written, including prefilled values you did not change.
+
+**Back up your music collection before editing many files.**
 
 ## Setlists
 ![TandaComposer](setlist_creation_flow.png)
@@ -79,16 +90,10 @@ Smartlists are especially useful when working with a large music collection.
 
 The main parts of the project are organized as follows:
 
-- `TandaComposer/` — main application UI and commands
-- `TandaCore/` — core data, Library and Setlist functionality
-- `TandaLibrary/` — Tanda management
-- `TandaSmart/` — Smartlists
-- `TandaPreviewPlayer/` — audio preview
-- `TandaDuplicates/` — duplicate detection
-- `TandaTools/` — maintenance and Library tools
-- `AudioTagKit/` — audio metadata handling
-- `TandaKit/` — shared utilities
-- `Help/` — built-in user documentation
+- `TandaComposer/` — main application UI and commands (Setlist, Track Library, Tanda Library, Smartlists, duplicates, maintenance tools) and the built-in `Help/`
+- `TandaCore/` — core data, Library, Setlist, Smartlist and import functionality
+- `AudioTagKit/` — audio metadata reading and writing
+- `scripts/` — build scripts
 - `Third-Party_Notices/` — third-party software notices and licenses
 
 ## Building
@@ -113,7 +118,7 @@ scripts/build_pkg.sh
 The built-in user documentation is located in:
 
 ```text
-Help/help_en.html
+TandaComposer/Help/help_en.html
 ```
 
 The `Help` folder also contains the screenshots used by the documentation.
