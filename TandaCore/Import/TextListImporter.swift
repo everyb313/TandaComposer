@@ -420,14 +420,15 @@ public enum TextListImporter {
             text = withoutNumber
         }
 
-        // Trailing "(…)" / "[…]" groups.
+        // Trailing "(…)" / "[…]" groups. One bracket inside a bracket is
+        // allowed: "(Singer: Flores, Roberto (Chato))".
         var year: Int?
         var singer: String?
 
         for _ in 0..<4 {
 
             guard let range = text.range(
-                of: #"\s*[(\[][^()\[\]]*[)\]]\s*$"#,
+                of: #"\s*[(\[](?:[^()\[\]]|[(\[][^()\[\]]*[)\]])*[)\]]\s*$"#,
                 options: .regularExpression
             ) else {
                 break

@@ -248,6 +248,46 @@ public enum SpecialImportPlanner {
 
     // MARK: Auto-pick best file
 
+    /// Longest allowed difference, in seconds, between the shortest and
+    /// the longest copy. Copies of one recording from different sources
+    /// differ by a few seconds, sometimes by ten (2:18 / 2:16 / 2:15 and
+    /// more). The same year is required as well, which keeps other
+    /// recordings of the same tango apart.
+    private static let maxLengthSpread = 11
+
+    /// Words that stand for "no singer" in a singer tag.
+    private static let instrumentalMarkers: Set<String> = [
+        "instrumental", "instr", "inst",
+        "instrumentale", "instrumentales"
+    ]
+
+    /// The normalized singer, or nil when there is none: empty, or only
+    /// an "instrumental" marker ("Instrumental", "instr.").
+    static func singerKey(_ raw: String?) -> String? {
+
+        guard let key = TrackTextNormalizer.normalize(raw) else {
+            return nil
+        }
+
+        let words =
+            key
+                .components(
+                    separatedBy: CharacterSet.alphanumerics.inverted
+                )
+                .filter { !$0.isEmpty }
+
+        if words.isEmpty {
+            return nil
+        }
+
+        if words.count == 1,
+           instrumentalMarkers.contains(words[0]) {
+            return nil
+        }
+
+        return key
+    }
+
     /// The one best file, when `candidates` are all the SAME recording
     /// stored in several files — nil otherwise.
     ///
@@ -261,12 +301,6 @@ public enum SpecialImportPlanner {
     ///
     /// Preference: FLAC (higher sample rate first), then AIFF at 96, 48
     /// and 44.1 kHz, then other AIFF, then everything else.
-    /// Longest allowed difference, in seconds, between the shortest and
-    /// the longest copy. Copies of one recording from different sources
-    /// differ by a few seconds (2:18 / 2:16 / 2:15); other recordings of
-    /// the same tango differ by far more.
-    private static let maxLengthSpread = 5
-
     static func bestFile(
         among candidates: [Song],
         orchestraSource: TagSource,
@@ -345,9 +379,9 @@ public enum SpecialImportPlanner {
             ) == TrackTextNormalizer.normalize(
                 b.rawTagValue(for: orchestraSource)
             )
-            && TrackTextNormalizer.normalize(
+            && singerKey(
                 a.rawTagValue(for: singerSource)
-            ) == TrackTextNormalizer.normalize(
+            ) == singerKey(
                 b.rawTagValue(for: singerSource)
             )
     }
@@ -500,15 +534,25 @@ public enum SpecialImportPlanner {
             }
         }
 
-        if let wanted =
-            TrackTextNormalizer.normalize(track.singer),
-           let actual =
-            TrackTextNormalizer.normalize(
-                song.rawTagValue(for: singerSource)
-            ),
-           actual.contains(wanted) || wanted.contains(actual)
-        {
-            boost += 220
+        // A named singer agrees with a similar name. "Instrumental"
+        // (no singer) agrees with a track that has none.
+        if let line = track.singer, !line.isEmpty {
+
+            let wanted = singerKey(line)
+            let actual = singerKey(song.rawTagValue(for: singerSource))
+
+            switch (wanted, actual) {
+
+            case (nil, nil):
+                boost += 220
+
+            case let (wanted?, actual?)
+                where actual.contains(wanted) || wanted.contains(actual):
+                boost += 220
+
+            default:
+                break
+            }
         }
 
         return boost
@@ -648,7 +692,7 @@ public enum SpecialImportPlanner {
         var result = text
 
         while let range = result.range(
-            of: #"\s*[(\[][^()\[\]]*[)\]]\s*$"#,
+            of: #"\s*[(\[](?:[^()\[\]]|[(\[][^()\[\]]*[)\]])*[)\]]\s*$"#,
             options: .regularExpression
         ) {
             result.removeSubrange(range)

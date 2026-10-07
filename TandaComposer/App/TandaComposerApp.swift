@@ -25,6 +25,7 @@
 import SwiftUI
 import AppKit
 
+
 @main
 struct TandaComposerApp: App {
 
@@ -33,6 +34,7 @@ struct TandaComposerApp: App {
     @StateObject private var settings: AppSettings
     @StateObject private var switchConfirmationCenter = SwitchConfirmationCenter()
     @StateObject private var specialImportSession = SpecialImportSession()
+    @StateObject private var tandaImportSession = TandaImportSession()
     @StateObject private var audioOutputManager = AudioOutputManager.shared
 
     @Environment(\.openWindow)
@@ -119,7 +121,10 @@ struct TandaComposerApp: App {
                 libraryStore: environment.libraryStore,
                 setlistStore: environment.setlistStore,
                 smartlistStore: environment.smartlistStore,
-                settings: settings
+                settings: settings,
+                switchConfirmationCenter: switchConfirmationCenter,
+                specialImportSession: specialImportSession,
+                tandaImportSession: tandaImportSession
             )
 
             MaintenanceCommands()
@@ -182,7 +187,7 @@ struct TandaComposerApp: App {
                 .environmentObject(settings)
                 .preferredColorScheme(settings.colorScheme)
         }
-        .windowResizability(.contentSize)
+        .windowResizability(.automatic)
 
         Window(
             "Import Setlist (Pick Tracks)",
@@ -197,6 +202,20 @@ struct TandaComposerApp: App {
                 .preferredColorScheme(settings.colorScheme)
         }
         .windowResizability(.contentSize)
+
+        Window(
+            "Import Tandas from ZIP",
+            id: "tanda-import"
+        ) {
+
+            TandaImportView()
+                .environmentObject(tandaImportSession)
+                .environmentObject(environment.libraryStore)
+                .environmentObject(settings)
+                .preferredColorScheme(settings.colorScheme)
+        }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 1100, height: 700)
 
         WindowGroup(
             id: "rescan-library"

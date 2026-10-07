@@ -26,9 +26,26 @@ It is designed for DJs and dancers who want to prepare Setlists from their own m
 - Preview tracks while preparing a Setlist
 - See how Tandas in your Setlist are distributed across orchestras
 - Save and export Setlists
+- Share your Tandas: export them as one text or M3U8 file per Tanda in a ZIP, and import such a ZIP into another TrackLibrary (experimental)
 - Work with multiple, independent Track Libraries
 - Check and maintain the music Library
 - Find duplicate tracks and clean up missing file references
+
+## Import and export
+
+All import and export commands are in the **Tools** menu (the Setlist menu only manages Setlists):
+
+| Tools → Export | Tools → Import |
+| --- | --- |
+| Current Setlist (M3U8)… | Setlist (Pick Tracks)… *(in development)* |
+| Smartlists… | Setlist (M3U8, experimental)… |
+| TandaLibrary for Sharing (ZIP)… | Smartlists… |
+| Backup of All Data… | Tandas from ZIP… *(experimental)* |
+| | Restore Backup… |
+
+- **Backup of All Data / Restore Backup** save and restore the whole `~/.TandaComposer` folder. Restoring overwrites files with the same name, so make a backup first.
+- **TandaLibrary for Sharing** writes one file per Tanda (text or M3U8), in the same folders as your TandaLibrary, into a ZIP. The ZIP contains no music, and your own files are not changed.
+- **Tandas from ZIP** reads such a ZIP, one orchestra folder at a time. Each Tanda is matched with your TrackLibrary and shown as *Ready*, *Needs help*, *Already in your TandaLibrary* or *Not possible*; you check what to import. Folder and name of an imported Tanda come from your own tags. Imported Tandas can only be removed one by one.
 
 ## Music and Library
 

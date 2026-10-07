@@ -36,6 +36,15 @@ struct RescanCommands: Commands {
     @ObservedObject var settings:
         AppSettings
 
+    @ObservedObject var switchConfirmationCenter:
+        SwitchConfirmationCenter
+
+    let specialImportSession:
+        SpecialImportSession
+
+    let tandaImportSession:
+        TandaImportSession
+
     @Environment(\.openWindow)
     private var openWindow
 
@@ -62,62 +71,177 @@ struct RescanCommands: Commands {
 
 
             // =====================================================
-            // EXPORT / IMPORT BACKUP (whole ~/.TandaComposer folder)
-            // =====================================================
-
-            Button(
-                "Export Backup…"
-            ) {
-
-                LibraryActions.exportBackup()
-            }
-
-
-            Button {
-
-                LibraryActions.importBackup(
-                    db:
-                        db,
-                    libraryStore:
-                        libraryStore,
-                    setlistStore:
-                        setlistStore,
-                    smartlistStore:
-                        smartlistStore
-                )
-
-            } label: {
-
-                lockableLabel(
-                    "Import Backup…",
-                    locked:
-                        libraryStore.isLocked
-                )
-            }
-            .disabled(
-                libraryStore.isLocked
-            )
-
-
-            Divider()
-
-
-            // =====================================================
-            // EXPORT TANDALIBRARY FOR SHARING
+            // EXPORT
             //
-            // One text file (or M3U8) per Tanda, Tanda folders kept,
-            // zipped. Read-only, so no Library lock is needed.
+            // Everything that writes data out, in one place. The
+            // Setlist and Smartlists menus keep their own entries for
+            // the same actions.
             // =====================================================
 
-            Button(
-                "Export TandaLibrary for Sharing…"
+            Menu(
+                "Export"
             ) {
 
-                TandaLibraryExportActions.exportForSharing(
-                    libraryStore:
-                        libraryStore,
-                    settings:
-                        settings
+                Button(
+                    "Current Setlist (M3U8)…"
+                ) {
+
+                    SetlistActions.exportSetlist(
+                        setlistStore:
+                            setlistStore
+                    )
+                }
+
+
+                Button(
+                    "Smartlists…"
+                ) {
+
+                    SmartlistActions.exportAll(
+                        store:
+                            smartlistStore
+                    )
+                }
+
+
+                // One text file (or M3U8) per Tanda, Tanda folders
+                // kept, zipped. Read-only, so no Library lock.
+                Button(
+                    "TandaLibrary for Sharing (ZIP)…"
+                ) {
+
+                    TandaLibraryExportActions.exportForSharing(
+                        libraryStore:
+                            libraryStore,
+                        settings:
+                            settings
+                    )
+                }
+
+
+                Divider()
+
+
+                // The whole ~/.TandaComposer folder.
+                Button(
+                    "Backup of All Data…"
+                ) {
+
+                    LibraryActions.exportBackup()
+                }
+            }
+
+
+            // =====================================================
+            // IMPORT
+            // =====================================================
+
+            Menu(
+                "Import"
+            ) {
+
+                Button(
+                    "Setlist (Pick Tracks)…"
+                ) {
+
+                    SetlistActions.specialImport(
+                        session:
+                            specialImportSession,
+                        libraryStore:
+                            libraryStore,
+                        settings:
+                            settings,
+                        openWindow: {
+                            openWindow(
+                                id:
+                                    "special-import"
+                            )
+                        }
+                    )
+                }
+
+
+                Button(
+                    "Setlist (M3U8, experimental)…"
+                ) {
+
+                    SetlistActions.importSetlist(
+                        setlistStore:
+                            setlistStore,
+                        libraryStore:
+                            libraryStore,
+                        switchConfirmationCenter:
+                            switchConfirmationCenter
+                    )
+                }
+
+
+                Button {
+
+                    SmartlistActions.importAll(
+                        store:
+                            smartlistStore
+                    )
+
+                } label: {
+
+                    lockableLabel(
+                        "Smartlists…",
+                        locked:
+                            smartlistStore.isLocked
+                    )
+                }
+                .disabled(
+                    smartlistStore.isLocked
+                )
+
+
+                // Reads a ZIP made by "TandaLibrary for Sharing";
+                // one orchestra folder at a time.
+                Button(
+                    "Tandas from ZIP…"
+                ) {
+
+                    if TandaImportActions.chooseZip(
+                        session:
+                            tandaImportSession
+                    ) {
+                        openWindow(
+                            id:
+                                "tanda-import"
+                        )
+                    }
+                }
+
+
+                Divider()
+
+
+                // Overwrites files in ~/.TandaComposer: last, behind
+                // a divider, and locked with the Library.
+                Button {
+
+                    LibraryActions.importBackup(
+                        db:
+                            db,
+                        libraryStore:
+                            libraryStore,
+                        setlistStore:
+                            setlistStore,
+                        smartlistStore:
+                            smartlistStore
+                    )
+
+                } label: {
+
+                    lockableLabel(
+                        "Restore Backup…",
+                        locked:
+                            libraryStore.isLocked
+                    )
+                }
+                .disabled(
+                    libraryStore.isLocked
                 )
             }
         }

@@ -142,51 +142,10 @@ var body: some Commands {
         }
 
 
-        Divider()
-
-
         // =====================================================
-        // EXPORT SETLIST
+        // Export / Import of Setlists live in the Tools menu
+        // (Tools → Export / Import).
         // =====================================================
-
-        Button("Export Setlist…") {
-
-            SetlistActions.exportSetlist(
-                setlistStore:
-                    setlistStore
-            )
-        }
-
-
-        Button("Import Setlist (M3U8)…") {
-
-            SetlistActions.importSetlist(
-                setlistStore:
-                    setlistStore,
-                libraryStore:
-                    libraryStore,
-                switchConfirmationCenter:
-                    switchConfirmationCenter
-            )
-        }
-
-        Button("Import Setlist (Pick Tracks)…") {
-
-            SetlistActions.specialImport(
-                session:
-                    specialImportSession,
-                libraryStore:
-                    libraryStore,
-                settings:
-                    settings,
-                openWindow: {
-                    openWindow(
-                        id:
-                            "special-import"
-                    )
-                }
-            )
-        }
     }
 }
 

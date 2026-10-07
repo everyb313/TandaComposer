@@ -232,12 +232,7 @@ struct DuplicateFinderView:
             minWidth:
                 max(
                     settings.currentLibraryPaneWidth,
-                    400
-                ),
-            maxWidth:
-                max(
-                    settings.currentLibraryPaneWidth,
-                    400
+                    700
                 ),
             minHeight:
                 420

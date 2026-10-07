@@ -357,7 +357,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
 
   <ol class="steps">
     <li><strong>Save the Setlist</strong><p>Keep the working Setlist so you can reopen it later or reuse tracks from it.</p></li>
-    <li><strong>Choose Export Setlist…</strong><p>Use the Setlist menu and choose <strong>Export Setlist…</strong>.</p></li>
+    <li><strong>Choose Current Setlist (M3U8)…</strong><p>Open the <strong>Tools</strong> menu, then <strong>Export</strong>, and choose <strong>Current Setlist (M3U8)…</strong>.</p></li>
     <li><strong>Save the M3U8 playlist</strong><p>TandaComposer creates an <code>.m3u8</code> playlist referring to the actual music files.</p></li>
     <li><strong>Open it in your player</strong><p>Use the exported playlist with a player that supports M3U8 playlists. The current workflow has been tested with <strong>Apple Music</strong>.</p></li>
   </ol>
@@ -366,8 +366,10 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     <strong>The playlist does not contain the audio.</strong> The music files must remain accessible at the paths referenced by the M3U8 playlist.
   </div>
 
+  <div class="callout"><strong>Import and export are in the Tools menu.</strong> <strong>Tools → Export</strong> and <strong>Tools → Import</strong> list everything that moves data out of or into TandaComposer: Setlists, Smartlists, your TandaLibrary for sharing, and a backup of all data. The Setlist menu itself only manages Setlists (New, Open, Delete).</div>
+
   <h3>Import a Setlist from an M3U8 file (experimental)</h3>
-  <p class="lead">Use the Setlist menu and choose <strong>Import Setlist (M3U8)…</strong> to create a new Setlist from an <code>.m3u8</code> playlist.</p>
+  <p class="lead">Open the <strong>Tools</strong> menu, then <strong>Import</strong>, and choose <strong>Setlist (M3U8, experimental)…</strong> to create a new Setlist from an <code>.m3u8</code> playlist.</p>
   <ul class="bullets">
     <li>A track is added only if its file path is found in your Track Library. Add the music folder to the Library first.</li>
     <li>The tracks land in a new saved Setlist named after the playlist file. An existing Setlist is not overwritten; you may be asked whether to save the Setlist you are working on first.</li>
@@ -436,7 +438,8 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
 
   <div class="cardgrid">
     <div class="card"><h4>Find Duplicates</h4><p>Inspect possible duplicate tracks in the Library.</p></div>
-    <div class="card"><h4>Backup</h4><p>Export a backup before major changes or when moving to another Mac.</p></div>
+    <div class="card"><h4>Export / Import</h4><p>Tools → Export and Tools → Import: Setlists, Smartlists, your TandaLibrary for sharing, and backups.</p></div>
+    <div class="card"><h4>Backup</h4><p>Save a backup of all data before major changes or when moving to another Mac.</p></div>
     <div class="card"><h4>Settings</h4><p>Adjust available appearance and audio preferences.</p></div>
     <div class="card"><h4>Locks</h4><p>Protected Library and Smartlist areas can be unlocked when you need to make changes. Editing tags needs the Library unlocked.</p></div>
   </div>
@@ -451,7 +454,33 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   </div>
 
   <div class="callout">
-    <strong>Backup before a major change.</strong> If you are moving to another Mac or making extensive Library changes, use <strong>Tools → Export Backup…</strong> first.
+    <strong>Backup before a major change.</strong> If you are moving to another Mac or making extensive Library changes, use <strong>Tools → Export → Backup of All Data…</strong> first. <strong>Tools → Import → Restore Backup…</strong> brings a backup back; it overwrites files with the same name and needs the Library unlocked.
+  </div>
+
+  <h3>Share your Tandas with others (experimental)</h3>
+  <p class="lead">Your TandaLibrary can be packed into a ZIP so that someone else can load your Tandas into their own TrackLibrary. The ZIP does not contain any music.</p>
+
+  <p><strong>Export:</strong> <strong>Tools → Export → TandaLibrary for Sharing (ZIP)…</strong></p>
+  <ul class="bullets">
+    <li>One file per Tanda, in the same folders as your TandaLibrary. Nothing in your TandaLibrary or your music files is changed.</li>
+    <li>Choose the format in the save dialog. <strong>Text files</strong> (recommended) show one track per line, for example <code>1. Juan D'Arienzo - Paciencia (Singer: Enrique Carbel)</code>, using your Orchestra and Singer settings. <strong>M3U8 playlists</strong> are for other players and contain the length, orchestra, title and bare file name of each track (no folders, no singer).</li>
+    <li>When it is done, a summary tells you how many Tandas were exported and how many tracks are not in your TrackLibrary or have a missing file.</li>
+  </ul>
+
+  <p><strong>Import:</strong> <strong>Tools → Import → Tandas from ZIP…</strong></p>
+  <ul class="bullets">
+    <li>Choose the ZIP. A window shows the orchestra folders on the left. Pick <strong>one folder at a time</strong>; its Tandas are then matched with your TrackLibrary.</li>
+    <li>Each Tanda has a status: <strong>Ready</strong> (every track found, checked for import), <strong>Needs help</strong> (a track is missing or ambiguous), <strong>Already in your TandaLibrary</strong>, or <strong>Not possible</strong> (for example fewer than 3 or more than 8 tracks, or a file is missing on disk).</li>
+    <li>A track counts as found when the exact file matches, when it exists as several files of the same recording and Settings → <strong>Auto-pick best file</strong> chose one, or when exactly one track in your TrackLibrary agrees in title, orchestra and singer. <strong>Show tracks</strong> lists the tracks found, with year, length and file type, so you can check each one.</li>
+    <li>For a Tanda that <strong>Needs help</strong>, click <strong>Choose tracks</strong> and pick the right track from the candidates. Once every track is chosen the Tanda becomes Ready.</li>
+    <li>Click <strong>Import</strong> to save the checked Tandas. Folder and name come from <strong>your own tags</strong>, so they can differ from the ZIP.</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>Imported Tandas can only be removed one by one</strong> (Delete Tanda). Make a backup first. A Tanda is "already there" only when it uses exactly the same files; the same Tanda in another file format is imported as a new Tanda.
+  </div>
+  <div class="callout">
+    <strong>Also in the Import menu:</strong> <strong>Setlist (Pick Tracks)…</strong> is still in development and is not described here.
   </div>
 </section>
 
@@ -474,14 +503,18 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Preview a track</td><td>Double-click a Library or Setlist track</td></tr>
       <tr><td>Tanda Coloring</td><td>Palette button in the Setlist header</td></tr>
       <tr><td>Save a Setlist</td><td>Save Set</td></tr>
-      <tr><td>Export</td><td>Setlist → Export Setlist… → <code>.m3u8</code></td></tr>
-      <tr><td>Import an M3U8 playlist (experimental)</td><td>Setlist → Import Setlist (M3U8)…</td></tr>
-      <tr><td>Find duplicates</td><td>Find Duplicates</td></tr>
+      <tr><td>Export a Setlist</td><td>Tools → Export → Current Setlist (M3U8)… → <code>.m3u8</code></td></tr>
+      <tr><td>Import an M3U8 playlist (experimental)</td><td>Tools → Import → Setlist (M3U8, experimental)…</td></tr>
+      <tr><td>Share your Tandas (experimental)</td><td>Tools → Export → TandaLibrary for Sharing (ZIP)…</td></tr>
+      <tr><td>Import Tandas from a ZIP (experimental)</td><td>Tools → Import → Tandas from ZIP… → choose one orchestra folder → check the Tandas → Import</td></tr>
+      <tr><td>Export / import Smartlists</td><td>Tools → Export / Import → Smartlists… (also in the Smartlists menu)</td></tr>
+      <tr><td>Find duplicates</td><td>Tools → Find TrackLibrary Duplicates…</td></tr>
       <tr><td>Rescan</td><td>Maintenance → appropriate Rescan action</td></tr>
       <tr><td>Remove links to permanently missing files</td><td>Clean Up Missing Links</td></tr>
       <tr><td>Review import folders</td><td>Manage Import Sources</td></tr>
       <tr><td>Reclaim database space</td><td>Compact TrackLibrary</td></tr>
-      <tr><td>Back up</td><td>Tools → Export Backup…</td></tr>
+      <tr><td>Back up</td><td>Tools → Export → Backup of All Data…</td></tr>
+      <tr><td>Restore a backup</td><td>Unlock the Library → Tools → Import → Restore Backup… <strong>(overwrites files)</strong></td></tr>
     </tbody>
   </table>
 </section>
