@@ -155,7 +155,7 @@ enum LibraryActions {
                 setlistStore.refreshAfterExternalDataChange()
 
                 NotificationCenter.default.post(
-                    name: .tandaComposerLibrarySwitched,
+                    name: AppNotification.tandaComposerLibrarySwitched,
                     object: nil
                 )
 
@@ -206,7 +206,7 @@ enum LibraryActions {
             setlistStore.refreshAfterExternalDataChange()
 
             NotificationCenter.default.post(
-                name: .tandaComposerLibrarySwitched,
+                name: AppNotification.tandaComposerLibrarySwitched,
                 object: nil
             )
         }
@@ -503,7 +503,7 @@ enum LibraryActions {
             setlistStore.refreshAfterExternalDataChange()
 
             NotificationCenter.default.post(
-                name: .tandaComposerLibrarySwitched,
+                name: AppNotification.tandaComposerLibrarySwitched,
                 object: nil
             )
 
@@ -793,7 +793,7 @@ enum LibraryActions {
         setlistStore.refreshAfterExternalDataChange()
 
         NotificationCenter.default.post(
-            name: .tandaComposerBackupImported,
+            name: AppNotification.tandaComposerBackupImported,
             object: nil
         )
     }
@@ -1099,7 +1099,7 @@ enum LibraryActions {
             setlistStore.refreshAfterExternalDataChange()
 
             NotificationCenter.default.post(
-                name: .tandaComposerLibrarySwitched,
+                name: AppNotification.tandaComposerLibrarySwitched,
                 object: nil
             )
 

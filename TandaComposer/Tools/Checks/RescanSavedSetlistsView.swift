@@ -340,7 +340,7 @@ struct RescanSavedSetlistsView: View {
         if summary.updatedSetlistCount > 0 {
 
             NotificationCenter.default.post(
-                name: .setlistSaved,
+                name: AppNotification.setlistSaved,
                 object: nil
             )
         }

@@ -1217,7 +1217,7 @@ private struct PlaylistTableView: NSViewRepresentable {
 
             NotificationCenter.default.post(
                 name:
-                    .tandaPreviewSongSelected,
+                    AppNotification.tandaPreviewSongSelected,
                 object:
                     song
             )
@@ -1250,7 +1250,7 @@ private struct PlaylistTableView: NSViewRepresentable {
 
             NotificationCenter.default.post(
                 name:
-                    .tandaPreviewSongDoubleClicked,
+                    AppNotification.tandaPreviewSongDoubleClicked,
                 object:
                     song
             )

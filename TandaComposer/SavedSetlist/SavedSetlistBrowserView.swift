@@ -233,7 +233,7 @@ struct SavedSetlistBrowserView:
         .onReceive(
             NotificationCenter.default.publisher(
                 for:
-                    .setlistSaved
+                    AppNotification.setlistSaved
             )
         ) { _ in
 

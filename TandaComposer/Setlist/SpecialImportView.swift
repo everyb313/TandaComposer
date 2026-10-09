@@ -159,7 +159,7 @@ struct SpecialImportView: View {
         }
         .onReceive(
             NotificationCenter.default.publisher(
-                for: .tandaPreviewSongDoubleClicked
+                for: AppNotification.tandaPreviewSongDoubleClicked
             )
         ) { notification in
 
@@ -546,7 +546,7 @@ private struct SpecialImportRowBlock: View {
     private func preview(_ song: Song) {
 
         NotificationCenter.default.post(
-            name: .tandaPreviewSongDoubleClicked,
+            name: AppNotification.tandaPreviewSongDoubleClicked,
             object: song
         )
     }

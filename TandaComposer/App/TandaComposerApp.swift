@@ -514,20 +514,12 @@ final class AppEnvironment {
 
                 // DatabaseManager's in-memory initialization should
                 // normally never fail. We cannot construct the
-                // required objects without a valid database, so this
-                // is reported clearly rather than using fatalError().
-                print(
-                    "CRITICAL DATABASE ERROR:",
-                    error.localizedDescription
+                // required objects without a valid database, so tell
+                // the user and quit cleanly. (Retrying the very same
+                // call with `try!` would only fail again and trap.)
+                Self.terminate(
+                    becauseNoDatabase: error
                 )
-
-                db = try! DatabaseManager()
-                libraryStore = LibraryStore(db: db)
-                setlistStore = SetlistStore(db: db)
-                scanner = LibraryScanner(db: db)
-                smartlistStore = SmartlistStore()
-
-                return
             }
         }
 
@@ -571,7 +563,9 @@ final class AppEnvironment {
                     error.localizedDescription
                 )
 
-                db = try! DatabaseManager()
+                Self.terminate(
+                    becauseNoDatabase: error
+                )
             }
         }
 
@@ -606,5 +600,31 @@ final class AppEnvironment {
         )
 
         smartlistStore = SmartlistStore()
+    }
+
+    /// Not even an in-memory database could be created, so the app has
+    /// nothing to work with. Say so and quit, instead of trapping in a
+    /// `try!` with a crash report.
+    private static func terminate(
+        becauseNoDatabase error: Error
+    ) -> Never {
+
+        print(
+            "CRITICAL DATABASE ERROR:",
+            error.localizedDescription
+        )
+
+        let alert = NSAlert()
+
+        alert.messageText = "TandaComposer Cannot Start"
+
+        alert.informativeText =
+            "The database could not be created, not even a temporary one in memory.\n\n\(error.localizedDescription)\n\nRestart your Mac and try again. If this keeps happening, check that there is free disk space and that your home folder is accessible."
+
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "Quit")
+        alert.runModal()
+
+        exit(EXIT_FAILURE)
     }
 }

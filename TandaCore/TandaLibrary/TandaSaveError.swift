@@ -230,7 +230,7 @@ enum TandaSaver {
 
         NotificationCenter.default.post(
             name:
-                .tandaSaved,
+                AppNotification.tandaSaved,
             object:
                 nil
         )

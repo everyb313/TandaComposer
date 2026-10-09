@@ -414,7 +414,7 @@ struct RescanTandaView: View {
         if summary.updatedTandaCount > 0 {
 
             NotificationCenter.default.post(
-                name: .tandaSaved,
+                name: AppNotification.tandaSaved,
                 object: nil
             )
         }

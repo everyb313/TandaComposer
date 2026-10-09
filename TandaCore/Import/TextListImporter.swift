@@ -775,7 +775,7 @@ public enum TextListImporter {
 
         let name =
             found.trimmingCharacters(in: .whitespacesAndNewlines)
-
+ 
         return name.isEmpty ? nil : name
     }
 

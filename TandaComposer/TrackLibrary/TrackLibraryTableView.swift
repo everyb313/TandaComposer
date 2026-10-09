@@ -1121,7 +1121,7 @@ struct LibraryTableView:
 
                 NotificationCenter.default.post(
                     name:
-                        .tandaPreviewSongSelected,
+                        AppNotification.tandaPreviewSongSelected,
                     object:
                         song
                 )
@@ -1168,7 +1168,7 @@ struct LibraryTableView:
 
                 NotificationCenter.default.post(
                     name:
-                        .tandaPreviewSongSelected,
+                        AppNotification.tandaPreviewSongSelected,
                     object:
                         song
                 )
@@ -1217,7 +1217,7 @@ struct LibraryTableView:
 
             NotificationCenter.default.post(
                 name:
-                    .tandaPreviewSongDoubleClicked,
+                    AppNotification.tandaPreviewSongDoubleClicked,
                 object:
                     song
             )

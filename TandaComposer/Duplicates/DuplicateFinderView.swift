@@ -495,7 +495,7 @@ private struct DuplicateClusterBlock:
 
                     NotificationCenter.default.post(
                         name:
-                            .tandaPreviewSongDoubleClicked,
+                            AppNotification.tandaPreviewSongDoubleClicked,
                         object:
                             song
                     )
