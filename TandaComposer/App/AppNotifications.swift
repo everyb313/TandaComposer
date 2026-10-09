@@ -22,3 +22,12 @@ enum AppNotification {
 }
 
 
+// MARK: - Notification
+
+extension Notification.Name {
+
+    static let tandaLibraryAddSelectedToSet =
+        Notification.Name(
+            "tandaLibraryAddSelectedToSet"
+        )
+}
