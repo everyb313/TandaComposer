@@ -1,5 +1,5 @@
 //
-//  SmartPlaylistActions.swift
+//  SmartlistActions.swift
 //
 //  Copyright © 2026 Hagen Eckert.
 //
@@ -76,7 +76,7 @@ enum SmartlistActions {
             NSOpenPanel()
 
         panel.title =
-            "Import Smart Playlists"
+            "Import Smartlists"
 
         panel.message =
             "Choose a folder of Smartlists to import. " +

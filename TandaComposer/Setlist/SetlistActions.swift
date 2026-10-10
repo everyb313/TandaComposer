@@ -20,7 +20,7 @@
 
 import AppKit
 
-/// Orchestrates Playlist-level actions (New / Open / Delete / Export).
+/// Orchestrates Setlist-level actions (New / Open / Delete / Export).
 /// Kept separate from LibraryActions since a Setlist lives
 /// inside the active Library but is persisted independently.
 enum SetlistActions {

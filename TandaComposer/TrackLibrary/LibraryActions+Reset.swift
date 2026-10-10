@@ -42,7 +42,7 @@ extension LibraryActions {
             "Clear \"\(libraryStore.currentLibraryName)\"?"
 
         alert.informativeText =
-            "This removes all songs and playlists from the " +
+            "This removes all songs and Setlists from the " +
             "current library. This cannot be undone."
 
         alert.alertStyle =
@@ -85,7 +85,7 @@ extension LibraryActions {
 
         firstAlert.informativeText =
             "This permanently deletes ALL internal libraries and " +
-            "all playlists inside them, and replaces them with a " +
+            "all Setlists inside them, and replaces them with a " +
             "single empty default library. This cannot be undone."
 
         firstAlert.alertStyle =

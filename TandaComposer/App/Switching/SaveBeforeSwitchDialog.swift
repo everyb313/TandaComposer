@@ -19,7 +19,7 @@
 
 import SwiftUI
 
-/// Sheet shown before a Library or Playlist is about to be replaced
+/// Sheet shown before a Library or Setlist is about to be replaced
 /// (New… / Load…). Offers to save the current one under a name first
 /// — prefilled with its current name, editable — or to discard it.
 struct SaveBeforeSwitchDialog: View {

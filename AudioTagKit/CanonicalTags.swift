@@ -58,8 +58,8 @@ public struct CanonicalTags {
             // FLAC taggers write a bare year under "YEAR" instead —
             // same reasoning as the albumArtist fallback above. Without
             // this, FLAC files tagged that way got a nil year while
-            // AIFF's ID3 (TYER) mapping worked fine, so any smart
-            // playlist rule on Year silently excluded every FLAC track.
+            // AIFF's ID3 (TYER) mapping worked fine, so any Smartlist
+            // rule on Year silently excluded every FLAC track.
             tags.year = vorbis["DATE"] ?? vorbis["YEAR"]
             tags.comment = vorbis["COMMENT"]
             tags.grouping = vorbis["GROUPING"]

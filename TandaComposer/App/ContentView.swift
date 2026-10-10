@@ -146,7 +146,7 @@ struct ContentView: View {
                 HSplitView {
 
                     // =================================================
-                    // SET / PLAYLIST
+                    // SET / SETLIST
                     // =================================================
 
                     SetColumnView(

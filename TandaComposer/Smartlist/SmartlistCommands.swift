@@ -1,5 +1,5 @@
 //
-//  SmartPlaylistCommands.swift
+//  SmartlistCommands.swift
 //
 //  Copyright © 2026 Hagen Eckert.
 //

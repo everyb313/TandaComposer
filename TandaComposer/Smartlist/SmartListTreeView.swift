@@ -419,7 +419,7 @@ struct SmartListTreeView: View {
         // node ID. This is the macOS drag mechanism that works well
         // with List / OutlineGroup.
         //
-        // Disabled while locked — moving a smart playlist counts as
+        // Disabled while locked — moving a Smartlist counts as
         // editing the tree, same as delete/edit/create.
         // ---------------------------------------------------------
 

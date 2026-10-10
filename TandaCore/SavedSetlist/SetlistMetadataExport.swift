@@ -97,7 +97,7 @@ public nonisolated enum SongMetadataJSON {
 /// File format for a TandaComposer Setlist.
 ///
 /// Used both as the internal save/load format
-/// (Playlists/<name>.json) and as the sidecar metadata
+/// (Setlists/<name>.json) and as the sidecar metadata
 /// written next to an M3U8 export.
 ///
 /// Contains the complete Song records for the Setlist,

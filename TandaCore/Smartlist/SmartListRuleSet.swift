@@ -92,7 +92,7 @@ struct SmartlistCondition: Codable, Identifiable, Equatable {
     var secondValue: String?
 }
 
-/// One rule set = one "smart playlist file" on disk.
+/// One rule set = one "Smartlist file" on disk.
 struct SmartListRuleSet: Codable, Identifiable, Equatable {
     var id: UUID = UUID()
     var name: String

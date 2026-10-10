@@ -22,7 +22,7 @@ import CoreTransferable
 import UniformTypeIdentifiers
 //import TandaCore
 
-/// Lets a Song be dragged from the library Table into the playlist List
+/// Lets a Song be dragged from the library Table into the Setlist
 /// (and reordered within it) via SwiftUI's `.draggable`/`.dropDestination`.
 ///
 /// Uses the built-in `.json` content type rather than declaring a custom

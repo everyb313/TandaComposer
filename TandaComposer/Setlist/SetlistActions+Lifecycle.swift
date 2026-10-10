@@ -24,7 +24,7 @@ import AppKit
 
 extension SetlistActions {
 
-    // MARK: - New Playlist
+    // MARK: - New Setlist
 
     /// Creates a new empty Setlist.
     ///
@@ -241,7 +241,7 @@ extension SetlistActions {
     }
 
 
-    // MARK: - Open Playlist
+    // MARK: - Open Setlist
 
     static func openPlaylist(
         named targetName: String,

@@ -357,7 +357,7 @@ extension LibraryActions {
 
         alert.informativeText =
             "This permanently deletes the library \"\(name)\" " +
-            "and everything in it (songs and playlists). " +
+            "and everything in it (songs and Setlists). " +
             "This cannot be undone."
 
         alert.alertStyle =

@@ -64,7 +64,7 @@ enum SmartSetlistStoreError: LocalizedError {
 final class SmartlistStore: ObservableObject {
     @Published private(set) var root: SmartlistNode
 
-    /// Gates editing, deleting, creating, and moving smart playlists — applying one via
+    /// Gates editing, deleting, creating, and moving Smartlists — applying one via
     /// double-click still works while locked, since browsing/using them is the whole point.
     /// Always starts locked (deliberately not persisted) so a session never "inherits" an
     /// unlocked state from last time without the person noticing.
@@ -242,7 +242,7 @@ final class SmartlistStore: ObservableObject {
         fileManager.fileExists(atPath: importedFolderURL.path)
     }
 
-    /// Copies the complete Smart Playlist tree to `destinationURL`
+    /// Copies the complete Smartlist tree to `destinationURL`
     /// (a not-yet-existing folder chosen by the user).
     func exportAll(to destinationURL: URL) throws {
         try fileManager.copyItem(at: root.url, to: destinationURL)

@@ -27,7 +27,7 @@ enum SwitchTargetKind {
     case playlist
 }
 
-/// One pending "about to replace the current Library/Playlist" request.
+/// One pending "about to replace the current Library/Setlist" request.
 /// Identifiable so it can drive a SwiftUI `.sheet(item:)`.
 struct SwitchConfirmationRequest: Identifiable {
 
@@ -39,7 +39,7 @@ struct SwitchConfirmationRequest: Identifiable {
     let suggestedName: String
 
     /// Names that would collide (already-saved internal libraries or
-    /// playlists) — used to show the overwrite warning.
+    /// Setlists) — used to show the overwrite warning.
     let existingNames: [String]
 
     /// Called when the user confirms saving under (possibly edited)
