@@ -42,7 +42,18 @@ public final class DatabaseManager {
     /// `writeWithoutTransaction` rather than the usual `write`.
     public func vacuum() throws {
 
-        try dbQueue.writeWithoutTransaction { db in
+        try Self.vacuum(on: dbQueue)
+    }
+
+    /// Same as `vacuum()`, but callable off the main actor: all it
+    /// needs is the (thread-safe) `DatabaseQueue`, so background
+    /// callers can pass that in instead of touching this MainActor
+    /// object.
+    nonisolated public static func vacuum(
+        on queue: DatabaseQueue
+    ) throws {
+
+        try queue.writeWithoutTransaction { db in
             try db.execute(sql: "VACUUM")
         }
     }

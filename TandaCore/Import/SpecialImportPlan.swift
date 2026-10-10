@@ -150,6 +150,7 @@ public struct SpecialImportRow: Identifiable, Equatable {
 
 // MARK: - Planner
 
+@MainActor
 public enum SpecialImportPlanner {
 
     /// Builds one row per imported track, preserving source order.
@@ -820,6 +821,7 @@ public enum SpecialImportPlanner {
 }
 
 
+@MainActor
 private extension ImportedTrack {
 
     func replacing(

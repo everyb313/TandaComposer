@@ -151,30 +151,22 @@ struct MaintenanceView: View {
         isCompacting = true
         errorMessage = nil
 
-        DispatchQueue.global(
-            qos: .userInitiated
-        ).async {
+        Task {
 
             do {
 
                 let result =
-                    try libraryStore.compactCurrentLibrary()
+                    try await libraryStore.compactCurrentLibrary()
 
-                DispatchQueue.main.async {
-
-                    lastResult = result
-                    isCompacting = false
-                }
+                lastResult = result
+                isCompacting = false
 
             } catch {
 
-                DispatchQueue.main.async {
+                errorMessage =
+                    error.localizedDescription
 
-                    errorMessage =
-                        error.localizedDescription
-
-                    isCompacting = false
-                }
+                isCompacting = false
             }
         }
     }

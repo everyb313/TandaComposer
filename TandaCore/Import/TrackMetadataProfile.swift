@@ -168,7 +168,7 @@ public struct TrackMetadataProfile: Equatable {
 /// It intentionally does not perform aggressive fuzzy substitutions.
 /// A false positive is worse than asking the user to choose between
 /// two candidates.
-public enum TrackTextNormalizer {
+public nonisolated enum TrackTextNormalizer {
 
     public static func normalize(
         _ value: String?

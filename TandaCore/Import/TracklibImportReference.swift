@@ -253,7 +253,7 @@ private struct NameRecognizer {
 
     /// Regex for one literal spelling: metacharacters escaped by hand,
     /// every apostrophe variant interchangeable, white space flexible.
-    private static func patternFragment(_ spelling: String) -> String {
+    nonisolated private static func patternFragment(_ spelling: String) -> String {
 
         let apostrophes = "'\u{2019}\u{2018}\u{00B4}`"
         let metacharacters = "\\.[]{}()*+?^$|-/"

@@ -124,7 +124,7 @@ public final class LibraryStore: ObservableObject {
     /// Result of `compactCurrentLibrary()` — the `.sqlite` file's size
     /// (bytes) immediately before and after `VACUUM`, so the calling
     /// UI can show how much was actually reclaimed.
-    public struct CompactResult {
+    public nonisolated struct CompactResult: Sendable {
         public let sizeBefore: Int64
         public let sizeAfter: Int64
     }
@@ -134,7 +134,26 @@ public final class LibraryStore: ObservableObject {
     /// (deleting songs doesn't shrink the file on its own). Reports
     /// the file size before and after so the UI can show something
     /// concrete rather than just "Done".
-    public func compactCurrentLibrary() throws -> CompactResult {
+    ///
+    /// Runs the `VACUUM` itself off the main actor (it can take a
+    /// moment on a big Library); the little state it needs from this
+    /// MainActor store is read up front.
+    public func compactCurrentLibrary() async throws -> CompactResult {
+
+        let queue = db.dbQueue
+        let path = currentLibraryPath
+
+        return try await Task.detached(
+            priority: .userInitiated
+        ) {
+            try Self.compact(queue: queue, path: path)
+        }.value
+    }
+
+    nonisolated private static func compact(
+        queue: DatabaseQueue,
+        path: String
+    ) throws -> CompactResult {
 
         let fm = FileManager.default
 
@@ -143,7 +162,7 @@ public final class LibraryStore: ObservableObject {
             guard
                 let attrs =
                     try? fm.attributesOfItem(
-                        atPath: currentLibraryPath
+                        atPath: path
                     )
             else {
                 return 0
@@ -154,7 +173,7 @@ public final class LibraryStore: ObservableObject {
 
         let before = fileSize()
 
-        try db.vacuum()
+        try DatabaseManager.vacuum(on: queue)
 
         let after = fileSize()
 

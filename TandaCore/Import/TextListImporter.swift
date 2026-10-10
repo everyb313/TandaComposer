@@ -26,7 +26,7 @@ import Foundation
 /// Only these are stripped. A title such as "Vol. 2" or "A. Pugliese"
 /// must keep everything after its dot, which a generic
 /// "delete path extension" would cut off.
-public enum AudioFileSuffix {
+public nonisolated enum AudioFileSuffix {
 
     public static let known: Set<String> = [
         "flac", "mp3", "m4a", "aac", "alac", "m4b", "m4p",

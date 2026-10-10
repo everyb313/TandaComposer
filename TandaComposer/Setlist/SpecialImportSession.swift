@@ -34,7 +34,7 @@ final class SpecialImportSession: ObservableObject {
 
     @Published private(set) var sourceName: String = ""
 
-    /// True while the rows are being computed off the main thread.
+    /// True while the rows are being computed.
     @Published private(set) var isPreparing: Bool = false
 
     /// Distinguishes the running import from an older one that is
@@ -65,26 +65,22 @@ final class SpecialImportSession: ObservableObject {
         let singerSource = settings.singerSource
         let autoPickBestFile = settings.autoPickBestFile
 
-        Task.detached(priority: .userInitiated) {
+        Task {
 
-            let built =
-                SpecialImportPlanner.makeRows(
-                    tracks: tracks,
-                    songs: songs,
-                    orchestraSource: orchestraSource,
-                    singerSource: singerSource,
-                    autoPickBestFile: autoPickBestFile
-                )
+            let built = SpecialImportPlanner.makeRows(
+                tracks: tracks,
+                songs: songs,
+                orchestraSource: orchestraSource,
+                singerSource: singerSource,
+                autoPickBestFile: autoPickBestFile
+            )
 
-            await MainActor.run {
-
-                guard token == self.generation else {
-                    return
-                }
-
-                self.rows = built
-                self.isPreparing = false
+            guard token == self.generation else {
+                return
             }
+
+            self.rows = built
+            self.isPreparing = false
         }
     }
 

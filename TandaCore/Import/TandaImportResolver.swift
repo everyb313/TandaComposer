@@ -98,12 +98,13 @@ struct TandaImportEntry: Identifiable {
 /// - there is exactly ONE candidate whose title, orchestra and singer
 ///   agree with the line.
 /// Everything else needs the user.
+@MainActor
 enum TandaImportResolver {
 
     // MARK: Existing Tandas
 
     /// All Tandas currently on disk, read from the Tandas folder.
-    static func loadExisting() -> [ExistingTanda] {
+    @MainActor static func loadExisting() -> [ExistingTanda] {
 
         let fm = FileManager.default
         let root = AppPaths.tandasFolder

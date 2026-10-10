@@ -47,6 +47,7 @@ struct TandaImportSummary {
 
 /// State of "Import Tandas from ZIP": the ZIP, its orchestra folders,
 /// and the evaluated Tandas of the folder being looked at.
+@MainActor
 final class TandaImportSession: ObservableObject {
 
     @Published private(set) var zipName = ""
@@ -152,26 +153,23 @@ final class TandaImportSession: ObservableObject {
         let singerSource = settings.singerSource
         let autoPick = settings.autoPickBestFile
 
-        Task.detached(priority: .userInitiated) {
+        Task {
 
-            let evaluated =
-                TandaImportResolver.evaluate(
-                    tandas,
-                    library: songs,
-                    orchestraSource: orchestraSource,
-                    singerSource: singerSource,
-                    autoPickBestFile: autoPick,
-                    missingSongIDs: missing,
-                    existing: existingSnapshot
-                )
+            let evaluated = TandaImportResolver.evaluate(
+                tandas,
+                library: songs,
+                orchestraSource: orchestraSource,
+                singerSource: singerSource,
+                autoPickBestFile: autoPick,
+                missingSongIDs: missing,
+                existing: existingSnapshot
+            )
 
-            await MainActor.run {
+            guard token == self.generation else {
+                return
+            }
 
-                guard token == self.generation else {
-                    return
-                }
-
-                var result = evaluated
+            var result = evaluated
 
                 // Where each ready Tanda would be saved.
                 for index in result.indices
@@ -199,8 +197,7 @@ final class TandaImportSession: ObservableObject {
                         .map { $0.id }
                 )
 
-                self.isMatching = false
-            }
+            self.isMatching = false
         }
     }
 
