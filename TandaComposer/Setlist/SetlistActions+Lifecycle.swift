@@ -34,14 +34,14 @@ extension SetlistActions {
     /// Save pattern used elsewhere in the app (e.g. New TrackLibrary,
     /// Open Setlist), which this older, separate NSAlert-based flow
     /// was previously missing a "Don't Save" option for.
-    static func newPlaylist(
+    static func newSetlist(
         setlistStore: SetlistStore
     ) {
 
         // Nothing unsaved — no question, straight to naming the new one.
         if canSwitchWithoutAsking(setlistStore) {
 
-            promptForNewPlaylistName(
+            promptForNewSetlistName(
                 setlistStore:
                     setlistStore
             )
@@ -123,14 +123,14 @@ extension SetlistActions {
         // Now ask for the name of the NEW Setlist.
         // -------------------------------------------------------------
 
-        promptForNewPlaylistName(
+        promptForNewSetlistName(
             setlistStore:
                 setlistStore
         )
     }
 
 
-    private static func promptForNewPlaylistName(
+    private static func promptForNewSetlistName(
         setlistStore: SetlistStore
     ) {
 
@@ -199,7 +199,7 @@ extension SetlistActions {
             }
 
             let existing =
-                (try? setlistStore.listPlaylistNames())
+                (try? setlistStore.listSetlistNames())
                 ?? []
 
             if existing.contains(newName) {
@@ -231,7 +231,7 @@ extension SetlistActions {
             // Create the NEW empty Setlist.
             // ---------------------------------------------------------
 
-            setlistStore.newPlaylist(
+            setlistStore.newSetlist(
                 named:
                     newName
             )
@@ -243,7 +243,7 @@ extension SetlistActions {
 
     // MARK: - Open Setlist
 
-    static func openPlaylist(
+    static func openSetlist(
         named targetName: String,
         setlistStore: SetlistStore,
         switchConfirmationCenter: SwitchConfirmationCenter
@@ -261,7 +261,7 @@ extension SetlistActions {
             do {
 
                 try setlistStore.load(
-                    playlistName:
+                    setlistName:
                         targetName
                 )
 
@@ -276,12 +276,12 @@ extension SetlistActions {
         }
 
         let existing =
-            (try? setlistStore.listPlaylistNames())
+            (try? setlistStore.listSetlistNames())
             ?? []
 
         switchConfirmationCenter.ask(
             kind:
-                .playlist,
+                .setlist,
             suggestedName:
                 setlistStore.name,
             existingNames:
@@ -306,7 +306,7 @@ extension SetlistActions {
                     // -------------------------------------------------
 
                     try setlistStore.load(
-                        playlistName:
+                        setlistName:
                             targetName
                     )
 
@@ -322,7 +322,7 @@ extension SetlistActions {
                 do {
 
                     try setlistStore.load(
-                        playlistName:
+                        setlistName:
                             targetName
                     )
 
@@ -411,7 +411,7 @@ extension SetlistActions {
 
     // MARK: - Delete Setlist
 
-    static func deletePlaylist(
+    static func deleteSetlist(
         named targetName: String,
         setlistStore: SetlistStore
     ) {
@@ -458,7 +458,7 @@ extension SetlistActions {
         do {
 
             try setlistStore.delete(
-                playlistName:
+                setlistName:
                     targetName
             )
 

@@ -83,7 +83,7 @@ public final class SetlistStore: ObservableObject {
 
     @Published public private(set) var selectedRowIndexes: IndexSet = []
 
-    @Published public private(set) var savedPlaylistNamesList: [String] = []
+    @Published public private(set) var savedSetlistNamesList: [String] = []
 
     /// Which TrackLibrary the loaded Setlist's song ids were resolved
     /// against — mirrors `SetlistMetadataExport.savedAgainstLibraryName`.
@@ -114,7 +114,7 @@ public final class SetlistStore: ObservableObject {
 
         self.db = db
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
     }
 
     // MARK: - External Data Change
@@ -134,7 +134,7 @@ public final class SetlistStore: ObservableObject {
     /// import didn't happen to include a Setlist of the same name.
     public func refreshAfterExternalDataChange() {
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
 
         let url = fileURL(forName: name)
 
@@ -150,7 +150,7 @@ public final class SetlistStore: ObservableObject {
             // data as if it were still current. Start fresh instead,
             // same as opening the app with nothing selected.
             //
-            // Deliberately NOT newPlaylist(): that also deletes the
+            // Deliberately NOT newSetlist(): that also deletes the
             // recovery file, and by now AppPaths already points at
             // the other Library's folder.
             resetToEmpty(named: "Untitled Set")
@@ -605,7 +605,7 @@ public final class SetlistStore: ObservableObject {
     /// Setlist the user currently has open.
     public static func fileURLOnDisk(forName saveName: String) -> URL {
 
-        AppPaths.playlistsFolder
+        AppPaths.setlistsFolder
             .appendingPathComponent(saveName)
             .appendingPathExtension("json")
     }
@@ -641,11 +641,11 @@ public final class SetlistStore: ObservableObject {
             )
 
         guard !trimmedName.isEmpty else {
-            throw SetlistStoreError.invalidPlaylistName
+            throw SetlistStoreError.invalidSetlistName
         }
 
         try FileManager.default.createDirectory(
-            at: AppPaths.playlistsFolder,
+            at: AppPaths.setlistsFolder,
             withIntermediateDirectories: true
         )
 
@@ -656,7 +656,7 @@ public final class SetlistStore: ObservableObject {
 
         try SetlistMetadataExporter.export(
             songs: self.songs,
-            playlistName: trimmedName,
+            setlistName: trimmedName,
             to: newURL
         )
 
@@ -682,10 +682,10 @@ public final class SetlistStore: ObservableObject {
 
         UserDefaults.standard.set(
             self.name,
-            forKey: AppPaths.lastPlaylistDefaultsKey
+            forKey: AppPaths.lastSetlistDefaultsKey
         )
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
     }
 
     // MARK: - Recovery (unsaved edits)
@@ -697,7 +697,7 @@ public final class SetlistStore: ObservableObject {
     // with it still there, the next start offers to restore it (see
     // `pendingRecoveryInfo()` / `restoreFromRecovery()`).
     //
-    // The name ends in " (autosaved)" so listPlaylistNamesOnDisk()
+    // The name ends in " (autosaved)" so listSetlistNamesOnDisk()
     // keeps it out of the Setlist lists.
 
     private static let recoveryName = "Recovery (autosaved)"
@@ -712,13 +712,13 @@ public final class SetlistStore: ObservableObject {
         hasUnsavedChanges = true
 
         try? FileManager.default.createDirectory(
-            at: AppPaths.playlistsFolder,
+            at: AppPaths.setlistsFolder,
             withIntermediateDirectories: true
         )
 
         try? SetlistMetadataExporter.export(
             songs: self.songs,
-            playlistName: self.name,
+            setlistName: self.name,
             to: Self.recoveryURLOnDisk,
             savedAgainstLibraryName: savedAgainstLibraryName
         )
@@ -759,7 +759,7 @@ public final class SetlistStore: ObservableObject {
         }
 
         let originalURL =
-            fileURLOnDisk(forName: recovered.playlistName)
+            fileURLOnDisk(forName: recovered.setlistName)
 
         let original =
             try? SetlistMetadataExporter.load(from: originalURL)
@@ -770,7 +770,7 @@ public final class SetlistStore: ObservableObject {
             ))?[.modificationDate] as? Date
 
         return RecoveryInfo(
-            name: recovered.playlistName,
+            name: recovered.setlistName,
             songCount: recovered.songs.count,
             savedAt: recovered.savedAt,
             savedFileSongCount: original?.songs.count,
@@ -788,7 +788,7 @@ public final class SetlistStore: ObservableObject {
             from: Self.recoveryURLOnDisk
         )
 
-        name = recovered.playlistName
+        name = recovered.setlistName
 
         entries = recovered.songs.map {
             SetlistEntry(song: $0)
@@ -801,10 +801,10 @@ public final class SetlistStore: ObservableObject {
 
         UserDefaults.standard.set(
             name,
-            forKey: AppPaths.lastPlaylistDefaultsKey
+            forKey: AppPaths.lastSetlistDefaultsKey
         )
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
 
         hasUnsavedChanges = true
     }
@@ -831,17 +831,17 @@ public final class SetlistStore: ObservableObject {
 
     // MARK: - Load
 
-    public func load(playlistName: String) throws {
+    public func load(setlistName: String) throws {
 
-        let url = fileURL(forName: playlistName)
+        let url = fileURL(forName: setlistName)
 
         guard FileManager.default.fileExists(atPath: url.path) else {
-            throw SetlistStoreError.playlistNotFound(playlistName)
+            throw SetlistStoreError.setlistNotFound(setlistName)
         }
 
         let export = try SetlistMetadataExporter.load(from: url)
 
-        name = export.playlistName
+        name = export.setlistName
 
         entries = export.songs.map {
             SetlistEntry(song: $0)
@@ -854,33 +854,33 @@ public final class SetlistStore: ObservableObject {
 
         UserDefaults.standard.set(
             name,
-            forKey: AppPaths.lastPlaylistDefaultsKey
+            forKey: AppPaths.lastSetlistDefaultsKey
         )
 
         // Whatever was open is saved or deliberately discarded by now.
         clearRecovery()
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
     }
 
-    public func listPlaylistNames() throws -> [String] {
-        try Self.listPlaylistNamesOnDisk()
+    public func listSetlistNames() throws -> [String] {
+        try Self.listSetlistNamesOnDisk()
     }
 
-    /// Static counterpart to `listPlaylistNames()` — see
+    /// Static counterpart to `listSetlistNames()` — see
     /// `fileURLOnDisk(forName:)` for why.
-    public static func listPlaylistNamesOnDisk() throws -> [String] {
+    public static func listSetlistNamesOnDisk() throws -> [String] {
 
         let fm = FileManager.default
 
         guard fm.fileExists(
-            atPath: AppPaths.playlistsFolder.path
+            atPath: AppPaths.setlistsFolder.path
         ) else {
             return []
         }
 
         let contents = try fm.contentsOfDirectory(
-            at: AppPaths.playlistsFolder,
+            at: AppPaths.setlistsFolder,
             includingPropertiesForKeys: nil
         )
 
@@ -899,15 +899,15 @@ public final class SetlistStore: ObservableObject {
             }
     }
 
-    private func refreshSavedPlaylistNames() {
+    private func refreshSavedSetlistNames() {
 
-        savedPlaylistNamesList =
-            (try? listPlaylistNames()) ?? []
+        savedSetlistNamesList =
+            (try? listSetlistNames()) ?? []
     }
 
     // MARK: - New Setlist
 
-    public func newPlaylist(named newName: String) {
+    public func newSetlist(named newName: String) {
 
         resetToEmpty(named: newName)
 
@@ -927,36 +927,36 @@ public final class SetlistStore: ObservableObject {
         selectedRowIndexes = []
         hasUnsavedChanges = false
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
 
         UserDefaults.standard.set(
             name,
-            forKey: AppPaths.lastPlaylistDefaultsKey
+            forKey: AppPaths.lastSetlistDefaultsKey
         )
     }
 
-    public func newPlaylist() {
-        newPlaylist(named: "Untitled Set")
+    public func newSetlist() {
+        newSetlist(named: "Untitled Set")
     }
 
     // MARK: - Delete Saved Setlist
 
-    public func delete(playlistName: String) throws {
+    public func delete(setlistName: String) throws {
 
-        guard playlistName != name else {
+        guard setlistName != name else {
             return
         }
 
-        let url = fileURL(forName: playlistName)
+        let url = fileURL(forName: setlistName)
 
         guard FileManager.default.fileExists(atPath: url.path) else {
-            refreshSavedPlaylistNames()
+            refreshSavedSetlistNames()
             return
         }
 
         try FileManager.default.removeItem(at: url)
 
-        refreshSavedPlaylistNames()
+        refreshSavedSetlistNames()
     }
 }
 
@@ -964,17 +964,17 @@ public final class SetlistStore: ObservableObject {
 
 public enum SetlistStoreError: LocalizedError {
 
-    case playlistNotFound(String)
-    case invalidPlaylistName
+    case setlistNotFound(String)
+    case invalidSetlistName
 
     public var errorDescription: String? {
 
         switch self {
 
-        case .playlistNotFound(let name):
+        case .setlistNotFound(let name):
             return "No saved Setlist named \"\(name)\" was found."
 
-        case .invalidPlaylistName:
+        case .invalidSetlistName:
             return "The Setlist name must not be empty."
         }
     }

@@ -127,7 +127,7 @@ extension SetlistActions {
             try SetlistMetadataExporter.export(
                 songs:
                     setlistStore.songs,
-                playlistName:
+                setlistName:
                     setlistStore.name,
                 to:
                     metadataURL
@@ -203,12 +203,12 @@ extension SetlistActions {
         }
 
         let existing =
-            (try? setlistStore.listPlaylistNames())
+            (try? setlistStore.listSetlistNames())
             ?? []
 
         switchConfirmationCenter.ask(
             kind:
-                .playlist,
+                .setlist,
             suggestedName:
                 setlistStore.name,
             existingNames:
@@ -277,7 +277,7 @@ extension SetlistActions {
                     .lastPathComponent
 
             let existing =
-                (try? setlistStore.listPlaylistNames())
+                (try? setlistStore.listSetlistNames())
                 ?? []
 
             let uniqueName =
@@ -288,7 +288,7 @@ extension SetlistActions {
                         existing
                 )
 
-            setlistStore.newPlaylist(
+            setlistStore.newSetlist(
                 named:
                     uniqueName
             )

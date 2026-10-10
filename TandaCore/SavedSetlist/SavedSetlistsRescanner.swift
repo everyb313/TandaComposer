@@ -97,7 +97,7 @@ public enum SavedSetlistsRescanner {
     ) -> [SavedSetlistRescanFix] {
 
         let names =
-            (try? SetlistStore.listPlaylistNamesOnDisk()) ?? []
+            (try? SetlistStore.listSetlistNamesOnDisk()) ?? []
 
         var fixes: [SavedSetlistRescanFix] = []
 
@@ -201,7 +201,7 @@ public enum SavedSetlistsRescanner {
 
                 try SetlistMetadataExporter.export(
                     songs: fix.updatedSongs,
-                    playlistName: fix.name,
+                    setlistName: fix.name,
                     to: fix.url
                 )
 

@@ -106,7 +106,7 @@ public struct SetlistMetadataExport: Codable {
 
     public let format: String
     public let version: Int
-    public let playlistName: String
+    public let setlistName: String
     public let savedAt: Date
     public let songs: [Song]
 
@@ -122,15 +122,27 @@ public struct SetlistMetadataExport: Codable {
     /// `AppPaths.currentLibraryName` to decide it.
     public let savedAgainstLibraryName: String?
 
+    // The Swift property is `setlistName`, but the on-disk JSON key
+    // stays "playlistName" so Setlist files (and backups) saved by
+    // earlier versions keep loading unchanged.
+    private enum CodingKeys: String, CodingKey {
+        case format
+        case version
+        case setlistName = "playlistName"
+        case savedAt
+        case songs
+        case savedAgainstLibraryName
+    }
+
     public init(
-        playlistName: String,
+        setlistName: String,
         songs: [Song],
         savedAt: Date = Date(),
         savedAgainstLibraryName: String? = AppPaths.currentLibraryName
     ) {
         self.format = "TandaComposer Setlist"
         self.version = 1
-        self.playlistName = playlistName
+        self.setlistName = setlistName
         self.savedAt = savedAt
         self.songs = songs
         self.savedAgainstLibraryName = savedAgainstLibraryName
@@ -155,7 +167,7 @@ public enum SetlistMetadataExporter {
     /// Duplicate songs are also preserved.
     public static func export(
         songs: [Song],
-        playlistName: String,
+        setlistName: String,
         to fileURL: URL,
         savedAt: Date = Date(),
         savedAgainstLibraryName: String? = AppPaths.currentLibraryName
@@ -163,8 +175,8 @@ public enum SetlistMetadataExporter {
 
         let export =
             SetlistMetadataExport(
-                playlistName:
-                    playlistName,
+                setlistName:
+                    setlistName,
                 songs:
                     songs,
                 savedAt:
@@ -183,7 +195,7 @@ public enum SetlistMetadataExporter {
                 )),
 
                 ("playlistName", .string(
-                    export.playlistName
+                    export.setlistName
                 )),
 
                 ("savedAt", .string(

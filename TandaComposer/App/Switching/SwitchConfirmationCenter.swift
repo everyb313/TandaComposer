@@ -24,7 +24,7 @@ import Combine
 /// in the dialog.
 enum SwitchTargetKind {
     case library
-    case playlist
+    case setlist
 }
 
 /// One pending "about to replace the current Library/Setlist" request.

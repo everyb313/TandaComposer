@@ -235,7 +235,7 @@ extension SetlistActions {
         }
 
         let existing =
-            (try? setlistStore.listPlaylistNames())
+            (try? setlistStore.listSetlistNames())
             ?? []
 
         let uniqueName =
@@ -248,7 +248,7 @@ extension SetlistActions {
 
         do {
 
-            setlistStore.newPlaylist(
+            setlistStore.newSetlist(
                 named:
                     uniqueName
             )

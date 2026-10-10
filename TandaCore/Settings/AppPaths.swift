@@ -65,8 +65,9 @@ public enum AppPaths {
     /// UserDefaults key for "the last active Setlist name". Used to
     /// be split per Internal/External Location (`LastPlaylist.
     /// Internal`/`.External`) — now there's only one Location, so
-    /// back to a single key.
-    static var lastPlaylistDefaultsKey: String {
+    /// back to a single key. The stored value stays "LastPlaylist" on
+    /// purpose, so the last-opened Setlist is still found after updating.
+    static var lastSetlistDefaultsKey: String {
         "LastPlaylist"
     }
 
@@ -134,7 +135,7 @@ public enum AppPaths {
     // MARK: - Main folders (all per-TrackLibrary)
     // =============================================================
 
-    static var playlistsFolder: URL {
+    static var setlistsFolder: URL {
 
         libraryRoot.appendingPathComponent(
             "Setlists",
@@ -248,7 +249,7 @@ public enum AppPaths {
 
         try fm.createDirectory(
             at:
-                playlistsFolder,
+                setlistsFolder,
             withIntermediateDirectories:
                 true
         )

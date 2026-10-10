@@ -22,7 +22,7 @@ import AppKit
 
 // MARK: - Coordinator: cells & row styling
 
-extension PlaylistTableCoordinator {
+extension SetlistTableCoordinator {
 
     // MARK: - Cell
 
@@ -213,7 +213,7 @@ extension PlaylistTableCoordinator {
     ) -> NSTableRowView? {
 
         let rowView =
-            PlaylistRowView()
+            SetlistRowView()
 
         guard
             row >= 0,
@@ -238,7 +238,7 @@ extension PlaylistTableCoordinator {
 
     func tandaType(
         forRow row: Int
-    ) -> PlaylistRowView.TandaType {
+    ) -> SetlistRowView.TandaType {
 
         guard isTandaColoringEnabled else {
             return .none

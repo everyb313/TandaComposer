@@ -50,7 +50,7 @@ var body: some Commands {
 
         Button("New Setlist…") {
 
-            SetlistActions.newPlaylist(
+            SetlistActions.newSetlist(
                 setlistStore:
                     setlistStore
             )
@@ -71,7 +71,7 @@ var body: some Commands {
         Menu("Open Setlist") {
 
             let names =
-                setlistStore.savedPlaylistNamesList
+                setlistStore.savedSetlistNamesList
 
             if names.isEmpty {
 
@@ -86,7 +86,7 @@ var body: some Commands {
 
                     Button(name) {
 
-                        SetlistActions.openPlaylist(
+                        SetlistActions.openSetlist(
                             named:
                                 name,
                             setlistStore:
@@ -111,7 +111,7 @@ var body: some Commands {
         Menu("Delete Setlist") {
 
             let names =
-                setlistStore.savedPlaylistNamesList
+                setlistStore.savedSetlistNamesList
 
             if names.isEmpty {
 
@@ -126,7 +126,7 @@ var body: some Commands {
 
                     Button(name) {
 
-                        SetlistActions.deletePlaylist(
+                        SetlistActions.deleteSetlist(
                             named:
                                 name,
                             setlistStore:

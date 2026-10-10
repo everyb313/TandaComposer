@@ -60,7 +60,7 @@ struct SavedSetlistBrowserView:
         List {
 
             ForEach(
-                setlistStore.savedPlaylistNamesList,
+                setlistStore.savedSetlistNamesList,
                 id:
                     \.self
             ) { name in

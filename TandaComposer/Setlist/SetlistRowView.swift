@@ -22,7 +22,7 @@ import AppKit
 
 // MARK: - Setlist Row View
 
-final class PlaylistRowView: NSTableRowView {
+final class SetlistRowView: NSTableRowView {
 
     enum TandaType {
 

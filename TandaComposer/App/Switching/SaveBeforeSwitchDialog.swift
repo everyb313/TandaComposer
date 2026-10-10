@@ -52,7 +52,7 @@ struct SaveBeforeSwitchDialog: View {
         case .library:
             return "Library"
 
-        case .playlist:
+        case .setlist:
             return "Setlist"
         }
     }

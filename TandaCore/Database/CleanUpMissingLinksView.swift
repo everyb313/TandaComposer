@@ -260,10 +260,10 @@ struct CleanUpMissingLinksView: View {
 
             var setlistNames: [String] = []
 
-            if let playlistNames =
-                try? SetlistStore.listPlaylistNamesOnDisk() {
+            if let savedNames =
+                try? SetlistStore.listSetlistNamesOnDisk() {
 
-                for name in playlistNames {
+                for name in savedNames {
 
                     guard
                         let export =

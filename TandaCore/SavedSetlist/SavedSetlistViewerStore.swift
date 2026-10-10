@@ -28,7 +28,7 @@ import Combine
 //
 // Loads a saved Setlist's songs, in their saved order, for read-only
 // display in the "Setlist" library mode. Deliberately NOT the same as
-// SetlistStore.load(playlistName:) — that REPLACES the live, actively-
+// SetlistStore.load(setlistName:) — that REPLACES the live, actively-
 // edited Setlist (the Set column). This store is entirely separate, so
 // browsing another saved Setlist never touches the one currently being
 // worked on.
@@ -53,7 +53,7 @@ final class SavedSetlistViewerStore:
         String?
 
 
-    /// Loads `name` from `AppPaths.playlistsFolder/<name>.json` (the
+    /// Loads `name` from `AppPaths.setlistsFolder/<name>.json` (the
     /// same file format/location SetlistStore itself saves to), in
     /// its saved order — no sorting, this view always shows the actual
     /// saved sequence.
@@ -76,7 +76,7 @@ final class SavedSetlistViewerStore:
     ) throws {
 
         let url =
-            AppPaths.playlistsFolder
+            AppPaths.setlistsFolder
                 .appendingPathComponent(
                     name
                 )
@@ -91,7 +91,7 @@ final class SavedSetlistViewerStore:
             )
 
         self.setlistName =
-            export.playlistName
+            export.setlistName
 
         self.songs =
             export.songs

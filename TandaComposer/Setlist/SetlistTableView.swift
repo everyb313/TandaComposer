@@ -31,11 +31,11 @@ enum SetlistDragMarker {
 
     static let pasteboardType =
         NSPasteboard.PasteboardType(
-            "com.tandacomposer.playlist-song"
+            "com.tandacomposer.setlist-song"
         )
 }
 
-struct PlaylistTableView: NSViewRepresentable {
+struct SetlistTableView: NSViewRepresentable {
 
     let entries: [SetlistEntry]
 
@@ -248,7 +248,7 @@ struct PlaylistTableView: NSViewRepresentable {
         )
 
         table.registerForDraggedTypes([
-            PlaylistTableView.Coordinator.internalDragType,
+            SetlistTableView.Coordinator.internalDragType,
             .fileURL,
             .string,
             SetInsertionMode.pasteboardType
@@ -419,5 +419,5 @@ struct PlaylistTableView: NSViewRepresentable {
 
 
     typealias Coordinator =
-        PlaylistTableCoordinator
+        SetlistTableCoordinator
 }

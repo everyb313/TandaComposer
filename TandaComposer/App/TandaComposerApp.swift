@@ -354,7 +354,7 @@ struct TandaComposerApp: App {
         }
 
         guard let lastSetlist = UserDefaults.standard.string(
-            forKey: AppPaths.lastPlaylistDefaultsKey
+            forKey: AppPaths.lastSetlistDefaultsKey
         ) else {
             return
         }
@@ -362,7 +362,7 @@ struct TandaComposerApp: App {
         do {
 
             try environment.setlistStore.load(
-                playlistName: lastSetlist
+                setlistName: lastSetlist
             )
 
         } catch {

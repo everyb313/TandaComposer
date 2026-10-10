@@ -22,12 +22,12 @@ import AppKit
 
 // MARK: - Coordinator
 //
-// NSTableView data source / delegate for PlaylistTableView (the Setlist
+// NSTableView data source / delegate for SetlistTableView (the Setlist
 // table). Split across files by responsibility:
 //   SetlistTableCoordinator+Cells.swift      cells, row view, Tanda type, Cortina detection
 //   SetlistTableCoordinator+DragDrop.swift   drag source, drop validation, drop, context menu
 
-final class PlaylistTableCoordinator:
+final class SetlistTableCoordinator:
     NSObject,
     NSTableViewDataSource,
     NSTableViewDelegate,

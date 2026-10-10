@@ -36,7 +36,7 @@ struct SetlistView: View {
     //
     // Drives the "N missing" / "N not in library" summary in the
     // bottom bar — same red/blue meaning as each row's Status dot
-    // (see PlaylistTableView), just aggregated so it's visible without
+    // (see SetlistTableView), just aggregated so it's visible without
     // hovering over individual rows.
     private var missingCount: Int {
         setlistStore.entries.filter { $0.status == .fileMissing }.count
@@ -77,7 +77,7 @@ struct SetlistView: View {
 
         VStack(spacing: 0) {
 
-            PlaylistTableView(
+            SetlistTableView(
                 entries: setlistStore.entries,
                 selection: $selection
             )

@@ -22,7 +22,7 @@ import AppKit
 
 // MARK: - Coordinator: drag & drop, context menu
 
-extension PlaylistTableCoordinator {
+extension SetlistTableCoordinator {
 
     // MARK: - Drag Source
 
