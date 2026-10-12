@@ -2,6 +2,18 @@
 
 All notable changes to TandaComposer are documented in this file.
 
+## [0.5.2] - 2026-10-12
+
+### Fixed
+- Saved Setlists view: the duplicate-check icon now appears as soon as
+  a saved Setlist is shown; before, it only appeared after the Library
+  lock was toggled.
+- Typo in the Tools → Export menu ("Selists" → "Setlists").
+
+### Changed
+- Menu labels, dialogs, README and Help use the same names for the
+  Tools → Export / Import commands.
+
 ## [0.5.1] - 2026-10-12
 
 Covers all changes since 0.1.3 (version numbers in between were not
