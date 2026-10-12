@@ -7,12 +7,7 @@ All notable changes to TandaComposer are documented in this file.
 ### Fixed
 - Setlist and Tanda files: file paths are written with plain `/`
   again instead of `\/` (`/Volumes/...`), so they stay readable.
-  Files already containing `\/` still load and are rewritten with `/`
-  the next time they are saved.
-- Renaming a TrackLibrary now changes only `savedAgainstLibraryName`
-  in the JSON files, in place. Previously every JSON file that
-  referenced the library was re-serialized (re-sorted keys, new
-  indentation).
+  Existing files keep `\/` until rewritten; they still load fine.
 
 ## [0.5.2] - 2026-10-12
 
