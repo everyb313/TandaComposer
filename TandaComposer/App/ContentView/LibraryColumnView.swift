@@ -16,7 +16,11 @@ struct LibraryColumnView<Content: View>: View {
     @Binding var savedSetlistDuplicateCheckEnabled: Bool
     @Binding var columnHeaderHeight: CGFloat
 
-    let savedSetlistViewer: SavedSetlistViewerStore
+    // @ObservedObject (not a plain `let`): the duplicate-check button
+    // depends on `savedSetlistViewer.setlistName`. Without observation
+    // this view only re-rendered for unrelated reasons, e.g. toggling
+    // the Library lock, so the icon appeared late.
+    @ObservedObject var savedSetlistViewer: SavedSetlistViewerStore
     let tandaStore: TandaStore
     @Binding var showingImporter: Bool
 
@@ -44,7 +48,7 @@ struct LibraryColumnView<Content: View>: View {
         self._showingModeHelp = showingModeHelp
         self._savedSetlistDuplicateCheckEnabled = savedSetlistDuplicateCheckEnabled
         self._columnHeaderHeight = columnHeaderHeight
-        self.savedSetlistViewer = savedSetlistViewer
+        self._savedSetlistViewer = ObservedObject(wrappedValue: savedSetlistViewer)
         self.tandaStore = tandaStore
         self._showingImporter = showingImporter
         self.content = content()
