@@ -37,15 +37,15 @@ All import and export commands are in the **Tools** menu (the Setlist menu only 
 
 | Tools → Export | Tools → Import |
 | --- | --- |
-| Current Setlist (M3U8)… | Setlist (Pick Tracks)… *(in development)* |
-| Smartlists… | Setlist (M3U8, experimental)… |
-| TandaLibrary for Sharing (ZIP)… | Smartlists… |
-| Backup of All Data… | Tandas from ZIP… *(experimental)* |
-| | Restore Backup… |
+| Current Setlist (M3U8)… | Setlist from List or M3U8 (Pick Tracks)… *(in development)* |
+| Smartlists… | Setlist from M3U8 (file paths must fit)… *(experimental)* |
+| TandaLibrary (ZIP)… | Smartlists… |
+| Backup All (Libraries, Setlists, Smartlists)… | Tandas from ZIP… *(experimental)* |
+| | Restore All from Backup… |
 
-- **Backup of All Data / Restore Backup** save and restore the whole `~/.TandaComposer` folder. Restoring overwrites files with the same name, so make a backup first.
-- **TandaLibrary for Sharing** writes one file per Tanda (text or M3U8), in the same folders as your TandaLibrary, into a ZIP. The ZIP contains no music, and your own files are not changed.
-- **Tandas from ZIP** reads such a ZIP, one orchestra folder at a time. Each Tanda is matched with your TrackLibrary and shown as *Ready*, *Needs help*, *Already in your TandaLibrary* or *Not possible*; you check what to import. Folder and name of an imported Tanda come from your own tags. Imported Tandas can only be removed one by one.
+- **Backup All / Restore All from Backup** save and restore the whole `~/.TandaComposer` folder. Restoring overwrites files with the same name, so make a backup first.
+- **TandaLibrary (ZIP)** (for sharing) writes one file per Tanda (text or M3U8), in the same folders as your TandaLibrary, into a ZIP. The ZIP contains no music, and your own files are not changed.
+- **Tandas from ZIP** is for Tandas that another DJ exported with TandaLibrary (ZIP) from a different TrackLibrary. It reads such a ZIP, one orchestra folder at a time. Each Tanda is matched with your TrackLibrary and shown as *Ready*, *Needs help*, *Already in your TandaLibrary* or *Not possible*; you check what to import. Folder and name of an imported Tanda come from your own tags. Imported Tandas can only be removed one by one.
 
 ## Music and Library
 

@@ -19,7 +19,7 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// Tools → "Export TandaLibrary for Sharing…": writes one file per
+/// Tools → Export → "TandaLibrary (ZIP)…": writes one file per
 /// Tanda, keeps the Tanda folders, and zips the result.
 ///
 /// Read-only. Needs no unlocked Library.
@@ -32,7 +32,7 @@ enum TandaLibraryExportActions {
 
         let panel = NSSavePanel()
 
-        panel.title = "Export TandaLibrary for Sharing"
+        panel.title = "Export TandaLibrary (ZIP)"
 
         panel.message =
             "Creates a ZIP with your Tandas to give to another DJ who also uses TandaComposer. It contains one file per Tanda, in the same folders as your TandaLibrary. Your TandaLibrary and your music files are not changed."

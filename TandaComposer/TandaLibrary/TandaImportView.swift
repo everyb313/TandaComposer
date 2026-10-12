@@ -48,7 +48,7 @@ struct TandaImportView: View {
 
             RescanIntro(
                 what:
-                    "Imports Tandas that another DJ exported from their TandaComposer (\"TandaLibrary for Sharing\").",
+                    "Imports Tandas that another DJ exported from their TandaComposer (Tools → Export → \"TandaLibrary (ZIP)…\").",
                 limits:
                     "Their tracks are matched against your own TrackLibrary. Tandas with tracks you don't have are marked \"Needs help\".",
                 hint:

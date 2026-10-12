@@ -2,6 +2,39 @@
 
 All notable changes to TandaComposer are documented in this file.
 
+## [0.5.1] - 2026-10-12
+
+Covers all changes since 0.1.3 (version numbers in between were not
+recorded here).
+
+### Added
+- Tanda Library: permanent "new Tanda" drop lane; click a Tanda's
+  title to select/deselect; orange "Library is locked" hint when
+  dragging over a locked Tanda Library.
+- Track Library: the selected row keeps its on-screen position after
+  re-sorting by a column header.
+- Edit Tags… (experimental): write Title, Orchestra, Singer
+  (AlbumArtist), Genre, Year and Comment into FLAC, MP3, M4A/AAC and
+  AIFF files; a `_original` backup copy is made before the first change.
+- Saved Setlists view: optional cross-Setlist duplicate check (toggle
+  in the title row, default off).
+- Import Setlist (Pick Tracks) (in development): imports M3U8 or plain
+  text lists; tracks that do not match exactly can be picked by hand
+  from same-named Library tracks. New setting "Auto-pick best file".
+- Share Tandas: Tools → Export → TandaLibrary (ZIP)… and
+  Tools → Import → Tandas from ZIP… (experimental).
+
+### Changed
+- All import/export commands now live in the Tools menu
+  (Export / Import submenus); the Setlist menu only manages Setlists.
+- "Playlist" renamed to "Setlist" in the UI and in code identifiers
+  (on-disk JSON keys and stored settings unchanged).
+- Large source files split by responsibility (no behavior change).
+
+### Fixed
+- Import: name recognition no longer strips names out of titles and is
+  faster; imports are only matched against a library with a trusted ID.
+
 ## [0.1.3] - 2026-09-24
 
 ### Added

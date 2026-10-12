@@ -126,7 +126,7 @@ struct RescanCommands: Commands {
                 // The whole ~/.TandaComposer folder.
                 Section("Complete Backup") {
                     Button(
-                        "    Backup All (Libraries, Selists, Smartlists) …"
+                        "    Backup All (Libraries, Setlists, Smartlists)…"
                     ) {
                         
                         LibraryActions.exportBackup()
@@ -199,7 +199,7 @@ struct RescanCommands: Commands {
                 )
                 
                 
-                // Reads a ZIP made by "TandaLibrary for Sharing";
+                // Reads a ZIP made by Tools → Export → "TandaLibrary (ZIP)…";
                 // one orchestra folder at a time.
                 Button(
                     "Tandas from ZIP…"

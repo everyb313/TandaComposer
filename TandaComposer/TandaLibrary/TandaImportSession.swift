@@ -427,7 +427,7 @@ enum TandaImportActions {
         panel.title = "Import Tandas from ZIP"
 
         panel.message =
-            "Choose a ZIP that another DJ made with Tools → Export → \"TandaLibrary for Sharing\"."
+            "Choose a ZIP that another DJ made with Tools → Export → \"TandaLibrary (ZIP)…\"."
 
         panel.allowedContentTypes = [.zip]
         panel.allowsMultipleSelection = false
