@@ -11,7 +11,7 @@ import Foundation
 /// This is deliberately NOT a `Song`. An imported track belongs to the
 /// source file and is only converted into a current-library `Song` after
 /// matching has completed.
-public struct ImportedTrack: Identifiable, Equatable {
+public nonisolated struct ImportedTrack: Identifiable, Equatable, Sendable {
 
     public let id: UUID
     public let sourceIndex: Int

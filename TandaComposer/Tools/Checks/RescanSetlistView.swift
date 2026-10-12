@@ -78,6 +78,24 @@ struct RescanSetlistView: View {
     }
 
 
+    /// True while "Apply Fixes" is on screen but can't be clicked
+    /// because the Library is locked (same condition the header
+    /// uses to show that button).
+    private var applyBlockedByLock: Bool {
+
+        guard
+            libraryStore.isLocked,
+            let pendingFixes,
+            !isApplied,
+            !pendingFixes.isEmpty
+        else {
+            return false
+        }
+
+        return true
+    }
+
+
     var body: some View {
 
         VStack(
@@ -96,7 +114,7 @@ struct RescanSetlistView: View {
                 Text(
                     "Rescan Setlist"
                 )
-                .font(.title2)
+                .font(.system(size: 20))
                 .bold()
 
                 Spacer()
@@ -128,6 +146,14 @@ struct RescanSetlistView: View {
                                 "checkmark.circle"
                         )
                     }
+                    .disabled(
+                        libraryStore.isLocked
+                    )
+                    .help(
+                        libraryStore.isLocked
+                        ? "Unlock the Library to apply these fixes"
+                        : "Reconnect the Setlist's moved tracks"
+                    )
 
                 } else {
 
@@ -145,20 +171,31 @@ struct RescanSetlistView: View {
                     }
                 }
             }
+            .controlSize(.large)
             .padding(8)
 
             Divider()
 
-            Text(
-                "Checks the current Setlist (\"\(setlistStore.name)\") against the TrackLibrary as currently loaded, and shows what would be re-linked by their Library ID. This does NOT scan disk itself — if a file moved and the TrackLibrary hasn't picked that up yet, run \"Rescan TrackLibrary\" first."
+            // =====================================================
+            // LOCK NOTICE — "Apply Fixes" is disabled while the
+            // Library is locked; say so visibly, not only in a
+            // tooltip.
+            // =====================================================
+
+            if applyBlockedByLock {
+                LibraryLockBanner(
+                    thenClick: "Apply Fixes"
+                )
+            }
+
+            RescanIntro(
+                what:
+                    "Reconnects tracks in \"\(setlistStore.name)\" whose files have moved.",
+                limits:
+                    "Uses what the TrackLibrary already knows. It does not search your disks.",
+                hint:
+                    "Still missing afterwards? Run \"Rescan TrackLibrary\" first, then try again."
             )
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-            .fixedSize(
-                horizontal: false,
-                vertical: true
-            )
-            .padding(8)
 
 
             // =====================================================
@@ -178,17 +215,17 @@ struct RescanSetlistView: View {
                         if stillFlaggedCount > 0 {
 
                             Label(
-                                "Nothing to re-link, but \(stillFlaggedCount) track(s) are still missing or not in library.",
+                                "No moved files found. Still missing: \(RescanText.count(stillFlaggedCount, "track")).",
                                 systemImage:
                                     "exclamationmark.circle.fill"
                             )
-                            .font(.system(size: 14))
+                            .font(.system(size: 16))
                             .foregroundStyle(.orange)
 
                             Text(
-                                "This only re-links tracks the TrackLibrary already found at a new location. Run \"Rescan TrackLibrary\" first, then try this again."
+                                "Next step: run \"Rescan TrackLibrary\", then try again."
                             )
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .fixedSize(
@@ -200,11 +237,11 @@ struct RescanSetlistView: View {
                         } else {
 
                             Label(
-                                "No broken references found.",
+                                "No moved tracks found. Everything is up to date.",
                                 systemImage:
                                     "checkmark.circle.fill"
                             )
-                            .font(.system(size: 14))
+                            .font(.system(size: 16))
                             .foregroundStyle(Color.green)
                         }
 
@@ -215,14 +252,14 @@ struct RescanSetlistView: View {
 
                     Label(
                         isApplied
-                        ? "\(pendingFixes.count) reference(s) fixed and saved."
-                        : "\(pendingFixes.count) reference(s) found — click \"Apply Fixes\" to fix and save them.",
+                        ? "\(RescanText.count(pendingFixes.count, "track")) reconnected and saved."
+                        : "\(RescanText.count(pendingFixes.count, "track")) can be reconnected. Click \"Apply Fixes\" to save.",
                         systemImage:
                             isApplied
                             ? "checkmark.circle.fill"
                             : "exclamationmark.circle.fill"
                     )
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(
                         isApplied
                         ? Color.green
@@ -233,9 +270,9 @@ struct RescanSetlistView: View {
                     if unfixableFlaggedCount > 0 {
 
                         Text(
-                            "\(unfixableFlaggedCount) other track(s) are still missing or not in library — the TrackLibrary hasn't found a location for them yet, so this rescan can't do anything about those."
+                            "Still missing: \(RescanText.count(unfixableFlaggedCount, "more track")). Run \"Rescan TrackLibrary\" to look for them."
                         )
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                         .fixedSize(
                             horizontal: false,
@@ -264,18 +301,18 @@ struct RescanSetlistView: View {
                                     Text(
                                         fix.song.title ?? fix.song.filename
                                     )
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 16))
 
                                     Text(
                                         "From: \(fix.oldPath)"
                                     )
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(.system(size: 14, design: .monospaced))
                                     .foregroundStyle(.secondary)
 
                                     Text(
                                         "To: \(fix.song.path)"
                                     )
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(.system(size: 14, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                 }
                                 .padding(
@@ -307,7 +344,7 @@ struct RescanSetlistView: View {
                     Text(
                         "Click \"Rescan Setlist\" to check its tracks against the current Library."
                     )
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
 
                     Spacer()
@@ -331,7 +368,7 @@ struct RescanSetlistView: View {
         } message: { message in
 
             Text(
-                "The fixed reference(s) were applied in memory but the Setlist couldn't be saved: \(message). Use \"Save Set\" to try again."
+                "The tracks were reconnected, but the Setlist couldn't be saved: \(message). Click \"Save Set\" to try again."
             )
         }
     }

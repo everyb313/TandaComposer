@@ -11,7 +11,7 @@ import Foundation
 ///
 /// The matcher never creates or mutates Song values. Every successful
 /// candidate always points at an existing current-library Song.
-public struct LibraryTrackMatcher {
+public nonisolated struct LibraryTrackMatcher {
 
     public enum MatchStatus: Equatable {
         case exact

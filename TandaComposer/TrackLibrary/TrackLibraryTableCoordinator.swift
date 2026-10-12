@@ -47,6 +47,17 @@ final class LibraryTableCoordinator:
     var settings:
         AppSettings
 
+    /// The Orchestra/Singer tag sources the table was last drawn and
+    /// sorted with. `settings` is a class (shared by the view and this
+    /// coordinator), so comparing `coordinator.settings` with the
+    /// view's `settings` compares an object with itself and can never
+    /// show a change — the last-seen values have to be remembered
+    /// separately.
+    var lastOrchestraSource:
+        TagSource
+    var lastSingerSource:
+        TagSource
+
     var highlightedSongKeys:
         Set<LibraryReferenceResolver.TrackIdentity>
 
@@ -86,7 +97,10 @@ final class LibraryTableCoordinator:
 
         self.settings =
             settings
-
+        self.lastOrchestraSource =
+            settings.orchestraSource
+        self.lastSingerSource =
+            settings.singerSource
         self.highlightedSongKeys =
             highlightedSongKeys
 

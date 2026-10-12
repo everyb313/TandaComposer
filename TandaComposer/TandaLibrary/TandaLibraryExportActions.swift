@@ -35,7 +35,7 @@ enum TandaLibraryExportActions {
         panel.title = "Export TandaLibrary for Sharing"
 
         panel.message =
-            "Writes one file per Tanda, in the same folders as your TandaLibrary, into a ZIP file. Your TandaLibrary and your music files are not changed."
+            "Creates a ZIP with your Tandas to give to another DJ who also uses TandaComposer. It contains one file per Tanda, in the same folders as your TandaLibrary. Your TandaLibrary and your music files are not changed."
 
         panel.allowedContentTypes = [.zip]
         panel.canCreateDirectories = true

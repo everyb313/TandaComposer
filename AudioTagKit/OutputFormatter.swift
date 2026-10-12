@@ -44,7 +44,7 @@ public enum OutputFormatter {
             }
             payload[result.path] = fileDict
         }
-        let data = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
+        let data = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
         return String(data: data, encoding: .utf8) ?? "{}"
     }
 

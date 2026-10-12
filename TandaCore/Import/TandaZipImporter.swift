@@ -22,7 +22,7 @@ import Foundation
 
 /// One Tanda file read from a ZIP written by "Export TandaLibrary for
 /// Sharing" (`Tandas/<Orchestra>/<Singer>/<Tanda>.txt` or `.m3u8`).
-struct SharedTanda: Identifiable {
+nonisolated struct SharedTanda: Identifiable, Sendable {
 
     let id = UUID()
 
@@ -45,7 +45,7 @@ struct SharedTanda: Identifiable {
     let tracks: [ImportedTrack]
 }
 
-struct SharedTandaScan {
+nonisolated struct SharedTandaScan: Sendable {
 
     var tandas: [SharedTanda] = []
 

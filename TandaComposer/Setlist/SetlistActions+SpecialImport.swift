@@ -45,9 +45,13 @@ extension SetlistActions {
         panel.title =
             "Import Setlist (Pick Tracks)"
 
-        panel.message =
-            "Choose an M3U8 playlist or a text file with one track per line (with or without path or file suffix). Tracks without an exact path match can be picked manually."
-
+        panel.message = """
+            Choose a list from another source: an M3U8 playlist \
+            or a text file with one track per line (with or without \
+            path or file suffix).
+            Tracks that can't be matched automatically can be picked \
+            by hand before the Setlist is created.
+            """
         panel.allowedContentTypes =
             [
                 UTType(filenameExtension: "m3u8"),

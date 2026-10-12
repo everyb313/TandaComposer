@@ -78,11 +78,13 @@ enum SmartlistActions {
         panel.title =
             "Import Smartlists"
 
-        panel.message =
-            "Choose a folder of Smartlists to import. " +
-            "Its contents are copied into an internal " +
-            "\"Imported\" folder, which you can then sort " +
-            "into your own structure."
+        panel.message = """
+            Choose a folder of Smartlists to import.
+            Its contents are copied into an internal \
+            "Imported" folder, 
+            which you can then sort \
+            into your own structure.
+            """
 
         panel.canChooseFiles =
             false

@@ -127,7 +127,7 @@ struct TandaComposerApp: App {
                 tandaImportSession: tandaImportSession
             )
 
-            MaintenanceCommands()
+            MaintenanceCommands(libraryStore: environment.libraryStore)
 
             CommandGroup(replacing: .appInfo) {
 

@@ -252,8 +252,12 @@ struct LibraryTableView:
 
 
         let tagSourceChanged =
-            context.coordinator.settings.orchestraSource != settings.orchestraSource ||
-            context.coordinator.settings.singerSource != settings.singerSource
+            context.coordinator.lastOrchestraSource != settings.orchestraSource ||
+            context.coordinator.lastSingerSource != settings.singerSource
+        context.coordinator.lastOrchestraSource =
+            settings.orchestraSource
+        context.coordinator.lastSingerSource =
+            settings.singerSource
 
         context.coordinator.settings =
             settings

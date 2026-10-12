@@ -49,6 +49,20 @@ struct RescanLibraryView: View {
     private var isApplying = false
 
 
+    /// The button the user is waiting to click, shown in the lock
+    /// banner: "Apply Fixes" while a preview with changes is on
+    /// screen, otherwise "Start Rescan" — same condition the header
+    /// uses to decide which of the two it shows.
+    private var lockedActionName: String {
+
+        if let summary, !isApplied, summary.hasChangesToApply {
+            return "Apply Fixes"
+        }
+
+        return "Start Rescan"
+    }
+
+
     var body: some View {
 
         VStack(
@@ -63,9 +77,9 @@ struct RescanLibraryView: View {
             HStack {
 
                 Text(
-                    "Rescan Library"
+                    "Rescan TrackLibrary"
                 )
-                .font(.title2)
+                .font(.system(size: 20))
                 .bold()
 
 
@@ -154,10 +168,33 @@ struct RescanLibraryView: View {
                     )
                 }
             }
+            .controlSize(.large)
             .padding(8)
 
 
             Divider()
+
+
+            // =====================================================
+            // LOCK NOTICE — both header buttons are disabled while
+            // the Library is locked, so say so visibly (a tooltip is
+            // not enough) and say what to do about it.
+            // =====================================================
+
+            if libraryStore.isLocked {
+                LibraryLockBanner(
+                    thenClick: lockedActionName
+                )
+            }
+
+            RescanIntro(
+                what:
+                    "Compares the TrackLibrary with the files on your disk.",
+                limits:
+                    "Finds tracks that were moved, changed or are missing, and new files in your import folders.",
+                hint:
+                    "Nothing is changed until you click \"Apply Fixes\"."
+            )
 
 
             // =====================================================
@@ -176,7 +213,7 @@ struct RescanLibraryView: View {
                         Text(
                             phase.label
                         )
-                        .font(.callout)
+                        .font(.system(size: 15))
                         .foregroundStyle(.primary)
                     }
 
@@ -190,7 +227,7 @@ struct RescanLibraryView: View {
                     Text(
                         "\(scanner.processedCount) / \(scanner.totalCount)"
                     )
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                 }
                 .padding(8)
@@ -223,7 +260,7 @@ struct RescanLibraryView: View {
                                     ? "checkmark.circle.fill"
                                     : "exclamationmark.circle.fill"
                             )
-                            .font(.callout)
+                            .font(.system(size: 15))
                             .foregroundStyle(
                                 isApplied
                                 ? Color.green
@@ -273,9 +310,9 @@ struct RescanLibraryView: View {
                     Text(
                         scanner.isScanning
                         ? "Scanning…"
-                        : "Click \"Start Rescan\" to check the Library against what's actually on disk."
+                        : "Click \"Start Rescan\" to begin."
                     )
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
 
                     Spacer()
@@ -287,7 +324,7 @@ struct RescanLibraryView: View {
             minHeight: 420
         )
         .alert(
-            "Couldn't Rescan Library",
+            "Couldn't Rescan TrackLibrary",
             isPresented: .constant(errorMessage != nil),
             presenting: errorMessage
         ) { _ in
@@ -334,11 +371,11 @@ struct RescanLibraryView: View {
         ) {
 
             Text(label)
-                .font(.caption)
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
 
             Text("\(value)")
-                .font(.title3)
+                .font(.system(size: 20))
                 .bold()
         }
         .padding(
@@ -373,7 +410,7 @@ struct RescanLibraryView: View {
                 Text(
                     "\(title) (\(songs.count))"
                 )
-                .font(.headline)
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(color)
 
                 ForEach(
@@ -389,12 +426,12 @@ struct RescanLibraryView: View {
                         Text(
                             song.title ?? song.filename
                         )
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))
 
                         Text(
                             song.path
                         )
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: 14, design: .monospaced))
                         .foregroundStyle(.secondary)
                     }
                     .padding(
@@ -434,7 +471,7 @@ struct RescanLibraryView: View {
                 Text(
                     "Relocated (\(tracks.count))"
                 )
-                .font(.headline)
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.blue)
 
                 ForEach(
@@ -450,18 +487,18 @@ struct RescanLibraryView: View {
                         Text(
                             track.song.title ?? track.song.filename
                         )
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))
 
                         Text(
                             "From: \(track.oldPath)"
                         )
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: 14, design: .monospaced))
                         .foregroundStyle(.secondary)
 
                         Text(
                             "To: \(track.song.path)"
                         )
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: 14, design: .monospaced))
                         .foregroundStyle(.secondary)
                     }
                     .padding(
@@ -499,9 +536,9 @@ struct RescanLibraryView: View {
             ) {
 
                 Text(
-                    "Failed To Read (\(failures.count))"
+                    "Failed to read (\(failures.count))"
                 )
-                .font(.headline)
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.red)
 
                 ForEach(
@@ -517,12 +554,12 @@ struct RescanLibraryView: View {
                         Text(
                             failure.url.path
                         )
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: 14, design: .monospaced))
 
                         Text(
                             failure.error.localizedDescription
                         )
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                     }
                     .padding(

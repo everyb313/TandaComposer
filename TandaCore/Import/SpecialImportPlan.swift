@@ -33,7 +33,7 @@ import Foundation
 ///
 /// Every song a row can end up with is a current-Library `Song`, never
 /// a snapshot from the imported file.
-public struct SpecialImportRow: Identifiable, Equatable {
+public nonisolated struct SpecialImportRow: Identifiable, Equatable {
 
     public enum State: Equatable {
         /// Exact path match, adopted automatically.
@@ -150,8 +150,7 @@ public struct SpecialImportRow: Identifiable, Equatable {
 
 // MARK: - Planner
 
-@MainActor
-public enum SpecialImportPlanner {
+public nonisolated enum SpecialImportPlanner {
 
     /// Builds one row per imported track, preserving source order.
     ///
@@ -821,8 +820,7 @@ public enum SpecialImportPlanner {
 }
 
 
-@MainActor
-private extension ImportedTrack {
+nonisolated private extension ImportedTrack {
 
     func replacing(
         title newTitle: String?,

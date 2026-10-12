@@ -34,16 +34,16 @@ enum DuplicateLevel: Int, CaseIterable, Identifiable {
         switch self {
 
         case .songName:
-            return "Level 1 · Song Name"
+            return "1 · Song Name"
 
         case .songArtist:
-            return "Level 2 · Song Name + Artist"
+            return "2 · Song Name + Artist"
 
         case .songArtistAlbumArtist:
-            return "Level 3 · Song Name + Artist + Album Artist"
+            return "3 · Song Name + Artist + Album Artist"
 
         case .songArtistAlbumArtistAlbum:
-            return "Level 4 · Song Name + Artist + Album Artist + Album"
+            return "4 · Song Name + Artist + Album Artist + Album"
         }
     }
 }

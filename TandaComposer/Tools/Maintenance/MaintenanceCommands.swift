@@ -30,6 +30,13 @@ import SwiftUI
 
 struct MaintenanceCommands: Commands {
 
+    /// Needed for the lock icon on the Rescan items below: applying
+    /// their fixes requires the Library to be unlocked (the windows
+    /// themselves still open while it's locked).
+    @ObservedObject var libraryStore:
+        LibraryStore
+
+
     @Environment(\.openWindow)
     private var openWindow
 
@@ -93,8 +100,10 @@ struct MaintenanceCommands: Commands {
 
             } label: {
 
-                Text(
-                    "Rescan TrackLibrary"
+                lockableLabel(
+                    "Rescan TrackLibrary",
+                    locked:
+                        libraryStore.isLocked
                 )
             }
 
@@ -117,8 +126,10 @@ struct MaintenanceCommands: Commands {
 
             } label: {
 
-                Text(
-                    "Rescan Setlist"
+                lockableLabel(
+                    "Rescan Setlist",
+                    locked:
+                        libraryStore.isLocked
                 )
             }
 
@@ -139,8 +150,10 @@ struct MaintenanceCommands: Commands {
 
             } label: {
 
-                Text(
-                    "Rescan TandaLibrary"
+                lockableLabel(
+                    "Rescan TandaLibrary",
+                    locked:
+                        libraryStore.isLocked
                 )
             }
 
@@ -163,10 +176,39 @@ struct MaintenanceCommands: Commands {
 
             } label: {
 
-                Text(
-                    "Rescan Saved Setlists"
+                lockableLabel(
+                    "Rescan Saved Setlists",
+                    locked:
+                        libraryStore.isLocked
                 )
             }
+        }
+    }
+
+
+    // MARK: - Lock Icon Helper
+
+    /// Shows a lock icon in front of the title when `locked` — same
+    /// pattern as RescanCommands' / LibraryCommands' helper.
+    @ViewBuilder
+    private func lockableLabel(
+        _ title: String,
+        locked: Bool
+    ) -> some View {
+
+        if locked {
+
+            Label(
+                title,
+                systemImage:
+                    "lock.fill"
+            )
+
+        } else {
+
+            Text(
+                title
+            )
         }
     }
 }

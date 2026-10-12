@@ -65,11 +65,24 @@ struct CleanUpMissingLinksView: View {
                 Text(
                     "Clean Up Missing Links"
                 )
-                .font(.title2)
+                .font(.system(size: 20))
                 .bold()
 
                 Spacer()
+
+                Button("Cancel") {
+                    onCancel()
+                }
+                .keyboardShortcut(.defaultAction)
+
+                Button(
+                    "Remove \(missingSongs.count) Link(s)",
+                    role: .destructive
+                ) {
+                    onConfirm()
+                }
             }
+            .controlSize(.large)
             .padding(8)
 
             Divider()
@@ -77,7 +90,7 @@ struct CleanUpMissingLinksView: View {
             Text(
                 "These \(missingSongs.count) track(s) weren't found on disk at the last check. This only removes their LINK from the Library's own record — it doesn't touch or delete the actual files. If any of these are on a drive that's just not connected right now, cancel and reconnect it first instead."
             )
-            .font(.system(size: 14))
+            .font(.system(size: 16))
             .foregroundStyle(.secondary)
             .fixedSize(
                 horizontal: false,
@@ -100,7 +113,7 @@ struct CleanUpMissingLinksView: View {
                     Text(
                         "Checking saved Setlists and Tandas…"
                     )
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 8)
@@ -113,7 +126,7 @@ struct CleanUpMissingLinksView: View {
                     systemImage:
                         "exclamationmark.triangle.fill"
                 )
-                .font(.system(size: 13))
+                .font(.system(size: 15))
                 .foregroundStyle(.orange)
                 .fixedSize(
                     horizontal: false,
@@ -148,12 +161,12 @@ struct CleanUpMissingLinksView: View {
                             Text(
                                 song.title ?? song.filename
                             )
-                            .font(.system(size: 14))
+                            .font(.system(size: 16))
 
                             Text(
                                 song.path
                             )
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 14, design: .monospaced))
                             .foregroundStyle(.secondary)
                         }
                         .padding(
@@ -175,25 +188,6 @@ struct CleanUpMissingLinksView: View {
                 .padding(8)
             }
 
-            Divider()
-
-            HStack {
-
-                Spacer()
-
-                Button("Cancel") {
-                    onCancel()
-                }
-                .keyboardShortcut(.defaultAction)
-
-                Button(
-                    "Remove \(missingSongs.count) Link(s)",
-                    role: .destructive
-                ) {
-                    onConfirm()
-                }
-            }
-            .padding(8)
         }
         .frame(
             minWidth: 480,

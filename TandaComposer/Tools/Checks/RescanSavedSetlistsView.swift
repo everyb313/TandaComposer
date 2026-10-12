@@ -40,6 +40,24 @@ struct RescanSavedSetlistsView: View {
     private var lastSummary: SavedSetlistRescanSummary?
 
 
+    /// True while "Apply Fixes" is on screen but can't be clicked
+    /// because the Library is locked (same condition the header
+    /// uses to show that button).
+    private var applyBlockedByLock: Bool {
+
+        guard
+            libraryStore.isLocked,
+            let pendingFixes,
+            !isApplied,
+            !pendingFixes.isEmpty
+        else {
+            return false
+        }
+
+        return true
+    }
+
+
     var body: some View {
 
         VStack(
@@ -57,7 +75,7 @@ struct RescanSavedSetlistsView: View {
                 Text(
                     "Rescan Saved Setlists"
                 )
-                .font(.title2)
+                .font(.system(size: 20))
                 .bold()
 
                 Spacer()
@@ -95,7 +113,7 @@ struct RescanSavedSetlistsView: View {
                     .help(
                         libraryStore.isLocked
                         ? "Unlock the Library to apply these fixes"
-                        : "Re-link Setlist references that moved"
+                        : "Reconnect moved tracks in the saved Setlists"
                     )
 
                 } else {
@@ -114,20 +132,31 @@ struct RescanSavedSetlistsView: View {
                     }
                 }
             }
+            .controlSize(.large)
             .padding(8)
 
             Divider()
 
-            Text(
-                "Checks every SAVED Setlist file against the TrackLibrary as currently loaded: rewrites tracks whose stored path has drifted (matched by Library ID, or by file path for older entries saved without one), and reports — without changing anything — tracks that matched but whose file the Library currently can't find. This does NOT scan disk itself: if a file moved and the TrackLibrary hasn't picked that up yet, run \"Rescan TrackLibrary\" first. The currently open Set (if any) still needs \"Rescan Setlist\" separately."
+            // =====================================================
+            // LOCK NOTICE — "Apply Fixes" is disabled while the
+            // Library is locked; say so visibly, not only in a
+            // tooltip.
+            // =====================================================
+
+            if applyBlockedByLock {
+                LibraryLockBanner(
+                    thenClick: "Apply Fixes"
+                )
+            }
+
+            RescanIntro(
+                what:
+                    "Reconnects moved tracks in all your saved Setlists and saves the fixes.",
+                limits:
+                    "Tracks that are missing from disk are only listed. Nothing changes for them.",
+                hint:
+                    "Files moved? Run \"Rescan TrackLibrary\" first. For the open Setlist use \"Rescan Setlist\"."
             )
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-            .fixedSize(
-                horizontal: false,
-                vertical: true
-            )
-            .padding(8)
 
 
             // =====================================================
@@ -145,11 +174,11 @@ struct RescanSavedSetlistsView: View {
                         Spacer()
 
                         Label(
-                            "No broken references found.",
+                            "No moved tracks found. Everything is up to date.",
                             systemImage:
                                 "checkmark.circle.fill"
                         )
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))
                         .foregroundStyle(Color.green)
 
                         Spacer()
@@ -165,14 +194,14 @@ struct RescanSavedSetlistsView: View {
 
                     Label(
                         isApplied
-                        ? "\(totalFixed) reference(s) fixed across \(pendingFixes.count) Setlist(s)."
-                        : "\(totalFixed) reference(s) found across \(pendingFixes.count) Setlist(s) — click \"Apply Fixes\" to fix and save them.",
+                        ? "\(RescanText.count(totalFixed, "track")) reconnected in \(RescanText.count(pendingFixes.count, "Setlist"))."
+                        : "\(RescanText.count(totalFixed, "track")) can be reconnected in \(RescanText.count(pendingFixes.count, "Setlist")). Click \"Apply Fixes\" to save.",
                         systemImage:
                             isApplied
                             ? "checkmark.circle.fill"
                             : "exclamationmark.circle.fill"
                     )
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(
                         isApplied
                         ? Color.green
@@ -190,9 +219,9 @@ struct RescanSavedSetlistsView: View {
                         // as `.fileMissing` would show for the live
                         // Set.
                         Text(
-                            "\(totalMissing) track(s) matched but currently missing in the Library (file not found) — not fixable here, listed for information only."
+                            "\(RescanText.count(totalMissing, "track")) missing from disk. Listed for information only."
                         )
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(Color.orange)
                         .padding(.horizontal, 8)
                     }
@@ -200,9 +229,9 @@ struct RescanSavedSetlistsView: View {
                     if let lastSummary, !lastSummary.failedWrites.isEmpty {
 
                         Text(
-                            "\(lastSummary.failedWrites.count) Setlist file(s) couldn't be updated."
+                            "\(RescanText.count(lastSummary.failedWrites.count, "Setlist file")) couldn't be saved."
                         )
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(Color.red)
                         .padding(.horizontal, 8)
                     }
@@ -231,15 +260,15 @@ struct RescanSavedSetlistsView: View {
 
                                     Text(
                                         fix.fixedSongCount > 0
-                                        ? "\(fix.name) (\(fix.fixedSongCount) track(s) fixed)"
+                                        ? "\(fix.name) (\(RescanText.count(fix.fixedSongCount, "track")) reconnected)"
                                         : "\(fix.name) (no path fixes)"
                                     )
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 16))
 
                                     Text(
                                         fix.url.lastPathComponent
                                     )
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(.system(size: 14, design: .monospaced))
                                     .foregroundStyle(.secondary)
 
                                     if !fix.missingSongTitles.isEmpty {
@@ -250,7 +279,7 @@ struct RescanSavedSetlistsView: View {
                                                 separator: ", "
                                             )
                                         )
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 14))
                                         .foregroundStyle(Color.orange)
                                     }
                                 }
@@ -284,7 +313,7 @@ struct RescanSavedSetlistsView: View {
                     Text(
                         "Click \"Rescan Saved Setlists\" to check every saved Setlist against the current Library."
                     )
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
 
                     Spacer()

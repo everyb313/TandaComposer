@@ -20,56 +20,56 @@
 import SwiftUI
 
 struct RescanCommands: Commands {
-
+    
     let db:
-        DatabaseManager
-
+    DatabaseManager
+    
     @ObservedObject var libraryStore:
-        LibraryStore
-
+    LibraryStore
+    
     @ObservedObject var setlistStore:
-        SetlistStore
-
+    SetlistStore
+    
     @ObservedObject var smartlistStore:
-        SmartlistStore
-
+    SmartlistStore
+    
     @ObservedObject var settings:
-        AppSettings
-
+    AppSettings
+    
     @ObservedObject var switchConfirmationCenter:
-        SwitchConfirmationCenter
-
+    SwitchConfirmationCenter
+    
     let specialImportSession:
-        SpecialImportSession
-
+    SpecialImportSession
+    
     let tandaImportSession:
-        TandaImportSession
-
+    TandaImportSession
+    
     @Environment(\.openWindow)
     private var openWindow
-
-
+    
+    
     var body: some Commands {
-
+        
         CommandMenu("Tools") {
-
+            
             // =====================================================
             // FIND DUPLICATES
             // =====================================================
-
+            
             Button(
                 "Find TrackLibrary Duplicates…"
             ) {
-
+                
                 openWindow(
                     id: "duplicate-finder"
                 )
             }
-
-
+            
+            
             Divider()
-
-
+            
+            
             // =====================================================
             // EXPORT
             //
@@ -77,73 +77,76 @@ struct RescanCommands: Commands {
             // Setlist and Smartlists menus keep their own entries for
             // the same actions.
             // =====================================================
-
+            
             Menu(
                 "Export"
             ) {
-
-                Button(
-                    "Current Setlist (M3U8)…"
-                ) {
-
-                    SetlistActions.exportSetlist(
-                        setlistStore:
-                            setlistStore
-                    )
+                Section("Backup / Sharing") {
+                    
+                    Button(
+                        "    Current Setlist (M3U8)…"
+                    ) {
+                        
+                        SetlistActions.exportSetlist(
+                            setlistStore:
+                                setlistStore
+                        )
+                    }
+                    
+                    
+                    Button(
+                        "    Smartlists…"
+                    ) {
+                        
+                        SmartlistActions.exportAll(
+                            store:
+                                smartlistStore
+                        )
+                    }
+                    
+                    
+                    // One text file (or M3U8) per Tanda, Tanda folders
+                    // kept, zipped. Read-only, so no Library lock.
+                    Button(
+                        "    TandaLibrary (ZIP)…"
+                    ) {
+                        
+                        TandaLibraryExportActions.exportForSharing(
+                            libraryStore:
+                                libraryStore,
+                            settings:
+                                settings
+                        )
+                    }
                 }
-
-
-                Button(
-                    "Smartlists…"
-                ) {
-
-                    SmartlistActions.exportAll(
-                        store:
-                            smartlistStore
-                    )
-                }
-
-
-                // One text file (or M3U8) per Tanda, Tanda folders
-                // kept, zipped. Read-only, so no Library lock.
-                Button(
-                    "TandaLibrary for Sharing (ZIP)…"
-                ) {
-
-                    TandaLibraryExportActions.exportForSharing(
-                        libraryStore:
-                            libraryStore,
-                        settings:
-                            settings
-                    )
-                }
-
-
+                
                 Divider()
-
-
+                
+                
                 // The whole ~/.TandaComposer folder.
-                Button(
-                    "Backup of All Data…"
-                ) {
-
-                    LibraryActions.exportBackup()
+                Section("Complete Backup") {
+                    Button(
+                        "    Backup All (Libraries, Selists, Smartlists) …"
+                    ) {
+                        
+                        LibraryActions.exportBackup()
+                    }
                 }
             }
-
-
+            
+            
             // =====================================================
             // IMPORT
             // =====================================================
-
+            
             Menu(
                 "Import"
             ) {
-
+                
                 Button(
-                    "Setlist (Pick Tracks)…"
+                    "Setlist from List or M3U8 (Pick Tracks)…"
                 ) {
-
+                    
                     SetlistActions.specialImport(
                         session:
                             specialImportSession,
@@ -159,12 +162,12 @@ struct RescanCommands: Commands {
                         }
                     )
                 }
-
-
+                
+                
                 Button(
-                    "Setlist (M3U8, experimental)…"
+                    "Setlist from M3U8 (file paths must fit)…"
                 ) {
-
+                    
                     SetlistActions.importSetlist(
                         setlistStore:
                             setlistStore,
@@ -174,17 +177,17 @@ struct RescanCommands: Commands {
                             switchConfirmationCenter
                     )
                 }
-
-
+                
+                
                 Button {
-
+                    
                     SmartlistActions.importAll(
                         store:
                             smartlistStore
                     )
-
+                    
                 } label: {
-
+                    
                     lockableLabel(
                         "Smartlists…",
                         locked:
@@ -194,14 +197,14 @@ struct RescanCommands: Commands {
                 .disabled(
                     smartlistStore.isLocked
                 )
-
-
+                
+                
                 // Reads a ZIP made by "TandaLibrary for Sharing";
                 // one orchestra folder at a time.
                 Button(
                     "Tandas from ZIP…"
                 ) {
-
+                    
                     if TandaImportActions.chooseZip(
                         session:
                             tandaImportSession
@@ -212,15 +215,15 @@ struct RescanCommands: Commands {
                         )
                     }
                 }
-
-
+                
+                
                 Divider()
-
-
+                
+                
                 // Overwrites files in ~/.TandaComposer: last, behind
                 // a divider, and locked with the Library.
                 Button {
-
+                    
                     LibraryActions.importBackup(
                         db:
                             db,
@@ -231,11 +234,11 @@ struct RescanCommands: Commands {
                         smartlistStore:
                             smartlistStore
                     )
-
+                    
                 } label: {
-
+                    
                     lockableLabel(
-                        "Restore Backup…",
+                        "Restore All from Backup…",
                         locked:
                             libraryStore.isLocked
                     )
@@ -246,10 +249,10 @@ struct RescanCommands: Commands {
             }
         }
     }
-
-
+    
+    
     // MARK: - Lock Icon Helper
-
+    
     /// Shows a lock icon in front of the title when `locked` — same
     /// pattern as LibraryCommands' identically named helper.
     @ViewBuilder
@@ -257,17 +260,17 @@ struct RescanCommands: Commands {
         _ title: String,
         locked: Bool
     ) -> some View {
-
+        
         if locked {
-
+            
             Label(
                 title,
                 systemImage:
                     "lock.fill"
             )
-
+            
         } else {
-
+            
             Text(
                 title
             )

@@ -11,7 +11,7 @@ import Foundation
 /// Orchestra and singer are represented as candidate values rather than
 /// as a single raw tag. Tango collections commonly put these concepts in
 /// Artist, AlbumArtist, or Grouping.
-public struct TrackMetadataProfile: Equatable {
+public nonisolated struct TrackMetadataProfile: Equatable {
 
     public let title: String?
     public let orchestraValues: [String]

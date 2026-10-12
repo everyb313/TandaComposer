@@ -107,6 +107,17 @@ struct SpecialImportView: View {
 
             Divider()
 
+            RescanIntro(
+                what:
+                    "Turns a list from another source (M3U8 or text, one track per line) into a Setlist.",
+                limits:
+                    "Tracks are matched against your TrackLibrary. Check the ones that aren't an exact match and pick the right file.",
+                hint:
+                    "Nothing changes until you click \"Create Setlist\"."
+            )
+
+            Divider()
+
             if session.isPreparing {
 
                 VStack {
@@ -194,11 +205,11 @@ struct SpecialImportView: View {
             HStack {
 
                 Text("Pick Tracks")
-                    .font(.title2)
+                    .font(.system(size: 20))
                     .bold()
 
                 Text(session.sourceName)
-                    .font(.subheadline)
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -237,9 +248,10 @@ struct SpecialImportView: View {
                     session.adoptedSongs.isEmpty
                 )
             }
+            .controlSize(.large)
 
             Text(statusLine)
-                .font(.caption)
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
         }
         .padding(8)
@@ -345,7 +357,7 @@ private struct SpecialImportRowBlock: View {
                 Text(
                     "No track with this name in the TrackLibrary."
                 )
-                .font(.caption)
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
                 .padding(8)
 
@@ -421,11 +433,11 @@ private struct SpecialImportRowBlock: View {
                     Text(
                         "\(row.track.sourceIndex + 1)."
                     )
-                    .font(.subheadline)
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
 
                     Text(row.sourceTitle)
-                        .font(.subheadline)
+                        .font(.system(size: 14))
                         .fontWeight(.semibold)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -441,7 +453,7 @@ private struct SpecialImportRowBlock: View {
                                 duration % 60
                             )
                         )
-                        .font(.caption2)
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                     }
                 }
@@ -449,7 +461,7 @@ private struct SpecialImportRowBlock: View {
                 if let path = row.track.path {
 
                     Text(path)
-                        .font(.caption2)
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -507,7 +519,7 @@ private struct SpecialImportRowBlock: View {
                         settings: settings
                     )
                 )
-                .font(.caption2)
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
                 .frame(
                     width: column.1,

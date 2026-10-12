@@ -162,6 +162,84 @@ extension LibraryActions {
     }
 
 
+    static func renameCurrentLibrary(
+        libraryStore: LibraryStore,
+        setlistStore: SetlistStore,
+        smartlistStore: SmartlistStore,
+        settings: AppSettings
+    ) {
+        guard !libraryStore.isLocked else { return }
+
+        // Protect unsaved Setlist changes before starting the rename.
+        guard !setlistStore.hasUnsavedChanges else {
+            let unsavedAlert = NSAlert()
+            unsavedAlert.messageText = "Cannot Rename TrackLibrary"
+            unsavedAlert.informativeText =
+                "The current Setlist has unsaved changes. " +
+                "Please save or discard those changes before renaming the TrackLibrary."
+            unsavedAlert.alertStyle = .warning
+            unsavedAlert.addButton(withTitle: "OK")
+            unsavedAlert.runModal()
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Rename TrackLibrary"
+        alert.informativeText =
+            "Rename the active TrackLibrary and update its saved Tanda " +
+            "and Setlist JSON references. Track files and track metadata " +
+            "will not be changed."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+
+        let textField = NSTextField(
+            frame: NSRect(x: 0, y: 0, width: 300, height: 24)
+        )
+        textField.stringValue = libraryStore.currentLibraryName
+        alert.accessoryView = textField
+        alert.window.initialFirstResponder = textField
+
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return
+        }
+
+        let newName = textField.stringValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !newName.isEmpty,
+              newName != libraryStore.currentLibraryName else {
+            return
+        }
+
+        // Recheck before modifying files in case the state changed.
+        guard !setlistStore.hasUnsavedChanges else {
+            let unsavedAlert = NSAlert()
+            unsavedAlert.messageText = "Cannot Rename TrackLibrary"
+            unsavedAlert.informativeText =
+                "The current Setlist has unsaved changes. " +
+                "Please save or discard those changes before renaming the TrackLibrary."
+            unsavedAlert.alertStyle = .warning
+            unsavedAlert.addButton(withTitle: "OK")
+            unsavedAlert.runModal()
+            return
+        }
+
+        do {
+            try libraryStore.renameCurrentLibrary(to: newName)
+
+            finishLibrarySwitch(
+                to: newName,
+                settings: settings,
+                smartlistStore: smartlistStore,
+                setlistStore: setlistStore
+            )
+        } catch {
+            presentError(error)
+        }
+    }
+
+
     // MARK: - Open (Internal) Library
 
     static func openLibrary(

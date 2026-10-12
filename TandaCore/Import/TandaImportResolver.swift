@@ -21,13 +21,13 @@ import Foundation
 // MARK: - Model
 
 /// A Tanda that is already in the TandaLibrary (for the duplicate check).
-struct ExistingTanda {
+nonisolated struct ExistingTanda {
 
     let name: String
     let paths: Set<String>
 }
 
-enum TandaImportStatus: Equatable {
+nonisolated enum TandaImportStatus: Equatable {
 
     /// Every track found; can be imported.
     case ready
@@ -49,7 +49,7 @@ enum TandaImportStatus: Equatable {
 }
 
 /// One line of a Tanda file and what it was matched to.
-struct TandaImportLine: Identifiable {
+nonisolated struct TandaImportLine: Identifiable {
 
     let id = UUID()
     let number: Int
@@ -71,7 +71,7 @@ struct TandaImportLine: Identifiable {
     var chosenByUser = false
 }
 
-struct TandaImportEntry: Identifiable {
+nonisolated struct TandaImportEntry: Identifiable {
 
     var id: UUID { shared.id }
 
@@ -98,8 +98,7 @@ struct TandaImportEntry: Identifiable {
 /// - there is exactly ONE candidate whose title, orchestra and singer
 ///   agree with the line.
 /// Everything else needs the user.
-@MainActor
-enum TandaImportResolver {
+nonisolated enum TandaImportResolver {
 
     // MARK: Existing Tandas
 

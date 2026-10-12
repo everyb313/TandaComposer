@@ -25,7 +25,7 @@ import Foundation
 /// depending on how it was created — a naive string comparison or a raw
 /// path used as a database unique key can silently treat the same file as
 /// two different ones. Normalizing before comparing/storing avoids this.
-public enum PathNormalizer {
+public nonisolated enum PathNormalizer {
     /// Canonical form to store in the database's `normalized_path` column
     /// and to use for duplicate-detection — NOT necessarily what you'd
     /// display to the user (use the URL's own path for that).

@@ -380,6 +380,140 @@ public final class LibraryStore: ObservableObject {
         )
     }
 
+
+    /// Renames the currently active TrackLibrary as a complete subtree.
+    /// The database connection is detached before moving the directory,
+    /// and JSON library-identity fields are updated with rollback support.
+    public func renameCurrentLibrary(to requestedName: String) throws {
+
+        let newName = requestedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let oldName = currentLibraryName
+
+        guard !newName.isEmpty,
+              newName != ".",
+              newName != "..",
+              !newName.contains("/"),
+              !newName.contains("\\"),
+              !newName.contains(":"),
+              !newName.contains("\0") else {
+            throw LibraryStoreError.invalidLibraryName
+        }
+
+        guard newName != oldName else { return }
+
+        let fm = FileManager.default
+        let oldFolder = AppPaths.root.appendingPathComponent(oldName, isDirectory: true)
+        let newFolder = AppPaths.root.appendingPathComponent(newName, isDirectory: true)
+
+        guard fm.fileExists(atPath: oldFolder.path) else {
+            throw DatabaseManagerError.fileNotFound(oldFolder.path)
+        }
+        guard !fm.fileExists(atPath: newFolder.path) else {
+            throw LibraryStoreError.destinationAlreadyExists
+        }
+
+        // Capture the original bytes so any JSON write failure can be rolled back exactly.
+        let jsonFiles = Self.jsonFiles(in: oldFolder)
+        var originalJSON: [String: Data] = [:]
+        for url in jsonFiles {
+            originalJSON[url.path] = try Data(contentsOf: url)
+        }
+
+        // Detach SQLite from the file before moving its containing directory.
+        try db.switchToInMemory()
+        var folderMoved = false
+        var databaseFileRenamed = false
+
+        do {
+            try fm.moveItem(at: oldFolder, to: newFolder)
+            folderMoved = true
+
+            // The database filename mirrors the folder/library name.
+            let oldDatabaseInNewFolder = newFolder.appendingPathComponent(oldName).appendingPathExtension("sqlite")
+            let newDatabaseInNewFolder = newFolder.appendingPathComponent(newName).appendingPathExtension("sqlite")
+            guard fm.fileExists(atPath: oldDatabaseInNewFolder.path) else {
+                throw DatabaseManagerError.fileNotFound(oldDatabaseInNewFolder.path)
+            }
+            try fm.moveItem(at: oldDatabaseInNewFolder, to: newDatabaseInNewFolder)
+            databaseFileRenamed = true
+
+            // Only update the explicit library identity field. Song metadata,
+            // IDs, names, ordering, and all other JSON values remain untouched.
+            for oldURL in Self.jsonFiles(in: newFolder) {
+                let data = try Data(contentsOf: oldURL)
+                guard var object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let reference = object["savedAgainstLibraryName"] as? String,
+                      reference == oldName else {
+                    continue
+                }
+                object["savedAgainstLibraryName"] = newName
+                let updated = try JSONSerialization.data(
+                    withJSONObject: object,
+                    options: [.prettyPrinted, .sortedKeys]
+                )
+                try updated.write(to: oldURL, options: .atomic)
+            }
+
+            let newDatabasePath = AppPaths.libraryFile(named: newName).path
+            try db.switchDatabase(to: newDatabasePath)
+
+            currentLibraryPath = newDatabasePath
+            currentLibraryName = newName
+            AppPaths.currentLibraryName = newName
+            try reloadAfterSwitch()
+
+        } catch {
+            // Close any connection opened against the renamed path before moving it back.
+            try? db.switchToInMemory()
+
+            // Restore JSON bytes in whichever location currently owns the folder.
+            let recoveryFolder = folderMoved ? newFolder : oldFolder
+            for (originalPath, data) in originalJSON {
+                let relativePath = String(originalPath.dropFirst(oldFolder.path.count))
+                let recoveryURL = URL(fileURLWithPath: recoveryFolder.path + relativePath)
+                if fm.fileExists(atPath: recoveryURL.path) {
+                    try? data.write(to: recoveryURL, options: .atomic)
+                }
+            }
+
+            if folderMoved {
+                if databaseFileRenamed {
+                    let renamedDatabase = newFolder.appendingPathComponent(newName).appendingPathExtension("sqlite")
+                    let originalDatabase = newFolder.appendingPathComponent(oldName).appendingPathExtension("sqlite")
+                    if fm.fileExists(atPath: renamedDatabase.path),
+                       !fm.fileExists(atPath: originalDatabase.path) {
+                        try? fm.moveItem(at: renamedDatabase, to: originalDatabase)
+                    }
+                }
+                if !fm.fileExists(atPath: oldFolder.path) {
+                    try? fm.moveItem(at: newFolder, to: oldFolder)
+                }
+            }
+
+            // Best effort to restore the original active database and paths.
+            if fm.fileExists(atPath: AppPaths.libraryFile(named: oldName).path) {
+                try? db.switchDatabase(to: AppPaths.libraryFile(named: oldName).path)
+            }
+            currentLibraryPath = AppPaths.libraryFile(named: oldName).path
+            currentLibraryName = oldName
+            AppPaths.currentLibraryName = oldName
+            try? reloadAfterSwitch()
+            throw error
+        }
+    }
+
+    private static func jsonFiles(in folder: URL) -> [URL] {
+        guard let enumerator = FileManager.default.enumerator(
+            at: folder,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
+
+        return enumerator.compactMap { $0 as? URL }.filter {
+            $0.pathExtension.lowercased() == "json"
+        }
+    }
+
     public func deleteInternalLibrary(named name: String) throws {
 
         // The whole <root>/<name>/ subtree now — its Setlists,
@@ -660,6 +794,7 @@ public enum LibraryStoreError: LocalizedError {
     case cannotWriteOntoActiveLibrary
     case cannotDeleteActiveLibrary
     case importSourceStillInUse
+    case invalidLibraryName
 
     public var errorDescription: String? {
 
@@ -676,6 +811,9 @@ public enum LibraryStoreError: LocalizedError {
 
         case .importSourceStillInUse:
             return "This folder still has tracks in the Library — it can only be removed once no track references it anymore."
+
+        case .invalidLibraryName:
+            return "The library name is invalid. Use a non-empty name without path separators or filesystem-reserved characters."
         }
     }
 }

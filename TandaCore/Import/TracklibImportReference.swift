@@ -8,12 +8,12 @@ import Foundation
 
 /// Canonical Tracklib name plus alternative spellings that may occur in
 /// filenames or TXT setlists.
-public struct TracklibImportReferenceEntry: Codable, Equatable {
+public nonisolated struct TracklibImportReferenceEntry: Codable, Equatable {
     public let name: String
     public let aliases: [String]
 }
 
-public struct TracklibImportReference: Codable, Equatable {
+public nonisolated struct TracklibImportReference: Codable, Equatable {
     public let version: Int
     public let description: String?
     public let orchestras: [TracklibImportReferenceEntry]
@@ -38,7 +38,7 @@ public struct TracklibImportReference: Codable, Equatable {
 /// All recognizers are compiled once. Earlier versions compiled one
 /// regular expression per alias on every call, which added up to
 /// hundreds of thousands of compilations for a long list.
-public enum TracklibImportReferenceStore {
+public nonisolated enum TracklibImportReferenceStore {
 
     public enum Kind {
         case orchestra
@@ -148,7 +148,7 @@ public enum TracklibImportReferenceStore {
 // MARK: - Recognizer
 
 /// One compiled alternation of every spelling of one kind of name.
-private struct NameRecognizer {
+nonisolated private struct NameRecognizer {
 
     private let regex: NSRegularExpression?
     private let entryByFoldedName: [String: TracklibImportReferenceEntry]
@@ -292,7 +292,7 @@ private struct NameRecognizer {
 
 /// Case, accent, apostrophe and dash folding for comparing names.
 /// Not locale dependent.
-private func foldReferenceName(_ value: String) -> String {
+nonisolated private func foldReferenceName(_ value: String) -> String {
 
     value
         .precomposedStringWithCanonicalMapping

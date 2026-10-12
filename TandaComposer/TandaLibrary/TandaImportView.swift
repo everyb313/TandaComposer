@@ -46,6 +46,17 @@ struct TandaImportView: View {
 
             Divider()
 
+            RescanIntro(
+                what:
+                    "Imports Tandas that another DJ exported from their TandaComposer (\"TandaLibrary for Sharing\").",
+                limits:
+                    "Their tracks are matched against your own TrackLibrary. Tandas with tracks you don't have are marked \"Needs help\".",
+                hint:
+                    "Choose one orchestra folder, check the Tandas you want, then click \"Import\"."
+            )
+
+            Divider()
+
             HSplitView {
 
                 folderList
@@ -93,22 +104,26 @@ struct TandaImportView: View {
                         ? "No ZIP loaded"
                         : session.zipName
                 )
-                .font(.headline)
-
-                Text(
-                    "Choose one folder (orchestra), look at its Tandas, then import the checked ones."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 16, weight: .semibold))
             }
 
             Spacer()
 
             Button("Open ZIP…") {
-
                 TandaImportActions.chooseZip(session: session)
             }
+
+            Button("Close") {
+                dismiss()
+            }
+
+            Button(importTitle) {
+                runImport()
+            }
+            .disabled(session.checkedReadyCount == 0)
+            .keyboardShortcut(.defaultAction)
         }
+        .controlSize(.large)
         .padding(12)
     }
 
@@ -195,20 +210,10 @@ struct TandaImportView: View {
         HStack {
 
             Text(footerText)
-                .font(.caption)
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
 
             Spacer()
-
-            Button("Close") {
-                dismiss()
-            }
-
-            Button(importTitle) {
-                runImport()
-            }
-            .disabled(session.checkedReadyCount == 0)
-            .keyboardShortcut(.defaultAction)
         }
         .padding(12)
     }
@@ -329,7 +334,7 @@ private struct TandaImportRow: View {
     private var expanded = false
 
     /// Size of the text in the track list and the status line.
-    private let trackFont = Font.callout
+    private let trackFont = Font.system(size: 15)
 
     var body: some View {
 
@@ -343,13 +348,13 @@ private struct TandaImportRow: View {
                     .foregroundStyle(color)
 
                 Text(entry.shared.name)
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold))
                     .lineLimit(1)
 
                 if !entry.shared.subfolder.isEmpty {
 
                     Text(entry.shared.subfolder)
-                        .font(.caption)
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }

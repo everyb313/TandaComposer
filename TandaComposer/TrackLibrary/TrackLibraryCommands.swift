@@ -80,6 +80,26 @@ struct LibraryCommands: Commands {
 
 
             // =====================================================
+            // RENAME CURRENT LIBRARY
+            // =====================================================
+
+            Button {
+                LibraryActions.renameCurrentLibrary(
+                    libraryStore: libraryStore,
+                    setlistStore: setlistStore,
+                    smartlistStore: smartlistStore,
+                    settings: settings
+                )
+            } label: {
+                lockableLabel(
+                    "Rename TrackLibrary…",
+                    locked: libraryStore.isLocked
+                )
+            }
+            .disabled(libraryStore.isLocked)
+
+
+            // =====================================================
             // OPEN LIBRARY
             // =====================================================
 

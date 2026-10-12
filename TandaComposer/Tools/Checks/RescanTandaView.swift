@@ -84,6 +84,24 @@ struct RescanTandaView: View {
     }
 
 
+    /// True while "Apply Fixes" is on screen but can't be clicked
+    /// because the Library is locked (same condition the header
+    /// uses to show that button).
+    private var applyBlockedByLock: Bool {
+
+        guard
+            libraryStore.isLocked,
+            let pendingFixes,
+            !isApplied,
+            !pendingFixes.isEmpty
+        else {
+            return false
+        }
+
+        return true
+    }
+
+
     var body: some View {
 
         VStack(
@@ -101,7 +119,7 @@ struct RescanTandaView: View {
                 Text(
                     "Rescan TandaLibrary"
                 )
-                .font(.title2)
+                .font(.system(size: 20))
                 .bold()
 
                 Spacer()
@@ -139,7 +157,7 @@ struct RescanTandaView: View {
                     .help(
                         libraryStore.isLocked
                         ? "Unlock the Library to apply these fixes"
-                        : "Re-link Tanda references that moved"
+                        : "Reconnect moved tracks in the saved Tandas"
                     )
 
                 } else {
@@ -158,20 +176,31 @@ struct RescanTandaView: View {
                     }
                 }
             }
+            .controlSize(.large)
             .padding(8)
 
             Divider()
 
-            Text(
-                "Checks all saved Tandas against the TrackLibrary as currently loaded (re-links tracks by their Library ID), and also checks whether a Tanda's saved name/folder still matches what its CURRENT tracks resolve to (e.g. after adding or removing a track changed the Orchestra/Singer mix) — offering to rename/refile it if not. This does NOT scan disk itself — if a file moved and the TrackLibrary hasn't picked that up yet, run \"Rescan TrackLibrary\" first."
+            // =====================================================
+            // LOCK NOTICE — "Apply Fixes" is disabled while the
+            // Library is locked; say so visibly, not only in a
+            // tooltip.
+            // =====================================================
+
+            if applyBlockedByLock {
+                LibraryLockBanner(
+                    thenClick: "Apply Fixes"
+                )
+            }
+
+            RescanIntro(
+                what:
+                    "Reconnects moved tracks in all saved Tandas and saves the fixes.",
+                limits:
+                    "Also checks each Tanda's name and folder, and offers a rename if the orchestra or singer changed.",
+                hint:
+                    "Files moved? Run \"Rescan TrackLibrary\" first."
             )
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-            .fixedSize(
-                horizontal: false,
-                vertical: true
-            )
-            .padding(8)
 
 
             // =====================================================
@@ -191,17 +220,17 @@ struct RescanTandaView: View {
                         if stillFlaggedCount > 0 {
 
                             Label(
-                                "Nothing to re-link, but \(stillFlaggedCount) track(s) across all Tandas are still missing or not in library.",
+                                "No moved files found. Still missing across all Tandas: \(RescanText.count(stillFlaggedCount, "track")).",
                                 systemImage:
                                     "exclamationmark.circle.fill"
                             )
-                            .font(.system(size: 14))
+                            .font(.system(size: 16))
                             .foregroundStyle(.orange)
 
                             Text(
-                                "This only re-links tracks the TrackLibrary already found at a new location. Run \"Rescan TrackLibrary\" first, then try this again."
+                                "Next step: run \"Rescan TrackLibrary\", then try again."
                             )
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .fixedSize(
@@ -213,11 +242,11 @@ struct RescanTandaView: View {
                         } else {
 
                             Label(
-                                "No broken references or name/folder drift found.",
+                                "No moved tracks and no name or folder changes found.",
                                 systemImage:
                                     "checkmark.circle.fill"
                             )
-                            .font(.system(size: 14))
+                            .font(.system(size: 16))
                             .foregroundStyle(Color.green)
                         }
 
@@ -251,19 +280,19 @@ struct RescanTandaView: View {
 
                     let summarySubject =
                         totalRenamed > 0
-                        ? "\(totalFixed) reference(s) and \(totalRenamed) rename(s)"
-                        : "\(totalFixed) reference(s)"
+                        ? "\(RescanText.count(totalFixed, "track")) and \(RescanText.count(totalRenamed, "rename"))"
+                        : "\(RescanText.count(totalFixed, "track"))"
 
                     Label(
                         isApplied
-                        ? "\(summarySubject) fixed across \(tandaCount) Tanda(s)."
-                        : "\(summarySubject) found across \(tandaCount) Tanda(s) — click \"Apply Fixes\" to fix and save them.",
+                        ? "\(summarySubject) fixed across \(RescanText.count(tandaCount, "Tanda"))."
+                        : "\(summarySubject) can be fixed across \(RescanText.count(tandaCount, "Tanda")). Click \"Apply Fixes\" to save.",
                         systemImage:
                             isApplied
                             ? "checkmark.circle.fill"
                             : "exclamationmark.circle.fill"
                     )
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(
                         isApplied
                         ? Color.green
@@ -274,9 +303,9 @@ struct RescanTandaView: View {
                     if let lastSummary, !lastSummary.failedWrites.isEmpty {
 
                         Text(
-                            "\(lastSummary.failedWrites.count) Tanda file(s) couldn't be updated."
+                            "\(RescanText.count(lastSummary.failedWrites.count, "Tanda file")) couldn't be saved."
                         )
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(Color.red)
                         .padding(.horizontal, 8)
                     }
@@ -305,17 +334,17 @@ struct RescanTandaView: View {
 
                                     Text(
                                         fix.rename != nil
-                                        ? "\(fix.tanda.name) (\(fix.fixedSongCount) track(s), renamed)"
-                                        : "\(fix.tanda.name) (\(fix.fixedSongCount) track(s))"
+                                        ? "\(fix.tanda.name) (\(RescanText.count(fix.fixedSongCount, "track")), renamed)"
+                                        : "\(fix.tanda.name) (\(RescanText.count(fix.fixedSongCount, "track")))"
                                     )
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 16))
 
                                     Text(
                                         fix.tanda.sourceFolder.isEmpty
                                         ? fix.tanda.sourceURL.lastPathComponent
                                         : "\(fix.tanda.sourceFolder)/\(fix.tanda.sourceURL.lastPathComponent)"
                                     )
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(.system(size: 14, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .strikethrough(
                                         fix.rename != nil
@@ -326,7 +355,7 @@ struct RescanTandaView: View {
                                         Text(
                                             "→ \(rename.newFolder.pathComponents.suffix(2).joined(separator: "/"))/\(rename.newName).json"
                                         )
-                                        .font(.system(size: 12, design: .monospaced))
+                                        .font(.system(size: 14, design: .monospaced))
                                         .foregroundStyle(.blue)
                                     }
                                 }
@@ -360,7 +389,7 @@ struct RescanTandaView: View {
                     Text(
                         "Click \"Rescan TandaLibrary\" to check its tracks against the current Library."
                     )
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
 
                     Spacer()

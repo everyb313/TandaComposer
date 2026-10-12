@@ -163,8 +163,12 @@ extension SetlistActions {
         panel.title =
             "Import Setlist"
 
-        panel.message =
-            "Choose an M3U8 playlist to import as a new Setlist."
+        panel.message = """
+            Choose an M3U8 setlist whose tracks are in your TrackLibrary \
+            at the same file paths,
+            for example one exported from TandaComposer.
+            It is imported as a new Setlist.
+            """
 
         panel.allowedContentTypes =
             [

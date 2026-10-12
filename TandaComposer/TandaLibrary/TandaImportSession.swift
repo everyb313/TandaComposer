@@ -153,23 +153,26 @@ final class TandaImportSession: ObservableObject {
         let singerSource = settings.singerSource
         let autoPick = settings.autoPickBestFile
 
-        Task {
+        Task.detached(priority: .userInitiated) {
 
-            let evaluated = TandaImportResolver.evaluate(
-                tandas,
-                library: songs,
-                orchestraSource: orchestraSource,
-                singerSource: singerSource,
-                autoPickBestFile: autoPick,
-                missingSongIDs: missing,
-                existing: existingSnapshot
-            )
+            let evaluated =
+                TandaImportResolver.evaluate(
+                    tandas,
+                    library: songs,
+                    orchestraSource: orchestraSource,
+                    singerSource: singerSource,
+                    autoPickBestFile: autoPick,
+                    missingSongIDs: missing,
+                    existing: existingSnapshot
+                )
 
-            guard token == self.generation else {
-                return
-            }
+            await MainActor.run {
 
-            var result = evaluated
+                guard token == self.generation else {
+                    return
+                }
+
+                var result = evaluated
 
                 // Where each ready Tanda would be saved.
                 for index in result.indices
@@ -197,7 +200,8 @@ final class TandaImportSession: ObservableObject {
                         .map { $0.id }
                 )
 
-            self.isMatching = false
+                self.isMatching = false
+            }
         }
     }
 
@@ -423,7 +427,7 @@ enum TandaImportActions {
         panel.title = "Import Tandas from ZIP"
 
         panel.message =
-            "Choose a ZIP made with Tools → Export TandaLibrary for Sharing."
+            "Choose a ZIP that another DJ made with Tools → Export → \"TandaLibrary for Sharing\"."
 
         panel.allowedContentTypes = [.zip]
         panel.allowsMultipleSelection = false
