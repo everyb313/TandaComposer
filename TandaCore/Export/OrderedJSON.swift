@@ -139,17 +139,17 @@ nonisolated extension JSONValue {
         }
     }
 
-    /// Matches the escaping this app's Setlist files already used
-    /// under `JSONEncoder` (notably: forward slashes are escaped as
-    /// `\/`), so existing files stay visually consistent with newly
-    /// written ones even though migration isn't required.
+    /// JSON string escaping for Setlist/Tanda files. Forward slashes
+    /// are deliberately NOT escaped, so file paths stay readable
+    /// (`/Volumes/...`, not `\/Volumes\/...`). Files written earlier
+    /// with `\/` are still read fine — `\/` is valid JSON — and are
+    /// rewritten with plain `/` the next time they are saved.
     private static func escaped(_ s: String) -> String {
         var result = "\""
         for scalar in s.unicodeScalars {
             switch scalar {
             case "\"": result += "\\\""
             case "\\": result += "\\\\"
-            case "/": result += "\\/"
             case "\n": result += "\\n"
             case "\r": result += "\\r"
             case "\t": result += "\\t"

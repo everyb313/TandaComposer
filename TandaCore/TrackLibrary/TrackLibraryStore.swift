@@ -381,6 +381,44 @@ public final class LibraryStore: ObservableObject {
     }
 
 
+    /// Replaces only the value of `"savedAgainstLibraryName"` in the raw
+    /// JSON text and returns the new bytes; nil if the key or text could
+    /// not be handled (caller then falls back to re-serializing).
+    private static func replacingLibraryReference(in data: Data, to newName: String) -> Data? {
+
+        guard let text = String(data: data, encoding: .utf8),
+              let encoded = try? JSONSerialization.data(
+                withJSONObject: [newName],
+                options: [.withoutEscapingSlashes]
+              ),
+              var literal = String(data: encoded, encoding: .utf8),
+              literal.count >= 2 else {
+            return nil
+        }
+
+        // ["name"] -> "name" (a properly escaped JSON string literal)
+        literal.removeFirst()
+        literal.removeLast()
+
+        let pattern = "(\"savedAgainstLibraryName\"\\s*:\\s*)\"(?:[^\"\\\\]|\\\\.)*\""
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(
+                in: text,
+                range: NSRange(text.startIndex..., in: text)
+              ),
+              let whole = Range(match.range, in: text),
+              let prefix = Range(match.range(at: 1), in: text) else {
+            return nil
+        }
+
+        let result = text.replacingCharacters(
+            in: whole,
+            with: String(text[prefix]) + literal
+        )
+        return result.data(using: .utf8)
+    }
+
+
     /// Renames the currently active TrackLibrary as a complete subtree.
     /// The database connection is detached before moving the directory,
     /// and JSON library-identity fields are updated with rollback support.
@@ -437,21 +475,37 @@ public final class LibraryStore: ObservableObject {
             try fm.moveItem(at: oldDatabaseInNewFolder, to: newDatabaseInNewFolder)
             databaseFileRenamed = true
 
-            // Only update the explicit library identity field. Song metadata,
-            // IDs, names, ordering, and all other JSON values remain untouched.
+            // Only update the explicit library identity field. The file is
+            // edited as text, in place, so everything else stays byte-for-
+            // byte as it was: readable paths (no "\/" escaping), key order,
+            // indentation. Re-serializing the whole object would change all
+            // of that.
             for oldURL in Self.jsonFiles(in: newFolder) {
                 let data = try Data(contentsOf: oldURL)
-                guard var object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let reference = object["savedAgainstLibraryName"] as? String,
                       reference == oldName else {
                     continue
                 }
-                object["savedAgainstLibraryName"] = newName
-                let updated = try JSONSerialization.data(
-                    withJSONObject: object,
-                    options: [.prettyPrinted, .sortedKeys]
-                )
-                try updated.write(to: oldURL, options: .atomic)
+
+                var updated = Self.replacingLibraryReference(in: data, to: newName)
+
+                // Verify the in-place edit; otherwise fall back to a full
+                // re-serialization that at least keeps slashes readable.
+                if let candidate = updated,
+                   let check = try? JSONSerialization.jsonObject(with: candidate) as? [String: Any],
+                   check["savedAgainstLibraryName"] as? String == newName {
+                    // ok
+                } else {
+                    var fallback = object
+                    fallback["savedAgainstLibraryName"] = newName
+                    updated = try JSONSerialization.data(
+                        withJSONObject: fallback,
+                        options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+                    )
+                }
+
+                try updated?.write(to: oldURL, options: .atomic)
             }
 
             let newDatabasePath = AppPaths.libraryFile(named: newName).path
