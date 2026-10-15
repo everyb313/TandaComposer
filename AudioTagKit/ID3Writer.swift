@@ -31,7 +31,12 @@ struct ID3Writer: TagWriter {
     static func write(url: URL, changes: TagChanges) async throws {
         let data = try Data(contentsOf: url)
         let audioStart = existingTagSize(in: data)
-        let audioData = data.subdata(in: (data.startIndex + audioStart)..<data.endIndex)
+ 
+        guard audioStart <= data.count else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        
+        let audioData = data.subdata(in: (data.startIndex + audioStart) ..< data.endIndex)
 
         var newFrames: [Data] = []
         if let v = changes.title { newFrames.append(ID3FrameCodec.textFrame("TIT2", v)) }

@@ -71,7 +71,7 @@ public enum AppPaths {
         "LastPlaylist"
     }
 
-
+/*
     /// Permanent internal TandaComposer location.
     ///
     /// Lives directly in the user's home folder (not
@@ -88,8 +88,28 @@ public enum AppPaths {
                     true
             )
     }
+*/
+    /// Test seam: when set, replaces `~/.TandaComposer` as the root of ALL
+    /// app data (databases, Setlists, Tandas, Smartlists, AppSettings.json,
+    /// recovery file). Only unit tests set this, so they never touch the
+    /// real data folder. `nil` in the app.
+    static var rootOverride: URL?
 
+    static var internalRoot: URL {
 
+        if let rootOverride {
+            return rootOverride
+        }
+
+        return FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent(
+                ".\(appName)",
+                isDirectory:
+                    true
+            )
+    }
+    
     // =============================================================
     // MARK: - Current TrackLibrary
     // =============================================================

@@ -91,14 +91,17 @@ public enum TagWriterKit {
 
     public static func write(url: URL, changes: TagChanges) async throws {
         guard !changes.isEmpty else { throw TagWriteError.noChangesSpecified }
-        try BackupUtility.backupOriginalIfNeeded(for: url)
+        // Resolve support before creating a backup. Unsupported files must not
+        // acquire an `_original` copy for an operation that cannot proceed.
         let writer = try writer(for: url)
+        try BackupUtility.backupOriginalIfNeeded(for: url)
         try await writer.write(url: url, changes: changes)
     }
 
     public static func strip(url: URL) async throws {
-        try BackupUtility.backupOriginalIfNeeded(for: url)
+        // Resolve support before creating a backup, matching `write` semantics.
         let writer = try writer(for: url)
+        try BackupUtility.backupOriginalIfNeeded(for: url)
         try await writer.strip(url: url)
     }
 }

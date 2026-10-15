@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B1000000000000000000000B /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = B1000000000000000000000C /* GRDB */; };
 		CD2C16783021DEE0001CC889 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CD2C16773021DEE0001CC889 /* GRDB */; };
 		CDACF616302115B9005EBF39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDACF60F302115B9005EBF39 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A10000000000000000000002 /* AudioTagKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AudioTagKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000002 /* TandaCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TandaCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000010 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CD36340A303613D7005C9DF7 /* NOTICE */ = {isa = PBXFileReference; lastKnownFileType = text; path = NOTICE; sourceTree = "<group>"; };
 		CD68E10230210DC000899C4B /* TandaComposer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TandaComposer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD7E0D0B3033664800E84A2B /* LICENSE_MIT */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE_MIT; sourceTree = "<group>"; };
@@ -19,6 +23,16 @@
 		CD7E0D1030336D9A00E84A2B /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		CDACF60F302115B9005EBF39 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B1000000000000000000000A /* Exceptions for "TandaCore" folder in "TandaCoreTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TandaLibrary/TandaDragPayload.swift,
+			);
+			target = B10000000000000000000003 /* TandaCoreTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 		CDBE45FB3021EED400732528 /* Exceptions for "TandaComposer" folder in "Copy Bundle Resources" phase from "TandaComposer" target */ = {
@@ -31,6 +45,16 @@
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A10000000000000000000001 /* AudioTagKitTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AudioTagKitTests;
+			sourceTree = "<group>";
+		};
+		B10000000000000000000001 /* TandaCoreTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TandaCoreTests;
+			sourceTree = "<group>";
+		};
 		CD68E10430210DC000899C4B /* TandaComposer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -41,6 +65,9 @@
 		};
 		CD68E1373021126800899C4B /* TandaCore */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B1000000000000000000000A /* Exceptions for "TandaCore" folder in "TandaCoreTests" target */,
+			);
 			path = TandaCore;
 			sourceTree = "<group>";
 		};
@@ -52,6 +79,21 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000000000000000000000B /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD68E0FF30210DC000899C4B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -63,6 +105,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		B1000000000000000000000F /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000010 /* README.md */,
+				A10000000000000000000001 /* AudioTagKitTests */,
+				B10000000000000000000001 /* TandaCoreTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		CD68E0F930210DC000899C4B = {
 			isa = PBXGroup;
 			children = (
@@ -74,6 +126,7 @@
 				CD68E10330210DC000899C4B /* Products */,
 				CDACF60F302115B9005EBF39 /* Assets.xcassets */,
 				CDD7061330380EB200EC5020 /* AudioTagKit */,
+				B1000000000000000000000F /* Tests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -81,6 +134,8 @@
 			isa = PBXGroup;
 			children = (
 				CD68E10230210DC000899C4B /* TandaComposer.app */,
+				A10000000000000000000002 /* AudioTagKitTests.xctest */,
+				B10000000000000000000002 /* TandaCoreTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -97,6 +152,52 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A10000000000000000000003 /* AudioTagKitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000006 /* Build configuration list for PBXNativeTarget "AudioTagKitTests" */;
+			buildPhases = (
+				A10000000000000000000007 /* Sources */,
+				A10000000000000000000008 /* Frameworks */,
+				A10000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000001 /* AudioTagKitTests */,
+				CDD7061330380EB200EC5020 /* AudioTagKit */,
+			);
+			name = AudioTagKitTests;
+			productName = AudioTagKitTests;
+			productReference = A10000000000000000000002 /* AudioTagKitTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B10000000000000000000003 /* TandaCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B10000000000000000000006 /* Build configuration list for PBXNativeTarget "TandaCoreTests" */;
+			buildPhases = (
+				B10000000000000000000007 /* Sources */,
+				B10000000000000000000008 /* Frameworks */,
+				B10000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B10000000000000000000001 /* TandaCoreTests */,
+				CD68E1373021126800899C4B /* TandaCore */,
+				CDD7061330380EB200EC5020 /* AudioTagKit */,
+			);
+			name = TandaCoreTests;
+			packageProductDependencies = (
+				B1000000000000000000000C /* GRDB */,
+			);
+			productName = TandaCoreTests;
+			productReference = B10000000000000000000002 /* TandaCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CD68E10130210DC000899C4B /* TandaComposer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CD68E10D30210DC200899C4B /* Build configuration list for PBXNativeTarget "TandaComposer" */;
@@ -156,11 +257,27 @@
 			projectRoot = "";
 			targets = (
 				CD68E10130210DC000899C4B /* TandaComposer */,
+				A10000000000000000000003 /* AudioTagKitTests */,
+				B10000000000000000000003 /* TandaCoreTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD68E10030210DC000899C4B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -172,6 +289,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD68E0FE30210DC000899C4B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -182,6 +313,80 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		A10000000000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tandacomposer.AudioTagKitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A10000000000000000000005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tandacomposer.AudioTagKitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B10000000000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tandacomposer.TandaCoreTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B10000000000000000000005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tandacomposer.TandaCoreTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		CD68E10B30210DC200899C4B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -376,6 +581,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A10000000000000000000006 /* Build configuration list for PBXNativeTarget "AudioTagKitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000004 /* Debug */,
+				A10000000000000000000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B10000000000000000000006 /* Build configuration list for PBXNativeTarget "TandaCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000000000000000000004 /* Debug */,
+				B10000000000000000000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CD68E0FD30210DC000899C4B /* Build configuration list for PBXProject "TandaComposer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -408,6 +631,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B1000000000000000000000C /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CD2C16763021DEE0001CC889 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
 		CD2C16773021DEE0001CC889 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CD2C16763021DEE0001CC889 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
