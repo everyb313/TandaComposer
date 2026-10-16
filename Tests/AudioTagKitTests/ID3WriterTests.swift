@@ -101,4 +101,99 @@ final class ID3WriterTests: XCTestCase {
         if end >= 128 && data.subdata(in: (end - 128)..<end).prefix(3).elementsEqual("TAG".utf8) { end -= 128 }
         return data.subdata(in: start..<max(start, end))
     }
+    
+    func testRepeatedWritesPreserveAudioAndKeepSingleLeadingID3Tag() async throws {
+        let source = temporaryDirectory.appendingPathComponent("repeated.mp3")
+
+        // A minimal ID3v2.4 header followed by synthetic audio bytes.
+        let audio = Data([
+            0xFF, 0xFB, 0x90, 0x64,
+            0x12, 0x34, 0x56, 0x78,
+            0x21, 0x43, 0x65, 0x87
+        ])
+
+        let initialFile = Data([
+            0x49, 0x44, 0x33, // ID3
+            0x04, 0x00, 0x00, // Version 2.4, no flags
+            0x00, 0x00, 0x00, 0x00 // Empty tag
+        ]) + audio
+
+        try initialFile.write(to: source)
+
+        try await ID3Writer.write(
+            url: source,
+            changes: TagChanges(title: "First title")
+        )
+
+        try await ID3Writer.write(
+            url: source,
+            changes: TagChanges(artist: "Test artist")
+        )
+
+        let result = try Data(contentsOf: source)
+
+        XCTAssertGreaterThanOrEqual(result.count, audio.count)
+        XCTAssertEqual(
+            result.suffix(audio.count),
+            audio,
+            "Repeated tag writes must preserve the audio payload."
+        )
+
+        XCTAssertEqual(
+            Array(result.prefix(3)),
+            [0x49, 0x44, 0x33],
+            "The resulting file should begin with an ID3 tag."
+        )
+
+        // The synthetic audio payload contains no ID3 marker.
+        // There should be only one ID3 marker in the resulting file.
+        let id3Marker = Data([0x49, 0x44, 0x33])
+        var markerCount = 0
+
+        if result.count >= id3Marker.count {
+            for index in 0...(result.count - id3Marker.count) {
+                if result[index..<(index + id3Marker.count)].elementsEqual(id3Marker) {
+                    markerCount += 1
+                }
+            }
+        }
+
+        XCTAssertEqual(
+            markerCount,
+            1,
+            "Repeated writes should not duplicate the leading ID3 tag."
+        )
+    }
+
+    func testTruncatedID3HeaderThrowsAndLeavesFileUnchanged() async throws {
+        let source = temporaryDirectory.appendingPathComponent("truncated.mp3")
+
+        // The header declares a 127-byte tag, but the file is much shorter.
+        let malformed = Data([
+            0x49, 0x44, 0x33, // ID3
+            0x04, 0x00, 0x00, // Version 2.4, no flags
+            0x00, 0x00, 0x00, 0x7F, // Declared tag size: 127 bytes
+            0xFF, 0xFB, 0x90, 0x64
+        ])
+
+        try malformed.write(to: source)
+
+        do {
+            try await ID3Writer.write(
+                url: source,
+                changes: TagChanges(title: "Must not be written")
+            )
+            XCTFail("Expected the truncated ID3 tag to be rejected.")
+        } catch {
+            // Any thrown error is acceptable for this malformed input.
+        }
+
+        XCTAssertEqual(
+            try Data(contentsOf: source),
+            malformed,
+            "A failed write must leave the original file unchanged."
+        )
+    }
+    
+
 }

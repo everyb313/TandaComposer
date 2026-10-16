@@ -38,6 +38,7 @@ extension XCTestCase {
 
 /// Minimal `Song` for tests. Only the fields the tested code looks at.
 func makeSong(
+    id: Int64? = nil,
     path: String,
     title: String? = nil,
     artist: String? = nil,
@@ -49,6 +50,7 @@ func makeSong(
     album: String? = nil
 ) -> Song {
     Song(
+        id: id,
         filename: URL(fileURLWithPath: path).lastPathComponent,
         path: path,
         normalizedPath: PathNormalizer.normalize(path),
@@ -77,4 +79,89 @@ func waitUntil(
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
     return condition()
+}
+
+
+/// A date without fractional seconds. The JSON files store dates as
+/// ISO-8601 strings, which are exact to the second only.
+let wholeSecondDate = Date(timeIntervalSince1970: 1_700_000_000)
+
+/// A `Song` with every field filled, using whole-second dates so it survives
+/// a JSON or database round trip unchanged.
+func makeFullSong(id: Int64? = nil, path: String = "/Music/poema.flac") -> Song {
+    Song(
+        id: id,
+        filename: URL(fileURLWithPath: path).lastPathComponent,
+        path: path,
+        normalizedPath: PathNormalizer.normalize(path),
+        title: "Poema",
+        artist: "Alpha Trio",
+        albumArtist: "Singer X",
+        genre: "Tango",
+        grouping: "Group A",
+        year: 1940,
+        comment: "remark",
+        fileType: "FLAC",
+        duration: 215,
+        sampleRate: 44100,
+        replayGain: -7.25,
+        album: "Album One",
+        key: "Am",
+        bpm: 111.5,
+        fileSize: 12_345_678,
+        lastModified: 1_700_000_000,
+        addedToLibrary: wholeSecondDate,
+        lastLibraryScan: wholeSecondDate,
+        fileModificationDateAtScan: wholeSecondDate,
+        fileSizeAtScan: 12_345_678,
+        fileHash: "abc123"
+    )
+}
+
+/// `count` simple songs with ids 1...count, titles "T1"..., artists "A1"...
+func makeSongs(_ count: Int) -> [Song] {
+    (0..<count).map { index in
+        let number = index + 1
+        return makeSong(
+            id: Int64(number),
+            path: "/Music/\(number).flac",
+            title: "T\(number)",
+            artist: "A\(number)"
+        )
+    }
+}
+
+extension XCTestCase {
+
+    /// Runs `body` with `AppPaths` redirected to a fresh temporary folder
+    /// (library name reset to the default) and restores the previous state
+    /// afterwards.
+    ///
+    /// SAFETY: if the redirect does not take effect, the test is skipped
+    /// instead of running against the real `~/.TandaComposer`.
+    func withTemporaryAppRoot(_ body: (URL) throws -> Void) throws {
+        // Canonical path (/private/var/... instead of /var/...), so URLs that the
+        // file system hands back compare equal to the ones the code built.
+        let root = try makeTemporaryDirectory().resolvingSymlinksInPath()
+
+        let previousRoot = AppPaths.rootOverride
+        let previousLibraryName = AppPaths.currentLibraryName
+        AppPaths.rootOverride = root
+        AppPaths.currentLibraryName = AppPaths.defaultLibraryName
+        defer {
+            AppPaths.rootOverride = previousRoot
+            AppPaths.currentLibraryName = previousLibraryName
+        }
+
+        guard AppPaths.root.standardizedFileURL.path == root.standardizedFileURL.path else {
+            throw XCTSkip("AppPaths.rootOverride has no effect; refusing to touch real data")
+        }
+
+        try body(root)
+    }
+}
+
+/// Compares two file URLs by their standardized path.
+func samePath(_ lhs: URL, _ rhs: URL) -> Bool {
+    lhs.standardizedFileURL.path == rhs.standardizedFileURL.path
 }
