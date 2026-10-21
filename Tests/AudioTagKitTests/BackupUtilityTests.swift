@@ -102,6 +102,41 @@ final class BackupUtilityTests: XCTestCase {
         }
     }
 
+    
+    func testExistingBackupDirectoryDoesNotModifySourceFile() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("backup-directory-\(UUID().uuidString)")
+
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let sourceURL = directory.appendingPathComponent("song.mp3")
+        let backupURL = URL(fileURLWithPath: sourceURL.path + "_original")
+
+        let original = Data("Original audio contents".utf8)
+        try original.write(to: sourceURL)
+
+        try FileManager.default.createDirectory(
+            at: backupURL,
+            withIntermediateDirectories: true
+        )
+
+        let returnedURL = try BackupUtility.backupOriginalIfNeeded(for: sourceURL)
+        XCTAssertEqual(
+            returnedURL.standardizedFileURL.path,
+            backupURL.standardizedFileURL.path
+        )
+        //XCTAssertEqual(returnedURL, backupURL)
+        XCTAssertEqual(try Data(contentsOf: sourceURL), original)
+        XCTAssertTrue(
+            FileManager.default.fileExists(atPath: backupURL.path),
+            "The existing backup directory must not be overwritten."
+        )
+    }
+
     func testExistingDirectoryAtBackupPathIsNotOverwritten() throws {
         let source = temporaryDirectory.appendingPathComponent("track.flac")
         let original = Data([0x66, 0x4C, 0x61, 0x43, 0x10, 0x20, 0x30])

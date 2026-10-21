@@ -23,6 +23,7 @@ struct FLACWriter: TagWriter {
 
     static func canHandle(format: AudioFormat) -> Bool { format == .flac }
 
+    /*
     static func write(url: URL, changes: TagChanges) async throws {
         let data = try Data(contentsOf: url)
         let (blocks, audioOffset) = try FLACBlocks.parse(data)
@@ -50,6 +51,60 @@ struct FLACWriter: TagWriter {
         }
 
         let output = FLACBlocks.serialize(blocks: newBlocks, audioData: audioData)
+        try output.write(to: url, options: .atomic)
+    }
+     */
+    
+    static func write(url: URL, changes: TagChanges) async throws {
+        let data = try Data(contentsOf: url)
+        let (blocks, audioOffset) = try FLACBlocks.parse(data)
+        let audioData = data.subdata(
+            in: (data.startIndex + audioOffset)..<data.endIndex
+        )
+
+        var newBlocks: [FLACBlock] = []
+        var existingComments: [String: String] = [:]
+        var foundVorbisComment = false
+
+        for block in blocks {
+            if block.type == FLACBlocks.vorbisComment {
+                let decoded = VorbisCommentCodec.decode(block.data)
+
+                // Merge all existing comment blocks without discarding
+                // fields that appeared in earlier blocks.
+                for (key, value) in decoded {
+                    if existingComments[key] == nil {
+                        existingComments[key] = value
+                    }
+                }
+
+                foundVorbisComment = true
+            } else {
+                newBlocks.append(block)
+            }
+        }
+
+        apply(changes, to: &existingComments)
+
+        let newBlock = FLACBlock(
+            type: FLACBlocks.vorbisComment,
+            data: VorbisCommentCodec.encode(existingComments)
+        )
+
+        if foundVorbisComment {
+            // Insert the merged block after STREAMINFO when present.
+            let insertAt = (newBlocks.first?.type == FLACBlocks.streamInfo) ? 1 : 0
+            newBlocks.insert(newBlock, at: insertAt)
+        } else {
+            // No existing comment block.
+            let insertAt = (newBlocks.first?.type == FLACBlocks.streamInfo) ? 1 : 0
+            newBlocks.insert(newBlock, at: insertAt)
+        }
+
+        let output = FLACBlocks.serialize(
+            blocks: newBlocks,
+            audioData: audioData
+        )
         try output.write(to: url, options: .atomic)
     }
 

@@ -139,10 +139,16 @@ extension XCTestCase {
     ///
     /// SAFETY: if the redirect does not take effect, the test is skipped
     /// instead of running against the real `~/.TandaComposer`.
-    func withTemporaryAppRoot(_ body: (URL) throws -> Void) throws {
-        // Canonical path (/private/var/... instead of /var/...), so URLs that the
-        // file system hands back compare equal to the ones the code built.
-        let root = try makeTemporaryDirectory().resolvingSymlinksInPath()
+    ///
+    /// `realPath: true` uses the real `/private/var/...` spelling (see
+    /// `canonicalURL`). Needed by code that compares the paths a folder
+    /// scan returns with `AppPaths` using a plain prefix check.
+    func withTemporaryAppRoot(realPath: Bool = false, _ body: (URL) throws -> Void) throws {
+        // Resolved symlinks (note: this form is /var/..., not /private/var/...).
+        // The Tanda/Setlist code compares standardized paths, which makes both
+        // spellings equal; tests that scan folders use `canonicalURL` instead.
+        let temporary = try makeTemporaryDirectory()
+        let root = realPath ? canonicalURL(temporary) : temporary.resolvingSymlinksInPath()
 
         let previousRoot = AppPaths.rootOverride
         let previousLibraryName = AppPaths.currentLibraryName
@@ -164,4 +170,19 @@ extension XCTestCase {
 /// Compares two file URLs by their standardized path.
 func samePath(_ lhs: URL, _ rhs: URL) -> Bool {
     lhs.standardizedFileURL.path == rhs.standardizedFileURL.path
+}
+
+
+/// The real path as the file system reports it (`/private/var/...`).
+///
+/// `URL.resolvingSymlinksInPath()` is NOT the same: it strips `/private`
+/// again (`/private/var/...` becomes `/var/...`), while `FileManager`'s
+/// recursive enumerator returns the `/private/var/...` form. Tests that
+/// compare against paths found by a folder scan need this one.
+func canonicalURL(_ url: URL) -> URL {
+    guard let resolved = realpath(url.path, nil) else {
+        return url
+    }
+    defer { free(resolved) }
+    return URL(fileURLWithPath: String(cString: resolved))
 }

@@ -72,6 +72,313 @@ final class AIFFWriterTests: XCTestCase {
         }
     }
 
+    
+    func testChangingYearDoesNotPreserveLegacyDateFrames() async throws {
+        let url = try makeAIFF(sound: Data([0x11, 0x22, 0x33, 0x44]))
+
+        // Zuerst einen normalen Tag schreiben.
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "Date test")
+        )
+
+        // Danach das Jahr ändern.
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(year: "2026")
+        )
+
+        let parsed = try AIFFChunks.parse(Data(contentsOf: url))
+        let id3Chunk = try XCTUnwrap(
+            parsed.chunks.first(where: { $0.id == "ID3 " })
+        )
+        let frames = ID3FrameCodec.parseTag(id3Chunk.data)
+
+        XCTAssertTrue(
+            frames.contains(where: { $0.id == "TDRC" }),
+            "The updated year should be stored in TDRC"
+        )
+        XCTAssertFalse(
+            frames.contains(where: { ["TYER", "TDAT", "TIME"].contains($0.id) }),
+            "Legacy date frames must not remain after updating the year"
+        )
+    }
+
+    
+    func testWritePreservesAIFCFormTypeAndSoundData() async throws {
+        let sound = Data([0x21, 0x32, 0x43, 0x54])
+
+        let url = temporaryDirectory
+            .appendingPathComponent("fixture-\(UUID().uuidString).aifc")
+
+        let chunks = [
+            AIFFChunk(
+                id: "COMM",
+                data: Data([
+                    0, 1, 0, 0, 0, 0, 16, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                ])
+            ),
+            AIFFChunk(id: "SSND", data: sound)
+        ]
+
+        try AIFFChunks.serialize(formType: "AIFC", chunks: chunks)
+            .write(to: url)
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "AIFC title")
+        )
+
+        let parsed = try AIFFChunks.parse(Data(contentsOf: url))
+
+        XCTAssertEqual(parsed.formType, "AIFC")
+        XCTAssertEqual(
+            parsed.chunks.first(where: { $0.id == "SSND" })?.data,
+            sound
+        )
+        XCTAssertEqual(
+            parsed.chunks.filter { $0.id == "ID3 " }.count,
+            1
+        )
+    }
+    
+    
+    func testWritePreservesUnchangedCustomID3Frames() async throws {
+        let url = try makeAIFF(sound: Data([0x11, 0x22, 0x33, 0x44]))
+
+        let customFrame = ID3FrameCodec.textFrame("TXXX", "Custom metadata")
+        let originalTag = ID3FrameCodec.header(bodySize: customFrame.count) + customFrame
+
+        let parsed = try AIFFChunks.parse(Data(contentsOf: url))
+        let chunksWithID3 = parsed.chunks + [
+            AIFFChunk(id: "ID3 ", data: originalTag)
+        ]
+        try AIFFChunks.serialize(
+            formType: parsed.formType,
+            chunks: chunksWithID3
+        ).write(to: url)
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "Updated AIFF title")
+        )
+
+        let result = try AIFFChunks.parse(Data(contentsOf: url))
+        let id3Chunk = try XCTUnwrap(result.chunks.first { $0.id == "ID3 " })
+        let frames = ID3FrameCodec.parseTag(id3Chunk.data)
+
+        XCTAssertTrue(frames.contains { $0.id == "TXXX" })
+        XCTAssertTrue(frames.contains { $0.id == "TIT2" })
+        XCTAssertEqual(result.chunks.filter { $0.id == "ID3 " }.count, 1)
+    }
+    
+    
+    func testUpdatingTitlePreservesUnchangedID3Frames() async throws {
+        let url = try makeAIFF(sound: Data([0x21, 0x43, 0x65, 0x87]))
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "Old title", artist: "Keep artist")
+        )
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "New title")
+        )
+
+        let parsed = try AIFFChunks.parse(Data(contentsOf: url))
+        let id3Chunk = try XCTUnwrap(
+            parsed.chunks.first { $0.id == "ID3 " }
+        )
+        let frames = ID3FrameCodec.parseTag(id3Chunk.data)
+
+        XCTAssertEqual(
+            frames.filter { $0.id == "TIT2" }.count,
+            1,
+            "Updating a title should not create duplicate title frames."
+        )
+
+        XCTAssertEqual(
+            frames.filter { $0.id == "TPE1" }.count,
+            1,
+            "The unchanged artist frame should remain exactly once."
+        )
+
+
+        let finalParsed = try AIFFChunks.parse(Data(contentsOf: url))
+
+        XCTAssertEqual(
+            finalParsed.chunks.first { $0.id == "SSND" }?.data,
+            Data([0x21, 0x43, 0x65, 0x87]),
+            "The sound data must remain unchanged."
+        )
+    }
+    
+    
+    func testRepeatedStripPreservesSoundAndTechnicalChunks() async throws {
+        let sound = Data([0x12, 0x34, 0x56, 0x78])
+        let technicalData = Data([0x01, 0x02, 0x03])
+
+        let url = try makeAIFF(
+            sound: sound,
+            extraChunks: [
+                AIFFChunk(id: "XTRA", data: technicalData),
+                AIFFChunk(id: "NAME", data: Data("Private title".utf8))
+            ]
+        )
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "Remove this")
+        )
+
+        try await AIFFWriter.strip(url: url)
+        try await AIFFWriter.strip(url: url)
+
+        let parsed = try AIFFChunks.parse(Data(contentsOf: url))
+
+        XCTAssertFalse(
+            parsed.chunks.contains { $0.id == "ID3 " },
+            "ID3 metadata should remain removed."
+        )
+        XCTAssertFalse(
+            parsed.chunks.contains { $0.id == "NAME" },
+            "The NAME metadata chunk should remain removed."
+        )
+        XCTAssertEqual(
+            parsed.chunks.first { $0.id == "XTRA" }?.data,
+            technicalData,
+            "Unrelated chunks should be preserved."
+        )
+        XCTAssertEqual(
+            parsed.chunks.first { $0.id == "SSND" }?.data,
+            sound,
+            "Sound data should remain unchanged."
+        )
+    }
+
+    /*
+    func testRepeatedTitleUpdatesPreserveOriginalSoundData() async throws {
+        let sound = Data([1, 2, 3, 4, 5, 6, 7, 8])
+        let url = try makeAIFF(sound: sound)
+
+        defer {
+            try? FileManager.default.removeItem(at: url)
+        }
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "First")
+        )
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "Second")
+        )
+
+        let fileData = try Data(contentsOf: url)
+        let parsed = try AIFFChunks.parse(fileData)
+
+        let soundChunk = try XCTUnwrap(
+            parsed.chunks.first { $0.id == "SSND" },
+            "The AIFF file must contain an SSND chunk after repeated metadata updates."
+        )
+
+        XCTAssertGreaterThanOrEqual(
+            soundChunk.data.count,
+            8,
+            "The SSND chunk must contain the 8-byte offset/block-size header."
+        )
+
+        let actualSound = Data(soundChunk.data.dropFirst(8))
+
+        XCTAssertEqual(
+            actualSound,
+            sound,
+            "Repeated metadata updates must preserve the original sound payload."
+        )
+    }
+     */
+    
+    func testUpdatingTitlePreservesArtistAndAlbumFrames() async throws {
+        let url = try makeAIFF(sound: Data([1, 2, 3, 4, 5]))
+
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(
+                title: "Original Title",
+                artist: "Existing Artist",
+                album: "Existing Album"
+            )
+        )
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(title: "Updated Title")
+        )
+
+        let parsed = try AIFFChunks.parse(Data(contentsOf: url))
+        let id3Chunk = try XCTUnwrap(
+            parsed.chunks.first { $0.id == "ID3 " }
+        )
+        let frames = ID3FrameCodec.parseTag(id3Chunk.data)
+
+        XCTAssertEqual(frames.filter { $0.id == "TIT2" }.count, 1)
+        XCTAssertEqual(frames.filter { $0.id == "TPE1" }.count, 1)
+        XCTAssertEqual(frames.filter { $0.id == "TALB" }.count, 1)
+
+        XCTAssertEqual(
+            try XCTUnwrap(frames.first { $0.id == "TIT2" }).content,
+            ID3FrameCodec.textFrame("TIT2", "Updated Title").dropFirst(10)
+        )
+    }
+
+   /*
+    func testMultipleMetadataUpdatesPreserveCustomChunk() async throws {
+        let url = try makeAIFF(sound: Data([1, 2, 3, 4, 5, 6]))
+
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let original = try Data(contentsOf: url)
+        let originalParsed = try AIFFChunks.parse(original)
+        let customChunk = try XCTUnwrap(
+            originalParsed.chunks.first { $0.id == "JUNK" }
+        )
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(
+                title: "Test Title",
+                artist: "Test Artist"
+            )
+        )
+
+        try await AIFFWriter.write(
+            url: url,
+            changes: TagChanges(
+                album: "Test Album",
+                year: "2024"
+            )
+        )
+
+        let updated = try Data(contentsOf: url)
+        let updatedParsed = try AIFFChunks.parse(updated)
+        let preservedChunk = try XCTUnwrap(
+            updatedParsed.chunks.first { $0.id == "JUNK" }
+        )
+
+        XCTAssertEqual(
+            preservedChunk.data,
+            customChunk.data,
+            "Unrecognized custom chunks must survive metadata updates."
+        )
+    }
+
+    */
+    
     private func makeAIFF(sound: Data, extraChunks: [AIFFChunk] = []) throws -> URL {
         // Synthetic container fixture for structural tests; SSND payload is
         // byte-controlled and is not intended to be a playable audio sample.

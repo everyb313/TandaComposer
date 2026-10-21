@@ -164,6 +164,139 @@ final class ID3WriterTests: XCTestCase {
             "Repeated writes should not duplicate the leading ID3 tag."
         )
     }
+    
+    
+    func testWritePreservesAudioWithExtendedHeader() async throws {
+        let source = temporaryDirectory.appendingPathComponent("extended-header.mp3")
+        let audio = Data([
+            0xFF, 0xFB, 0x90, 0x64,
+            0x12, 0x34, 0x56, 0x78
+        ])
+
+        // ID3v2.4 extended header:
+        // 4-byte syncsafe size (6), 1 flag byte, 1 byte padding size.
+        let extendedHeader = Data([
+            0x00, 0x00, 0x00, 0x06,
+            0x00,
+            0x00
+        ])
+
+        let tagSize = extendedHeader.count
+        var file = Data([
+            0x49, 0x44, 0x33, // ID3
+            0x04, 0x00,       // Version 2.4
+            0x40,             // Extended-header flag
+            0x00, 0x00, 0x00, UInt8(tagSize)
+        ])
+        file.append(extendedHeader)
+        file.append(audio)
+        try file.write(to: source)
+
+        try await ID3Writer.write(
+            url: source,
+            changes: TagChanges(title: "Extended header test")
+        )
+
+        let result = try Data(contentsOf: source)
+
+        XCTAssertEqual(
+            audioPayload(in: result),
+            audio,
+            "Writing metadata must preserve audio bytes when an extended header is present."
+        )
+
+        XCTAssertTrue(
+            result.prefix(3).elementsEqual("ID3".utf8),
+            "The resulting file should retain its leading ID3 tag."
+        )
+
+        let frames = ID3FrameCodec.parseTag(result)
+        XCTAssertTrue(frames.contains { $0.id == "TIT2" })
+    }
+
+    
+    func testStripWithoutLeadingID3v2RemovesTrailingID3v1() async throws {
+        let audio = Data([
+            0xFF, 0xFB, 0x90, 0x64,
+            0x12, 0x34, 0x56, 0x78
+        ])
+
+        let url = temporaryDirectory.appendingPathComponent("id3v1-only.mp3")
+
+        var file = audio
+        var id3v1 = Data("TAG".utf8)
+        id3v1.append(Data(repeating: 0, count: 125))
+        file.append(id3v1)
+
+        try file.write(to: url)
+
+        try await ID3Writer.strip(url: url)
+
+        XCTAssertEqual(
+            try Data(contentsOf: url),
+            audio,
+            "Stripping should remove trailing ID3v1 metadata while preserving audio."
+        )
+    }
+
+
+    func testStripWithoutTrailingID3v1PreservesAudio() async throws {
+        let audio = Data([
+            0xFF, 0xFB, 0x90, 0x64,
+            0x12, 0x34, 0x56, 0x78
+        ])
+
+        let url = try makeMP3(audio: audio)
+
+        try await ID3Writer.strip(url: url)
+
+        XCTAssertEqual(
+            try Data(contentsOf: url),
+            audio,
+            "Stripping should remove the leading ID3v2 tag and preserve audio."
+        )
+    }
+
+    
+    func testWritePreservesUnchangedCommentFrame() async throws {
+        let audio = Data([0xFF, 0xFB, 0x90, 0x64, 0x12, 0x34])
+        let url = try makeMP3(audio: audio)
+
+        let commentFrame = ID3FrameCodec.commentFrame("Keep this comment")
+        //let originalData = try Data(contentsOf: url)
+        //let originalFrames = ID3FrameCodec.parseTag(originalData)
+
+        // Den vorhandenen Tag-Inhalt um einen Kommentar-Frame erweitern.
+        let existingBody = ID3FrameCodec.textFrame("TALB", "Existing album")
+        let body = existingBody + commentFrame
+
+        var file = ID3FrameCodec.header(bodySize: body.count)
+        file.append(body)
+        file.append(audio)
+        try file.write(to: url)
+
+        try await ID3Writer.write(
+            url: url,
+            changes: TagChanges(title: "New title")
+        )
+
+        let result = try Data(contentsOf: url)
+        let frames = ID3FrameCodec.parseTag(result)
+
+        XCTAssertTrue(
+            frames.contains { $0.id == "COMM" },
+            "The existing comment frame should be preserved."
+        )
+        XCTAssertTrue(
+            frames.contains { $0.id == "TIT2" },
+            "The new title frame should be written."
+        )
+        XCTAssertEqual(
+            audioPayload(in: result),
+            audio,
+            "The audio payload should remain unchanged."
+        )
+    }
 
     func testTruncatedID3HeaderThrowsAndLeavesFileUnchanged() async throws {
         let source = temporaryDirectory.appendingPathComponent("truncated.mp3")
@@ -195,5 +328,138 @@ final class ID3WriterTests: XCTestCase {
         )
     }
     
+
+    func testInvalidSyncsafeSizeLeavesOriginalUnchanged() async throws {
+        let url = temporaryDirectory.appendingPathComponent("invalid-syncsafe.mp3")
+
+        // Das letzte Größenbyte enthält ein gesetztes höchstes Bit.
+        let malformed = Data([
+            0x49, 0x44, 0x33, // ID3
+            0x04, 0x00,       // ID3v2.4
+            0x00,             // Keine Flags
+            0x00, 0x00, 0x00, 0x80,
+            0xFF, 0xFB, 0x90, 0x64
+        ])
+
+        try malformed.write(to: url)
+
+        do {
+            try await ID3Writer.write(
+                url: url,
+                changes: TagChanges(title: "Must not be written")
+            )
+            XCTFail("Expected an invalid syncsafe size to be rejected.")
+        } catch {
+            XCTAssertEqual(
+                try Data(contentsOf: url),
+                malformed,
+                "A failed write must leave the original file unchanged."
+            )
+        }
+    }
+
+    
+    func testID3TagSizeExceedingFileLengthLeavesOriginalUnchanged() async throws {
+        let url = temporaryDirectory.appendingPathComponent("truncated-tag.mp3")
+
+        // Gültige ID3-Signatur, aber Tag-Größe 100 Bytes.
+        // Die Datei enthält nur 4 Bytes nach dem Header.
+        let malformed = Data([
+            0x49, 0x44, 0x33, // ID3
+            0x04, 0x00,       // Version 2.4
+            0x00,             // Flags
+            0x00, 0x00, 0x00, 0x64, // Größe: 100 Bytes
+            0x11, 0x22, 0x33, 0x44
+        ])
+
+        try malformed.write(to: url)
+
+        do {
+            try await ID3Writer.write(
+                url: url,
+                changes: TagChanges(title: "Must not be written")
+            )
+            XCTFail("Expected a truncated ID3 tag to be rejected.")
+        } catch {
+            XCTAssertEqual(
+                try Data(contentsOf: url),
+                malformed,
+                "A failed write must leave the original file unchanged."
+            )
+        }
+    }
+
+    
+    func testUpdatingTitleRemovesDuplicateTitleFrames() async throws {
+        let url = temporaryDirectory.appendingPathComponent("duplicate-title.mp3")
+        let audio = Data([0xFF, 0xFB, 0x90, 0x64, 0x11, 0x22])
+
+        let firstTitle = ID3FrameCodec.textFrame("TIT2", "First Title")
+        let secondTitle = ID3FrameCodec.textFrame("TIT2", "Second Title")
+        let artist = ID3FrameCodec.textFrame("TPE1", "Existing Artist")
+
+        var body = firstTitle
+        body.append(secondTitle)
+        body.append(artist)
+
+        var file = ID3FrameCodec.header(bodySize: body.count)
+        file.append(body)
+        file.append(audio)
+        try file.write(to: url)
+
+        try await ID3Writer.write(
+            url: url,
+            changes: TagChanges(title: "Updated Title")
+        )
+
+        let result = try Data(contentsOf: url)
+        let frames = ID3FrameCodec.parseTag(result)
+        let titleFrames = frames.filter { $0.id == "TIT2" }
+
+        XCTAssertEqual(titleFrames.count, 1, "There should be only one title frame.")
+        XCTAssertTrue(
+            frames.contains { $0.id == "TPE1" },
+            "The existing artist frame should be preserved."
+        )
+        XCTAssertEqual(audioPayload(in: result), audio)
+    }
+
+    
+    
+    func testUpdatingTitlePreservesUnchangedUserTextFrame() async throws {
+        let url = temporaryDirectory.appendingPathComponent("preserve-txxx.mp3")
+        let audio = Data([0xFF, 0xFB, 0x90, 0x64, 0x11, 0x22])
+
+        let titleFrame = ID3FrameCodec.textFrame("TIT2", "Old Title")
+        let customFrame = ID3FrameCodec.textFrame("TXXX", "Custom Value")
+
+        var body = titleFrame
+        body.append(customFrame)
+
+        var file = ID3FrameCodec.header(bodySize: body.count)
+        file.append(body)
+        file.append(audio)
+
+        try file.write(to: url)
+
+        try await ID3Writer.write(
+            url: url,
+            changes: TagChanges(title: "New Title")
+        )
+
+        let result = try Data(contentsOf: url)
+        let frames = ID3FrameCodec.parseTag(result)
+
+        XCTAssertTrue(
+            frames.contains { $0.id == "TXXX" },
+            "The unchanged custom text frame should be preserved."
+        )
+
+        XCTAssertEqual(
+            audioPayload(in: result),
+            audio,
+            "The audio payload must remain unchanged."
+        )
+    }
 
 }

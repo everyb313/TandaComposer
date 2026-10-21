@@ -42,6 +42,49 @@ final class FormatSnifferTests: XCTestCase {
     func testUnknownHeaderRemainsUnknown() throws {
         try assertFormat(.unknown, bytes: Array("text data".utf8), filename: "audio.flac")
     }
+    
+    
+    func testEmptyFileIsReportedAsUnknownFormat() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("empty-\(UUID().uuidString).audio")
+
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        try Data().write(to: url)
+
+        let format =  FormatSniffer.detect(url: url)
+
+        XCTAssertEqual(format, .unknown)
+    }
+
+    func testVeryShortFileIsDetectedAsUnknownFormat() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("short-\(UUID().uuidString).audio")
+
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        // Zu kurz für eine vollständige Audio-Dateisignatur.
+        try Data([0x49, 0x44]).write(to: url)
+
+        let format =  FormatSniffer.detect(url: url)
+
+        XCTAssertEqual(format, .unknown)
+    }
+
+    
+    func testTruncatedFLACSignatureIsHandledSafely() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("truncated-\(UUID().uuidString).flac")
+
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        // FLAC-Marker vorhanden, aber kein vollständiger Metadaten-Header.
+        try Data([0x66, 0x4C, 0x61, 0x43, 0x00]).write(to: url)
+
+        let format =  FormatSniffer.detect(url: url)
+
+        XCTAssertEqual(format, .flac)
+    }
 
     private func assertFormat(
         _ expected: AudioFormat,

@@ -53,6 +53,36 @@ final class TagChangesTests: XCTestCase {
         XCTAssertEqual(changes.comment, "Test Comment")
     }
 
+    
+    func testIsEmptyReturnsFalseWhenOnlyOneFieldIsSet() {
+        XCTAssertFalse(TagChanges(title: "New Title").isEmpty)
+        XCTAssertFalse(TagChanges(artist: "New Artist").isEmpty)
+        XCTAssertFalse(TagChanges(albumArtist: "New Album Artist").isEmpty)
+        XCTAssertFalse(TagChanges(album: "New Album").isEmpty)
+        XCTAssertFalse(TagChanges(genre: "Jazz").isEmpty)
+        XCTAssertFalse(TagChanges(track: "3").isEmpty)
+        XCTAssertFalse(TagChanges(year: "2025").isEmpty)
+        XCTAssertFalse(TagChanges(comment: "Live recording").isEmpty)
+    }
+    
+    
+    func testIsEmptyReturnsTrueWhenAllFieldsAreNil() {
+        let changes = TagChanges(
+            title: nil,
+            artist: nil,
+            albumArtist: nil,
+            album: nil,
+            genre: nil,
+            track: nil,
+            year: nil,
+            comment: nil
+        )
+
+        XCTAssertTrue(changes.isEmpty)
+    }
+
+    
+
     func testEmptyStringsStillCountAsSpecifiedChanges() {
         let changes = TagChanges(title: "")
 

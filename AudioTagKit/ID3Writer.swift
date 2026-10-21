@@ -104,9 +104,27 @@ struct ID3Writer: TagWriter {
     }
 
     /// Byte offset right after any existing ID3v2 tag (0 if none present).
+
     private static func existingTagSize(in data: Data) -> Int {
-        guard data.count >= 10, data.prefix(3).elementsEqual("ID3".utf8) else { return 0 }
+        guard data.count >= 10,
+              data.prefix(3).elementsEqual("ID3".utf8) else {
+            return 0
+        }
+
         let sizeBytes = data.subdata(in: (data.startIndex + 6)..<(data.startIndex + 10))
-        return 10 + ID3FrameCodec.syncsafeDecode(sizeBytes)
+
+        // ID3-Syncsafe-Größen dürfen pro Byte nur 7 Bits verwenden.
+        guard sizeBytes.allSatisfy({ ($0 & 0x80) == 0 }) else {
+            return data.count + 1
+        }
+
+        let bodySize = ID3FrameCodec.syncsafeDecode(sizeBytes)
+
+        // Verhindert, dass ein abgeschnittener Tag als gültig behandelt wird.
+        guard bodySize <= data.count - 10 else {
+            return data.count + 1
+        }
+
+        return 10 + bodySize
     }
 }
