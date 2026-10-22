@@ -47,6 +47,20 @@ enum AIFFChunks {
             throw AIFFParseError.notAIFF
         }
 
+        // FORM size counts all bytes after the 8-byte FORM header, including
+        // the four-byte form type. Reject mismatches instead of silently
+        // accepting truncated data and rewriting it as a valid-looking file.
+        let sizeStart = data.startIndex + 4
+        let declaredFormSize =
+            Int(data[sizeStart]) << 24 |
+            Int(data[sizeStart + 1]) << 16 |
+            Int(data[sizeStart + 2]) << 8 |
+            Int(data[sizeStart + 3])
+
+        guard declaredFormSize >= 4, declaredFormSize == data.count - 8 else {
+            throw AIFFParseError.truncated
+        }
+
         let formType = String(
             decoding: data.subdata(in: (data.startIndex + 8)..<(data.startIndex + 12)),
             as: UTF8.self
@@ -58,7 +72,12 @@ enum AIFFChunks {
         var offset = 12
         var chunks: [AIFFChunk] = []
 
-        while offset + 8 <= data.count {
+        while offset < data.count {
+            // Every chunk needs an 8-byte ID + size header.
+            guard offset + 8 <= data.count else {
+                throw AIFFParseError.truncated
+            }
+
             let idStart = data.startIndex + offset
             let id = String(decoding: data.subdata(in: idStart..<(idStart + 4)), as: UTF8.self)
             let sizeBytes = data.subdata(in: (idStart + 4)..<(idStart + 8))
@@ -69,12 +88,21 @@ enum AIFFChunks {
 
             let chunkDataStart = idStart + 8
             let chunkDataEnd = chunkDataStart + size
-            guard size >= 0, chunkDataEnd <= data.endIndex else { throw AIFFParseError.truncated }
+            let paddedChunkEnd = chunkDataEnd + (size % 2)
+            guard size >= 0,
+                  chunkDataEnd <= data.endIndex,
+                  paddedChunkEnd <= data.endIndex else {
+                throw AIFFParseError.truncated
+            }
 
             chunks.append(AIFFChunk(id: id, data: data.subdata(in: chunkDataStart..<chunkDataEnd)))
 
             // IFF chunks pad odd-sized data to the next even byte boundary.
             offset += 8 + size + (size % 2)
+        }
+
+        guard offset == data.count else {
+            throw AIFFParseError.truncated
         }
 
         return (formType, chunks)

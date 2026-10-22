@@ -55,6 +55,13 @@ public nonisolated enum TracklibImportReferenceStore {
         problem: String?
     ) = load()
 
+    /// TEST SEAM: when set, name recognition uses these entries instead of
+    /// the bundled list. Only tests set it, and they reset it to nil.
+    nonisolated(unsafe) static var overrideEntriesForTesting: (
+        orchestras: [TracklibImportReferenceEntry],
+        singers: [TracklibImportReferenceEntry]
+    )?
+
     public static var orchestras: [TracklibImportReferenceEntry] {
         loaded.reference.orchestras
     }
@@ -86,6 +93,12 @@ public nonisolated enum TracklibImportReferenceStore {
         in text: String,
         kind: Kind
     ) -> [NameMatch] {
+
+        if let injected = overrideEntriesForTesting {
+            let entries = kind == .orchestra ? injected.orchestras : injected.singers
+
+            return NameRecognizer(entries: entries).matches(in: text)
+        }
 
         switch kind {
         case .orchestra:
@@ -148,7 +161,7 @@ public nonisolated enum TracklibImportReferenceStore {
 // MARK: - Recognizer
 
 /// One compiled alternation of every spelling of one kind of name.
-nonisolated private struct NameRecognizer {
+nonisolated struct NameRecognizer {
 
     private let regex: NSRegularExpression?
     private let entryByFoldedName: [String: TracklibImportReferenceEntry]
@@ -253,7 +266,7 @@ nonisolated private struct NameRecognizer {
 
     /// Regex for one literal spelling: metacharacters escaped by hand,
     /// every apostrophe variant interchangeable, white space flexible.
-    nonisolated private static func patternFragment(_ spelling: String) -> String {
+    nonisolated static func patternFragment(_ spelling: String) -> String {
 
         let apostrophes = "'\u{2019}\u{2018}\u{00B4}`"
         let metacharacters = "\\.[]{}()*+?^$|-/"
@@ -292,7 +305,7 @@ nonisolated private struct NameRecognizer {
 
 /// Case, accent, apostrophe and dash folding for comparing names.
 /// Not locale dependent.
-nonisolated private func foldReferenceName(_ value: String) -> String {
+nonisolated func foldReferenceName(_ value: String) -> String {
 
     value
         .precomposedStringWithCanonicalMapping

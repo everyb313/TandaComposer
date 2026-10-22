@@ -156,7 +156,7 @@ enum SongMetadataReader {
     /// Best-effort BPM lookup across whichever field happens to carry it —
     /// CanonicalTags doesn't cover BPM, so this reaches into the raw
     /// metadata dictionary AudioMetadataKit.read already returns.
-    private static func extractBPM(
+    static func extractBPM(
         from metadata:
             [String: Any]
     ) -> Double? {
@@ -203,7 +203,7 @@ enum SongMetadataReader {
     /// (MP3/M4A/AIFF) haven't been checked yet — the top-level and formatSpecific fallbacks
     /// below are kept in case one of them surfaces it differently; tighten this once verified
     /// against each reader's actual source, the way FLAC now is.
-    private static func extractSampleRate(
+    static func extractSampleRate(
         from metadata:
             [String: Any]
     ) -> Int? {
@@ -284,7 +284,7 @@ enum SongMetadataReader {
     /// because of that prefix. Matching by substring instead sidesteps the prefix (and
     /// MP3's AVFoundation-based reader too, in case it surfaces TXXX differently — not yet
     /// checked). FLAC's Vorbis comments still use a plain, unprefixed key, checked separately.
-    private static func extractReplayGain(
+    static func extractReplayGain(
         from metadata:
             [String: Any]
     ) -> Double? {
