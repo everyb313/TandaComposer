@@ -42,14 +42,18 @@ enum AIFFParseError: Error, CustomStringConvertible {
 /// so every chunk is treated as an opaque (id, data) pair; there's no
 /// separate "where does audio start" concept to track.
 enum AIFFChunks {
-    static func parse(_ data: Data) throws -> (formType: String, chunks: [AIFFChunk]) {
+    /// - Parameter lenient: `false` (default, used before WRITING) rejects every
+    ///   inconsistency, so a damaged file is never rewritten into a
+    ///   valid-looking one. `true` (used for READING) reads everything that is
+    ///   intact: a wrong FORM size, bytes after the FORM, a missing final pad
+    ///   byte or a cut-off last chunk no longer make the whole file unreadable.
+    static func parse(_ data: Data, lenient: Bool = false) throws -> (formType: String, chunks: [AIFFChunk]) {
         guard data.count >= 12, data.prefix(4).elementsEqual("FORM".utf8) else {
             throw AIFFParseError.notAIFF
         }
 
         // FORM size counts all bytes after the 8-byte FORM header, including
-        // the four-byte form type. Reject mismatches instead of silently
-        // accepting truncated data and rewriting it as a valid-looking file.
+        // the four-byte form type.
         let sizeStart = data.startIndex + 4
         let declaredFormSize =
             Int(data[sizeStart]) << 24 |
@@ -57,24 +61,34 @@ enum AIFFChunks {
             Int(data[sizeStart + 2]) << 8 |
             Int(data[sizeStart + 3])
 
-        guard declaredFormSize >= 4, declaredFormSize == data.count - 8 else {
-            throw AIFFParseError.truncated
+        if !lenient {
+            guard declaredFormSize >= 4, declaredFormSize == data.count - 8 else {
+                throw AIFFParseError.truncated
+            }
         }
 
         let formType = String(
             decoding: data.subdata(in: (data.startIndex + 8)..<(data.startIndex + 12)),
             as: UTF8.self
         )
+
         guard formType == "AIFF" || formType == "AIFC" else {
             throw AIFFParseError.notAIFF
         }
 
+        // End of the chunk area: strict = the whole file (the size check above
+        // guarantees FORM matches it); lenient = what FORM declares, but never
+        // beyond the data.
+        let end = lenient ? min(data.count, max(12, declaredFormSize + 8)) : data.count
+        let absoluteEnd = data.startIndex + end
+
         var offset = 12
         var chunks: [AIFFChunk] = []
 
-        while offset < data.count {
+        while offset < end {
             // Every chunk needs an 8-byte ID + size header.
-            guard offset + 8 <= data.count else {
+            guard offset + 8 <= end else {
+                if lenient { break }
                 throw AIFFParseError.truncated
             }
 
@@ -89,20 +103,28 @@ enum AIFFChunks {
             let chunkDataStart = idStart + 8
             let chunkDataEnd = chunkDataStart + size
             let paddedChunkEnd = chunkDataEnd + (size % 2)
-            guard size >= 0,
-                  chunkDataEnd <= data.endIndex,
-                  paddedChunkEnd <= data.endIndex else {
+
+            guard size >= 0, chunkDataEnd <= absoluteEnd else {
+                if lenient { break }
                 throw AIFFParseError.truncated
             }
 
             chunks.append(AIFFChunk(id: id, data: data.subdata(in: chunkDataStart..<chunkDataEnd)))
 
             // IFF chunks pad odd-sized data to the next even byte boundary.
+            guard paddedChunkEnd <= absoluteEnd else {
+                // Only the pad byte of the last chunk is missing.
+                if lenient { offset = end; break }
+                throw AIFFParseError.truncated
+            }
+
             offset += 8 + size + (size % 2)
         }
 
-        guard offset == data.count else {
-            throw AIFFParseError.truncated
+        if !lenient {
+            guard offset == data.count else {
+                throw AIFFParseError.truncated
+            }
         }
 
         return (formType, chunks)

@@ -448,14 +448,38 @@ private struct TandaImportRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
 
-                    Text(line.text)
+                    Text(line.displayText)
                         .font(trackFont)
                         .foregroundStyle(.secondary)
 
                     if let song = line.song {
 
-                        Text(summary(of: song) + " — " + line.note)
+                        if line.note == TandaImportResolver.bestOfSeveralFilesNote {
+
+                            // The title is already shown above.
+                            Text(line.note)
+                                .font(trackFont)
+                                .foregroundStyle(.orange)
+
+                        } else if let summaryText = line.candidateSummary {
+
+                            // Only match: same look as lines with several
+                            // candidates; the track is in the list below.
+                            Text(summaryText)
+                                .font(trackFont)
+                                .foregroundStyle(.orange)
+
+                        } else {
+
+                            Text(summary(of: song) + " — " + line.note)
+                                .font(trackFont)
+                        }
+
+                    } else if let summaryText = line.candidateSummary {
+
+                        Text(summaryText)
                             .font(trackFont)
+                            .foregroundStyle(.orange)
 
                     } else {
 
@@ -487,11 +511,7 @@ private struct TandaImportRow: View {
         for line: TandaImportLine
     ) -> Bool {
 
-        isEditable
-            && !line.candidates.isEmpty
-            && (line.song == nil
-                || line.candidates.count > 1
-                || line.chosenByUser)
+        line.offersCandidateList(isEditable: isEditable)
     }
 
     private func candidateRow(

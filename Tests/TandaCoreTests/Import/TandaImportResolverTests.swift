@@ -245,10 +245,19 @@ final class TandaImportResolverTests: XCTestCase {
         XCTAssertEqual(try entry(forThirdTrack: empty, extra: [song]).lines[2].song?.id, 3)
     }
 
-    func testInstrumentalOnlyAgreesWithASongWithoutSinger() throws {
-        let withoutSinger = librarySong(3, albumArtist: nil)
+    func testInstrumentalOnlyAgreesWithAnInstrumentalSong() throws {
         let track = ImportedTrack(sourceIndex: 2, title: "T3", artist: "Alpha Trio", singer: "Instrumental")
-        XCTAssertEqual(try entry(forThirdTrack: track, extra: [withoutSinger]).lines[2].song?.id, 3)
+
+        for tag in ["Instrumental", "instr.", "Inst"] {
+            let instrumental = librarySong(3, albumArtist: tag)
+            let result = try entry(forThirdTrack: track, extra: [instrumental])
+
+            XCTAssertEqual(result.lines[2].song?.id, 3, tag)
+            XCTAssertEqual(result.lines[2].note, "only match", tag)
+        }
+
+        let withoutSinger = librarySong(3, albumArtist: nil)
+        XCTAssertNil(try entry(forThirdTrack: track, extra: [withoutSinger]).lines[2].song)
 
         let withSinger = librarySong(3, albumArtist: "Singer B")
         XCTAssertNil(try entry(forThirdTrack: track, extra: [withSinger]).lines[2].song)

@@ -32,7 +32,7 @@ struct AIFFReader: MetadataReader {
 
     static func read(url: URL) async throws -> [String: Any] {
         let data = try Data(contentsOf: url)
-        let (formType, chunks) = try AIFFChunks.parse(data)
+        let (formType, chunks) = try AIFFChunks.parse(data, lenient: true)
 
         var result: [String: Any] = [:]
         var common: [String: Any] = [:]

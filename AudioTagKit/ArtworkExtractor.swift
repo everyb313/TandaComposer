@@ -44,7 +44,7 @@ public enum ArtworkExtractor {
 
     private static func extractFromAIFF(url: URL) throws -> ExtractedArtwork? {
         let data = try Data(contentsOf: url)
-        let (_, chunks) = try AIFFChunks.parse(data)
+        let (_, chunks) = try AIFFChunks.parse(data, lenient: true)
         guard let id3Chunk = chunks.first(where: { $0.id == "ID3 " }) else { return nil }
 
         let frames = ID3FrameCodec.parseTag(id3Chunk.data)

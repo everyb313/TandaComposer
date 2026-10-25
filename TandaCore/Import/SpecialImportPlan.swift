@@ -30,6 +30,11 @@ import Foundation
 /// - One exception, only when "Auto-pick best file" is on: if all
 ///   candidates are the SAME recording in different files, the best file
 ///   is suggested (`autoPicked`). The user can always remove it.
+/// - When the line names an orchestra and/or a singer, only candidates
+///   that agree with it are complete matches. If there are none, the
+///   same-named tracks are still offered, but as INCOMPLETE suggestions
+///   (`isIncompleteMatch`): never auto-picked, shown under their own
+///   heading and styled differently.
 ///
 /// Every song a row can end up with is a current-Library `Song`, never
 /// a snapshot from the imported file.
@@ -67,12 +72,19 @@ public nonisolated struct SpecialImportRow: Identifiable, Equatable {
     /// by the user.
     public private(set) var isAutoPicked: Bool
 
+    /// The candidates are incomplete suggestions: the line names an
+    /// orchestra and/or a singer and no same-named Library track agrees
+    /// with it. They stay available for manual choice but must never be
+    /// treated as a complete match.
+    public let isIncompleteMatch: Bool
+
     public init(
         track: ImportedTrack,
         candidates: [Song],
         autoMatched: Bool,
         chosenSong: Song?,
-        autoPicked: Bool = false
+        autoPicked: Bool = false,
+        incompleteMatch: Bool = false
     ) {
         self.track = track
         self.candidates = candidates
@@ -80,6 +92,7 @@ public nonisolated struct SpecialImportRow: Identifiable, Equatable {
         self.chosenSong = chosenSong
         self.isSkipped = false
         self.isAutoPicked = autoPicked && chosenSong != nil
+        self.isIncompleteMatch = incompleteMatch && !autoMatched
     }
 
     public var state: State {
@@ -103,6 +116,33 @@ public nonisolated struct SpecialImportRow: Identifiable, Equatable {
     /// The song this row contributes to the new Setlist, if any.
     public var adoptedSong: Song? {
         isSkipped ? nil : chosenSong
+    }
+
+    /// Heading above incomplete suggestions, naming the criteria the line
+    /// gives and no candidate fulfils. Nil for complete matches.
+    public var incompleteHeading: String? {
+
+        guard isIncompleteMatch else {
+            return nil
+        }
+
+        let hasOrchestra = !(track.artist ?? "").isEmpty
+        let hasSinger = !(track.singer ?? "").isEmpty
+
+        switch (hasOrchestra, hasSinger) {
+
+        case (true, true):
+            return "No candidate (Orchestra & Singer)"
+
+        case (true, false):
+            return "No candidate (Orchestra)"
+
+        case (false, true):
+            return "No candidate (Singer)"
+
+        case (false, false):
+            return "No candidate"
+        }
     }
 
     /// Short human-readable description of the source line.
@@ -227,10 +267,28 @@ public nonisolated enum SpecialImportPlanner {
                 singerSource: singerSource
             )
 
+            // Explicit metadata in the line (orchestra, singer, including
+            // "Instrumental") is a constraint. Candidates that agree with
+            // all of it are complete matches, and only those are listed
+            // when there are any.
+            let complete = ranked.filter { song in
+                agreesWithImportedMetadata(
+                    song,
+                    track: shown,
+                    orchestraSource: orchestraSource,
+                    singerSource: singerSource
+                )
+            }
+
+            // Without a complete match the same-named tracks are still
+            // offered, ranked as before, but only as incomplete
+            // suggestions: no auto-pick, and flagged for the view.
+            let incomplete = complete.isEmpty && !ranked.isEmpty
+
             let picked =
-                autoPickBestFile
+                autoPickBestFile && !incomplete
                     ? bestFile(
-                        among: ranked,
+                        among: complete,
                         orchestraSource: orchestraSource,
                         singerSource: singerSource
                     )
@@ -238,12 +296,62 @@ public nonisolated enum SpecialImportPlanner {
 
             return SpecialImportRow(
                 track: shown,
-                candidates: ranked,
+                candidates: incomplete ? ranked : complete,
                 autoMatched: false,
                 chosenSong: picked,
-                autoPicked: picked != nil
+                autoPicked: picked != nil,
+                incompleteMatch: incomplete
             )
         }
+    }
+
+    /// Explicit source metadata must agree with a local candidate.
+    /// Missing source metadata does not constrain that field.
+    private static func agreesWithImportedMetadata(
+        _ song: Song,
+        track: ImportedTrack,
+        orchestraSource: TagSource,
+        singerSource: TagSource
+    ) -> Bool {
+
+        if let wantedOrchestra = track.artist,
+           !wantedOrchestra.isEmpty
+        {
+            guard sameName(
+                wantedOrchestra,
+                song.rawTagValue(for: orchestraSource)
+            ) else {
+                return false
+            }
+        }
+
+        if let wantedSinger = track.singer,
+           !wantedSinger.isEmpty
+        {
+            let wanted = singerKey(wantedSinger)
+            let actual = singerKey(song.rawTagValue(for: singerSource))
+
+            // An explicit singer, including Instrumental, cannot match
+            // an empty local tag. Instrumental aliases are canonicalized.
+            guard let wanted, let actual, wanted == actual else {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private static func sameName(_ a: String, _ b: String?) -> Bool {
+        guard let left = TrackTextNormalizer.normalize(a),
+              let right = TrackTextNormalizer.normalize(b)
+        else { return false }
+
+        if left == right { return true }
+
+        let leftWords = Set(left.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty })
+        let rightWords = Set(right.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty })
+        return !leftWords.isEmpty && !rightWords.isEmpty
+            && (leftWords.isSubset(of: rightWords) || rightWords.isSubset(of: leftWords))
     }
 
     // MARK: Auto-pick best file
@@ -255,14 +363,16 @@ public nonisolated enum SpecialImportPlanner {
     /// recordings of the same tango apart.
     private static let maxLengthSpread = 11
 
-    /// Words that stand for "no singer" in a singer tag.
+    /// Common values used to label instrumental recordings. They describe
+    /// a distinct singer category, not a missing singer.
     private static let instrumentalMarkers: Set<String> = [
         "instrumental", "instr", "inst",
         "instrumentale", "instrumentales"
     ]
 
-    /// The normalized singer, or nil when there is none: empty, or only
-    /// an "instrumental" marker ("Instrumental", "instr.").
+    /// The normalized singer, or nil when the tag is genuinely empty.
+    /// Instrumental markers are canonicalized to "instrumental" so they
+    /// match one another but never match an empty singer or a named singer.
     static func singerKey(_ raw: String?) -> String? {
 
         guard let key = TrackTextNormalizer.normalize(raw) else {
@@ -276,13 +386,12 @@ public nonisolated enum SpecialImportPlanner {
                 )
                 .filter { !$0.isEmpty }
 
-        if words.isEmpty {
+        guard !words.isEmpty else {
             return nil
         }
 
-        if words.count == 1,
-           instrumentalMarkers.contains(words[0]) {
-            return nil
+        if words.count == 1, instrumentalMarkers.contains(words[0]) {
+            return "instrumental"
         }
 
         return key
@@ -534,8 +643,9 @@ public nonisolated enum SpecialImportPlanner {
             }
         }
 
-        // A named singer agrees with a similar name. "Instrumental"
-        // (no singer) agrees with a track that has none.
+        // A named singer agrees with a similar name. Instrumental is a
+        // distinct singer value and only agrees with another instrumental
+        // marker, never with a genuinely empty singer tag.
         if let line = track.singer, !line.isEmpty {
 
             let wanted = singerKey(line)

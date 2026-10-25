@@ -69,6 +69,61 @@ nonisolated struct TandaImportLine: Identifiable {
 
     /// `song` was chosen by hand, not by the importer.
     var chosenByUser = false
+
+    /// The line as shown in the list. The list prints its own number, so a
+    /// track number the line starts with ("1. Title", "01 - Title",
+    /// "3) Title") is left out here.
+    var displayText: String {
+        TandaImportLine.withoutLeadingNumber(text)
+    }
+
+    /// Second line of the list for lines that have candidates: how many,
+    /// and "(matched)" when the importer took the only one. Nil for every
+    /// other line (exact path, best of several files, chosen by hand).
+    var candidateSummary: String? {
+
+        if song == nil, !candidates.isEmpty {
+
+            return candidates.count == 1
+                ? "1 candidate"
+                : "\(candidates.count) candidates"
+        }
+
+        if note == TandaImportResolver.onlyMatchNote {
+            return "1 candidate (matched)"
+        }
+
+        return nil
+    }
+
+    /// Whether the list offers the candidates for a choice: while the line
+    /// is open, when several files are possible, for the only match (so it
+    /// looks like every other line with candidates), and to take back a
+    /// choice made by hand. Not once the Tanda has been imported.
+    func offersCandidateList(isEditable: Bool) -> Bool {
+
+        isEditable
+            && !candidates.isEmpty
+            && (song == nil
+                || candidates.count > 1
+                || chosenByUser
+                || note == TandaImportResolver.onlyMatchNote)
+    }
+
+    static func withoutLeadingNumber(_ text: String) -> String {
+
+        let pattern = #"^\s*\d{1,3}(?:\s*[.)]\s*(?!\d)|\s*[-\x{2013}]\s+)"#
+
+        guard let range = text.range(of: pattern, options: .regularExpression)
+        else {
+            return text
+        }
+
+        let rest = String(text[range.upperBound...])
+            .trimmingCharacters(in: .whitespaces)
+
+        return rest.isEmpty ? text : rest
+    }
 }
 
 nonisolated struct TandaImportEntry: Identifiable {
@@ -99,6 +154,13 @@ nonisolated struct TandaImportEntry: Identifiable {
 ///   agree with the line.
 /// Everything else needs the user.
 nonisolated enum TandaImportResolver {
+
+    /// Note of a line whose single candidate agrees with the line.
+    static let onlyMatchNote = "only match"
+
+    /// Note of a line resolved by "Auto-pick best file". The list shows
+    /// it on its own, in orange.
+    static let bestOfSeveralFilesNote = "best of several files"
 
     // MARK: Existing Tandas
 
@@ -348,7 +410,7 @@ nonisolated enum TandaImportResolver {
 
         case .autoPicked:
             if let song = row.chosenSong {
-                return (song, "best of several files")
+                return (song, bestOfSeveralFilesNote)
             }
 
         case .chosen, .skipped, .open:
@@ -371,7 +433,7 @@ nonisolated enum TandaImportResolver {
                 orchestraSource: orchestraSource,
                 singerSource: singerSource
             ) {
-                return (song, "only match")
+                return (song, onlyMatchNote)
             }
 
             return (
@@ -415,12 +477,11 @@ nonisolated enum TandaImportResolver {
 
             let tagValue = song.rawTagValue(for: singerSource)
 
-            if SpecialImportPlanner.singerKey(singer) == nil {
+            if SpecialImportPlanner.singerKey(singer) == "instrumental" {
 
-                // The line says "instrumental": the track must have no
-                // singer either ("Instrumental", "instr." and empty
-                // all count as none).
-                guard SpecialImportPlanner.singerKey(tagValue) == nil
+                // Instrumental is an explicit singer/category value. It
+                // matches instrumental aliases, not a missing singer tag.
+                guard SpecialImportPlanner.singerKey(tagValue) == "instrumental"
                 else {
                     return false
                 }

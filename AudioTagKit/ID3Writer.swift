@@ -98,8 +98,14 @@ struct ID3Writer: TagWriter {
             }
         }
 
-        let safeEnd = max(audioStart, audioEnd)
-        let stripped = data.subdata(in: (data.startIndex + audioStart)..<(data.startIndex + safeEnd))
+        // A tag that reaches into the trailing ID3v1 tag, or beyond the end of
+        // the file, is inconsistent. Refuse instead of writing an empty file
+        // (or cutting an out-of-range slice).
+        guard audioStart <= audioEnd else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        let stripped = data.subdata(in: (data.startIndex + audioStart)..<(data.startIndex + audioEnd))
         try stripped.write(to: url, options: .atomic)
     }
 

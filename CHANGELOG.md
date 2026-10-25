@@ -2,6 +2,27 @@
 
 All notable changes to TandaComposer are documented in this file.
 
+## [0.7.0] - 2026-10-25
+
+### Added
+- Automated tests: `TandaCoreTests` and `AudioTagKitTests` (both shared
+  schemes), plus `coverage.sh` for a coverage report of both.
+- Import Setlist (Pick Tracks): lines that name an orchestra and/or a
+  singer list only matching tracks; without one, same-titled tracks are
+  offered as incomplete suggestions under "No candidate (...)".
+
+### Changed
+- "Instrumental" is a singer category of its own; it matches other
+  instrumental spellings, never an empty or a named singer.
+- Tandas from ZIP, "Show tracks": no doubled track number, "best of
+  several files" in orange, "n candidates" for open lines, and the
+  only match looks like every other line with candidates.
+
+### Fixed
+- AudioTagKit: stripping an MP3 with an inconsistent ID3 header no longer
+  risks an emptied file; AIFF files with a wrong FORM size are read, but
+  never rewritten.
+
 ## [0.5.3] - 2026-10-12
 
 ### Fixed

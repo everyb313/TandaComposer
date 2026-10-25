@@ -766,17 +766,39 @@ public enum TextListImporter {
     /// "Gesang: Enrique Carbel" → "Enrique Carbel".
     private static func singerName(in content: String) -> String? {
 
+        let value = content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Instrumental is an explicit singer/category value, not a missing
+        // singer. Accept the common bare and labelled forms used in text ZIPs.
+        if value.range(
+            of: #"^(?:instrumental|instr\.?)$"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil {
+            return "Instrumental"
+        }
+
         let pattern =
             #"^(?:gesang|vocals?|vocalist|voc\.?|singer|s\x{00E4}nger(?:in)?|saenger(?:in)?|cantor|canta|cantante|sung by)\s*[:\-]?\s*(.+)$"#
 
-        guard let found = capture(pattern, in: content) else {
+        guard let found = capture(pattern, in: value) else {
             return nil
         }
 
         let name =
             found.trimmingCharacters(in: .whitespacesAndNewlines)
- 
-        return name.isEmpty ? nil : name
+
+        guard !name.isEmpty else {
+            return nil
+        }
+
+        if name.range(
+            of: #"^(?:instrumental|instr\.?)$"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil {
+            return "Instrumental"
+        }
+
+        return name
     }
 
     /// First capture group of a case-insensitive match, if any.

@@ -29,6 +29,10 @@
 //                                   = auto-picked best file (a suggestion;
 //                                     click to remove it)
 //    - Leading column, grey check   = exact path match (always imported)
+//    - Orange heading "No candidate (...)" with italic grey rows
+//                                   = incomplete suggestions: same title,
+//                                     but the orchestra and/or singer of
+//                                     the line is not matched
 //    - Light blue row               = last track listened to
 //                                     (double-click a row to preview)
 //
@@ -363,6 +367,13 @@ private struct SpecialImportRowBlock: View {
 
             } else {
 
+                if let heading = row.incompleteHeading {
+
+                    incompleteHeader(heading)
+
+                    Divider()
+                }
+
                 columnHeader
 
                 Divider()
@@ -380,6 +391,7 @@ private struct SpecialImportRowBlock: View {
                         mark: mark(for: song),
                         isPreviewed: isPreviewed(song),
                         isMissing: isMissing(song),
+                        isIncomplete: row.isIncompleteMatch,
                         onToggle: {
 
                             toggleChoice(song)
@@ -412,6 +424,28 @@ private struct SpecialImportRowBlock: View {
         .opacity(
             row.isSkipped ? 0.5 : 1
         )
+    }
+
+    // MARK: Incomplete suggestions
+
+    private func incompleteHeader(_ heading: String) -> some View {
+
+        HStack(spacing: 6) {
+
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+
+            Text(heading)
+                .font(.system(size: 13))
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.orange)
+
+            Text("Same title only. Check before using.")
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
     }
 
     // MARK: Block header
@@ -660,6 +694,10 @@ private struct SpecialImportSongRow: View {
 
     let isMissing: Bool
 
+    /// The row is an incomplete suggestion (see
+    /// `SpecialImportRow.isIncompleteMatch`): shown in italic grey.
+    var isIncomplete = false
+
     /// Called by the circle in the leading column. Nil for rows whose
     /// mark is not clickable.
     let onToggle: (() -> Void)?
@@ -685,13 +723,16 @@ private struct SpecialImportSongRow: View {
                     Text(
                         text(for: column.0)
                     )
+                    .italic(isIncomplete)
                     .font(
                         .system(
                             size: LibraryColumnDefaults.rowFontSize
                         )
                     )
                     .foregroundStyle(
-                        isMissing ? Color.red : Color.primary
+                        isMissing
+                            ? Color.red
+                            : (isIncomplete ? Color.secondary : Color.primary)
                     )
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -775,7 +816,9 @@ private struct SpecialImportSongRow: View {
             return .green
 
         case .open, .automatic:
-            return Color.secondary.opacity(0.6)
+            return isIncomplete
+                ? Color.orange.opacity(0.7)
+                : Color.secondary.opacity(0.6)
         }
     }
 
@@ -795,7 +838,9 @@ private struct SpecialImportSongRow: View {
             return "Auto-picked best file — click to remove"
 
         case .open, .automatic:
-            return "Use this track"
+            return isIncomplete
+                ? "Use this incomplete suggestion"
+                : "Use this track"
         }
     }
 

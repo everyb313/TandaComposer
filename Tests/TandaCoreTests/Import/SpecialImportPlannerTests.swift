@@ -184,7 +184,7 @@ final class SpecialImportPlannerTests: XCTestCase {
         XCTAssertEqual(ids(result.candidates), [1])
     }
 
-    func testBetterMatchingCandidateIsListedFirst() throws {
+    func testOnlyCandidatesOfTheNamedOrchestraAreListed() throws {
         let result = try row(
             imported(title: "Poema", artist: "Alpha Trio"),
             [
@@ -193,8 +193,9 @@ final class SpecialImportPlannerTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(ids(result.candidates), [2, 1])
+        XCTAssertEqual(ids(result.candidates), [2])
         XCTAssertEqual(result.state, .open)
+        XCTAssertFalse(result.isIncompleteMatch)
     }
 
     func testTrackWithoutAnyCandidateIsOpenWithAnEmptyList() throws {
@@ -268,7 +269,7 @@ final class SpecialImportPlannerTests: XCTestCase {
         XCTAssertEqual(result.candidates.first?.id, 3)
     }
 
-    func testSingerHintOrdersTheCandidates() throws {
+    func testOnlyCandidatesOfTheNamedSingerAreListed() throws {
         let result = try row(
             imported(title: "Poema", singer: "Singer X"),
             [
@@ -277,20 +278,36 @@ final class SpecialImportPlannerTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(ids(result.candidates), [2, 1])
+        XCTAssertEqual(ids(result.candidates), [2])
+        XCTAssertFalse(result.isIncompleteMatch)
     }
 
-    func testInstrumentalHintPrefersTracksWithoutASinger() throws {
+    func testInstrumentalListsOnlyInstrumentalCandidates() throws {
+        // "Instrumental" is a singer category of its own: it matches other
+        // instrumental spellings, never an empty or a named singer.
         let result = try row(
             imported(title: "Poema", singer: "Instrumental"),
             [
                 lib(1, albumArtist: "Singer X"),
                 lib(2, albumArtist: nil),
-                lib(3, albumArtist: "Instrumental")
+                lib(3, albumArtist: "Instrumental"),
+                lib(4, albumArtist: "Instr.")
             ]
         )
 
-        XCTAssertEqual(ids(result.candidates), [2, 3, 1], "ties keep the matcher's order")
+        XCTAssertEqual(ids(result.candidates), [3, 4])
+        XCTAssertFalse(result.isIncompleteMatch)
+    }
+
+    func testInstrumentalWithoutAnyInstrumentalCandidateOffersIncompleteSuggestions() throws {
+        let result = try row(
+            imported(title: "Poema", singer: "Instrumental"),
+            [lib(1, albumArtist: nil), lib(2, albumArtist: "Singer X")]
+        )
+
+        XCTAssertEqual(ids(result.candidates), [1, 2])
+        XCTAssertTrue(result.isIncompleteMatch)
+        XCTAssertEqual(result.state, .open)
     }
 
     // MARK: - makeRows: fallback readings of a line
@@ -555,9 +572,14 @@ final class SpecialImportPlannerTests: XCTestCase {
         XCTAssertNil(best([rec(1, "FLAC"), rec(2, "AIFF", albumArtist: nil)]))
     }
 
-    func testInstrumentalAndNoSingerAreTheSameRecording() {
-        XCTAssertEqual(best([rec(1, "AIFF", albumArtist: "Instrumental"), rec(2, "FLAC", albumArtist: nil)]), 2)
-        XCTAssertEqual(best([rec(1, "AIFF", albumArtist: "instr."), rec(2, "FLAC", albumArtist: "")]), 2)
+    func testDifferentInstrumentalSpellingsAreTheSameRecording() {
+        XCTAssertEqual(best([rec(1, "AIFF", albumArtist: "Instrumental"), rec(2, "FLAC", albumArtist: "instr.")]), 2)
+        XCTAssertEqual(best([rec(1, "AIFF", albumArtist: "Inst"), rec(2, "FLAC", albumArtist: "Instrumentale")]), 2)
+    }
+
+    func testInstrumentalIsNotTheSameRecordingAsOneWithoutASinger() {
+        XCTAssertNil(best([rec(1, "AIFF", albumArtist: "Instrumental"), rec(2, "FLAC", albumArtist: nil)]))
+        XCTAssertNil(best([rec(1, "AIFF", albumArtist: "instr."), rec(2, "FLAC", albumArtist: "")]))
     }
 
     func testInstrumentalIsNotTheSameAsANamedSinger() {
@@ -619,9 +641,9 @@ final class SpecialImportPlannerTests: XCTestCase {
         XCTAssertNil(SpecialImportPlanner.singerKey("   "))
     }
 
-    func testSingerKeyOfInstrumentalMarkersIsNil() {
+    func testSingerKeyOfInstrumentalMarkersIsTheCanonicalWord() {
         for marker in ["Instrumental", "INSTRUMENTAL", "instr.", "Instr", "inst", "Inst.", "Instrumentale", "instrumentales", "  Instrumental  "] {
-            XCTAssertNil(SpecialImportPlanner.singerKey(marker), marker)
+            XCTAssertEqual(SpecialImportPlanner.singerKey(marker), "instrumental", marker)
         }
     }
 
