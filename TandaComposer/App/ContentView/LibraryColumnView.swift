@@ -24,6 +24,12 @@ struct LibraryColumnView<Content: View>: View {
     let tandaStore: TandaStore
     @Binding var showingImporter: Bool
 
+    /// True while tracks are selected in the TrackLibrary table: the
+    /// "?" button is active then.
+    let canFindSameTitle: Bool
+
+    let onFindSameTitle: () -> Void
+
     let content: Content
 
     init(
@@ -38,6 +44,8 @@ struct LibraryColumnView<Content: View>: View {
         savedSetlistViewer: SavedSetlistViewerStore,
         tandaStore: TandaStore,
         showingImporter: Binding<Bool>,
+        canFindSameTitle: Bool,
+        onFindSameTitle: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) {
         self._smartSelection = smartSelection
@@ -51,7 +59,15 @@ struct LibraryColumnView<Content: View>: View {
         self._savedSetlistViewer = ObservedObject(wrappedValue: savedSetlistViewer)
         self.tandaStore = tandaStore
         self._showingImporter = showingImporter
+        self.canFindSameTitle = canFindSameTitle
+        self.onFindSameTitle = onFindSameTitle
         self.content = content()
+    }
+
+    /// "?" works in Tracks mode only, and only with a selection.
+    private var sameTitleEnabled: Bool {
+
+        libraryDisplayMode == .tracks && canFindSameTitle
     }
 
     var body: some View {
@@ -107,12 +123,52 @@ struct LibraryColumnView<Content: View>: View {
 
 
                 // =====================================================
-                // MODE HELP
+                // SAME TITLE ("?")
                 //
-                // Replaces the old plain-text .help() tooltip that used
-                // to hang directly off the Picker above — same three
-                // sections, now a popover so the titles can actually be
-                // bold/larger instead of flat tooltip text.
+                // Opens the "Same Title" window for the tracks selected
+                // in the TrackLibrary: every track with the same title.
+                // Only active in Tracks mode with a selection.
+                // =====================================================
+
+                Button {
+
+                    onFindSameTitle()
+
+                } label: {
+
+                    Image(
+                        systemName:
+                            "questionmark.circle"
+                    )
+                    .foregroundStyle(
+                        sameTitleEnabled
+                        ? Color.gray
+                        : Color.gray.opacity(0.35)
+                    )
+                    .font(
+                        .system(size: 18)
+                    )
+                }
+                .buttonStyle(
+                    .plain
+                )
+                .disabled(
+                    !sameTitleEnabled
+                )
+                .help(
+                    sameTitleEnabled
+                    ? "Show tracks with the same title"
+                    : "Select a track in the Track Library to find "
+                        + "tracks with the same title"
+                )
+
+
+                // =====================================================
+                // MODE HELP ("i")
+                //
+                // The explanation of the three modes, as a popover. It
+                // used to hang off the "?" button; it can also be opened
+                // from Help > How the Library Modes Work.
                 // =====================================================
 
                 Button {
@@ -123,7 +179,7 @@ struct LibraryColumnView<Content: View>: View {
 
                     Image(
                         systemName:
-                            "questionmark.circle"
+                            "info.circle"
                     )
                     .foregroundStyle(
                         showingModeHelp

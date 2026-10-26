@@ -35,6 +35,7 @@ struct TandaComposerApp: App {
     @StateObject private var switchConfirmationCenter = SwitchConfirmationCenter()
     @StateObject private var specialImportSession = SpecialImportSession()
     @StateObject private var tandaImportSession = TandaImportSession()
+    @StateObject private var sameTitleSession = SameTitleSession()
     @StateObject private var audioOutputManager = AudioOutputManager.shared
 
     @Environment(\.openWindow)
@@ -79,6 +80,7 @@ struct TandaComposerApp: App {
                 .environmentObject(environment.scanner)
                 .environmentObject(environment.smartlistStore)
                 .environmentObject(switchConfirmationCenter)
+                .environmentObject(sameTitleSession)
                 .preferredColorScheme(settings.colorScheme)
                 .onAppear {
                     startApplication()
@@ -142,6 +144,10 @@ struct TandaComposerApp: App {
                     openWindow(id: "help-en")
                 }
                 .keyboardShortcut("?", modifiers: [.command])
+
+                Button("How the Library Modes Work…") {
+                    openWindow(id: "library-modes")
+                }
             }
         }
 
@@ -189,6 +195,28 @@ struct TandaComposerApp: App {
         }
         .windowResizability(.automatic)
 
+        Window(
+            "Same Title",
+            id: "same-title"
+        ) {
+            SameTitleView()
+                .environmentObject(sameTitleSession)
+                .environmentObject(environment.libraryStore)
+                .environmentObject(environment.setlistStore)
+                .environmentObject(settings)
+                .preferredColorScheme(settings.colorScheme)
+        }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 1100, height: 520)
+        Window(
+            "How the Library Modes Work",
+            id: "library-modes"
+        ) {
+            LibraryModeHelpView()
+                .environmentObject(settings)
+                .preferredColorScheme(settings.colorScheme)
+        }
+        .windowResizability(.contentSize)
         Window(
             "Import Setlist (Pick Tracks)",
             id: "special-import"

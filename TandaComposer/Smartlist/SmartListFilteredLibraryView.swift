@@ -48,12 +48,15 @@ struct SmartListFilteredLibraryView:
     let danceFilter:
         TandaDanceFilter
 
+    /// Row selection of the table. Owned by ContentView, so the library
+    /// header (the "?" button) can tell which tracks are selected. Declared
+    /// before `onAddFiles` so that closure stays the trailing argument.
+    @Binding var tableSelection:
+        Set<Int64?>
+
     let onAddFiles:
         () -> Void
 
-
-    @State private var tableSelection =
-        Set<Int64?>()
 
     @State private var libraryErrorMessage:
         String?

@@ -24,6 +24,7 @@ It is designed for DJs and dancers who want to prepare Setlists from their own m
 - Filter tracks by dance type
 - Create Smartlists to find tracks matching specific criteria
 - Preview tracks while preparing a Setlist
+- Find other recordings of a track: all tracks with the same title in one window
 - See how Tandas in your Setlist are distributed across orchestras
 - Save and export Setlists
 - Share your Tandas: export them as one text or M3U8 file per Tanda in a ZIP, and import such a ZIP into another TrackLibrary (experimental)
@@ -52,6 +53,10 @@ All import and export commands are in the **Tools** menu (the Setlist menu only 
 Before building Setlists, you add the folders containing your music to the Track Library.
 
 TandaComposer scans these folders and creates its own Library information for the tracks it finds. The Library keeps track of the music files and their locations; the audio files themselves are not copied into the Library.
+
+### Find other versions of a track
+
+Select one or more tracks in the Track Library and click **?** in the Library header. The *Same Title* window lists every track of the Library with the same title, in blocks styled like Tandas. Titles have to match exactly, ignoring upper and lower case, accents and extra spaces. Your selected track comes first, the others follow by year, orchestra and singer. Rows can be selected in the window; that selection is separate from the Track Library. The **i** button next to **?** explains the Library modes (also under Help → How the Library Modes Work…).
 
 ### Your music files stay untouched — except for Edit Tags
 
@@ -110,6 +115,7 @@ The main parts of the project are organized as follows:
 - `TandaComposer/` — main application UI and commands (Setlist, Track Library, Tanda Library, Smartlists, duplicates, maintenance tools) and the built-in `Help/`
 - `TandaCore/` — core data, Library, Setlist, Smartlist and import functionality
 - `AudioTagKit/` — audio metadata reading and writing
+- `Tests/` — automated tests (`TandaCoreTests`, `AudioTagKitTests`)
 - `scripts/` — build scripts
 - `Third-Party_Notices/` — third-party software notices and licenses
 
@@ -128,6 +134,18 @@ The repository also contains build scripts for creating application/package buil
 ```text
 scripts/build.sh
 scripts/build_pkg.sh
+```
+
+## Testing
+
+Two shared Xcode schemes run the automated tests: `TandaCoreTests` (Library, Setlist, import, export and the rest of `TandaCore`) and `AudioTagKitTests` (reading and writing tags). Choose the scheme in Xcode and press Cmd+U.
+
+`coverage.sh` runs the tests and reports the test coverage per file:
+
+```text
+./coverage.sh          # both schemes
+./coverage.sh core     # TandaCore only
+./coverage.sh kit      # AudioTagKit only
 ```
 
 ## Documentation

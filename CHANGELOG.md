@@ -2,6 +2,18 @@
 
 All notable changes to TandaComposer are documented in this file.
 
+## [0.8.0] - 2026-10-26
+
+### Added
+- Track Library header: **?** opens a "Same Title" window for the selected
+  tracks. It lists every track of the Library with the same title, in
+  blocks styled like Tandas. Rows can be selected in the window.
+- Help → How the Library Modes Work…
+
+### Changed
+- The explanation of the Library modes moved from **?** to a new **i**
+  button next to it.
+
 ## [0.7.0] - 2026-10-25
 
 ### Added

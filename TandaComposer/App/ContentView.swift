@@ -42,8 +42,54 @@ struct ContentView: View {
     @EnvironmentObject private var settings:
         AppSettings
 
+    @EnvironmentObject private var sameTitleSession:
+        SameTitleSession
+
+    @Environment(\.openWindow)
+    private var openWindow
+
     @Environment(\.undoManager)
     private var undoManager
+
+
+    // MARK: Same title ("?" in the library header)
+
+    /// The tracks selected in the TrackLibrary table, in library order.
+    private var selectedTrackSongs: [Song] {
+
+        let ids = Set(trackTableSelection.compactMap { $0 })
+
+        guard !ids.isEmpty else {
+            return []
+        }
+
+        return libraryStore.songs.filter { song in
+
+            guard let id = song.id else {
+                return false
+            }
+
+            return ids.contains(id)
+        }
+    }
+
+    private func findSameTitle() {
+
+        let selected = selectedTrackSongs
+
+        guard !selected.isEmpty else {
+            return
+        }
+
+        sameTitleSession.show(
+            selected: selected,
+            library: libraryStore.songs,
+            libraryName: libraryStore.currentLibraryName,
+            settings: settings
+        )
+
+        openWindow(id: "same-title")
+    }
 
 
     // MARK: Preview Player
@@ -88,6 +134,13 @@ struct ContentView: View {
 
     @State private var libraryDisplayMode:
         LibraryDisplayMode = .tracks
+
+    // Row selection of the TrackLibrary table (Tracks mode). Owned here,
+    // not by the table view, so the library header can tell whether
+    // tracks are selected. Cleared whenever the mode or the TrackLibrary
+    // changes, because the ids no longer apply there.
+    @State private var trackTableSelection =
+        Set<Int64?>()
 
     // Shared height applied to the Set / Library / Smartlists column
     // headers — see ColumnHeaderHeightKey above.
@@ -181,13 +234,16 @@ struct ContentView: View {
                         columnHeaderHeight: $columnHeaderHeight,
                         savedSetlistViewer: savedSetlistViewer,
                         tandaStore: tandaStore,
-                        showingImporter: $showingImporter
+                        showingImporter: $showingImporter,
+                        canFindSameTitle: !trackTableSelection.isEmpty,
+                        onFindSameTitle: { findSameTitle() }
                     ) {
                         switch libraryDisplayMode {
                         case .tracks:
                             SmartListFilteredLibraryView(
                                 selection: smartSelection,
-                                danceFilter: trackDanceFilter
+                                danceFilter: trackDanceFilter,
+                                tableSelection: $trackTableSelection
                             ) { showingImporter = true }
                         case .tandas:
                             TandaLibraryView(
@@ -564,6 +620,14 @@ struct ContentView: View {
             // showing an empty list with no obvious explanation.
             smartSelection = .showAll
             tandaFolderSelection = .showAll
+            trackTableSelection = []
+            sameTitleSession.clear()
+        }
+        .onChange(of: libraryDisplayMode) {
+
+            // The table used to be recreated on every mode switch and
+            // started without a selection.
+            trackTableSelection = []
         }
     }
 
