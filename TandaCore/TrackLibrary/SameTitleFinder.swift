@@ -175,11 +175,36 @@ public nonisolated enum SameTitleFinder {
                 )
             }
 
+            // Keep the first selected track as the fixed anchor. Then move
+            // the remaining tracks of that same orchestra directly after it;
+            // preserve the existing relative order within both partitions.
+            let anchorOrchestra = orchestraKey(
+                for: first,
+                source: orchestraSource
+            )
+            let remaining = Array(anchors.dropFirst()) + others
+
+            let sameOrchestra: [Song]
+            let otherOrchestras: [Song]
+
+            if let anchorOrchestra {
+                sameOrchestra = remaining.filter {
+                    orchestraKey(for: $0, source: orchestraSource) == anchorOrchestra
+                }
+                otherOrchestras = remaining.filter {
+                    orchestraKey(for: $0, source: orchestraSource) != anchorOrchestra
+                }
+            } else {
+                // Missing orchestra metadata is not treated as a shared orchestra.
+                sameOrchestra = []
+                otherOrchestras = remaining
+            }
+
             return SameTitleGroup(
                 id: key,
                 title: displayTitle(of: first),
                 anchors: anchors,
-                songs: anchors + others
+                songs: [first] + sameOrchestra + otherOrchestras
             )
         }
 
@@ -191,6 +216,23 @@ public nonisolated enum SameTitleFinder {
     }
 
     // MARK: Order
+
+    /// A normalized orchestra key using the user's configured tag source.
+    /// Empty/missing values remain nil so unrelated unknown values are not
+    /// incorrectly treated as the same orchestra.
+    private static func orchestraKey(
+        for song: Song,
+        source: TagSource
+    ) -> String? {
+
+        guard let value = song.rawTagValue(for: source),
+              let key = TrackTextNormalizer.normalize(value)
+        else {
+            return nil
+        }
+
+        return key
+    }
 
     /// Year (unknown last), then orchestra, then singer, then path, so
     /// that the order never jumps around between two searches.

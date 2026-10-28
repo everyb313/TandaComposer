@@ -6,6 +6,7 @@ struct LibraryColumnView<Content: View>: View {
 
     @EnvironmentObject private var libraryStore: LibraryStore
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var sameTitleSession: SameTitleSession
 
     @Binding var smartSelection: SmartlistSelection
     @Binding var tandaFolderSelection: TandaFolderSelection
@@ -24,12 +25,6 @@ struct LibraryColumnView<Content: View>: View {
     let tandaStore: TandaStore
     @Binding var showingImporter: Bool
 
-    /// True while tracks are selected in the TrackLibrary table: the
-    /// "?" button is active then.
-    let canFindSameTitle: Bool
-
-    let onFindSameTitle: () -> Void
-
     let content: Content
 
     init(
@@ -44,8 +39,6 @@ struct LibraryColumnView<Content: View>: View {
         savedSetlistViewer: SavedSetlistViewerStore,
         tandaStore: TandaStore,
         showingImporter: Binding<Bool>,
-        canFindSameTitle: Bool,
-        onFindSameTitle: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) {
         self._smartSelection = smartSelection
@@ -59,15 +52,7 @@ struct LibraryColumnView<Content: View>: View {
         self._savedSetlistViewer = ObservedObject(wrappedValue: savedSetlistViewer)
         self.tandaStore = tandaStore
         self._showingImporter = showingImporter
-        self.canFindSameTitle = canFindSameTitle
-        self.onFindSameTitle = onFindSameTitle
         self.content = content()
-    }
-
-    /// "?" works in Tracks mode only, and only with a selection.
-    private var sameTitleEnabled: Bool {
-
-        libraryDisplayMode == .tracks && canFindSameTitle
     }
 
     var body: some View {
@@ -120,47 +105,6 @@ struct LibraryColumnView<Content: View>: View {
                     .segmented
                 )
                 .fixedSize()
-
-
-                // =====================================================
-                // SAME TITLE ("?")
-                //
-                // Opens the "Same Title" window for the tracks selected
-                // in the TrackLibrary: every track with the same title.
-                // Only active in Tracks mode with a selection.
-                // =====================================================
-
-                Button {
-
-                    onFindSameTitle()
-
-                } label: {
-
-                    Image(
-                        systemName:
-                            "questionmark.circle"
-                    )
-                    .foregroundStyle(
-                        sameTitleEnabled
-                        ? Color.gray
-                        : Color.gray.opacity(0.35)
-                    )
-                    .font(
-                        .system(size: 18)
-                    )
-                }
-                .buttonStyle(
-                    .plain
-                )
-                .disabled(
-                    !sameTitleEnabled
-                )
-                .help(
-                    sameTitleEnabled
-                    ? "Show tracks with the same title"
-                    : "Select a track in the Track Library to find "
-                        + "tracks with the same title"
-                )
 
 
                 // =====================================================
@@ -229,6 +173,15 @@ struct LibraryColumnView<Content: View>: View {
                     .lineLimit(
                         1
                     )
+
+                    // Status-only indicator: the Setlist's "?" button
+                    // controls this filter. There is no separate TrackView button.
+                    if sameTitleSession.trackViewFilterSong != nil {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.orange)
+                            .help("Same-title filter is active")
+                    }
                 }
 
 
@@ -601,6 +554,11 @@ struct LibraryColumnView<Content: View>: View {
     // → show the buttons.
 
     private var trackDanceFilterButtonsShouldShow: Bool {
+
+        // The same-title filter is the only active TrackView filter while on.
+        guard sameTitleSession.trackViewFilterSong == nil else {
+            return false
+        }
 
         guard case .node(let node) = smartSelection else {
 

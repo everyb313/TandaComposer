@@ -44,6 +44,29 @@ public enum SetlistEntryStatus: Equatable {
     case staleReference
 }
 
+public enum SetlistReplacementError: LocalizedError {
+    case targetNotFound
+    case targetChanged
+    case replacementNotInLibrary
+    case titleMismatch
+    case replacementMissing(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .targetNotFound:
+            return "The selected Setlist row no longer exists. Please reopen Same Title."
+        case .targetChanged:
+            return "The selected Setlist track has changed. Please reopen Same Title."
+        case .replacementNotInLibrary:
+            return "The replacement track is not in the active TrackLibrary."
+        case .titleMismatch:
+            return "The replacement track does not have the same title."
+        case .replacementMissing(let title):
+            return "The replacement file is missing: \(title)"
+        }
+    }
+}
+
 public struct SetlistEntry: Identifiable {
 
     public let id = UUID()
@@ -236,6 +259,54 @@ public final class SetlistStore: ObservableObject {
 
         noteEdited()
 
+        refreshDuplicatesIfActive()
+    }
+
+    /// Replaces one Setlist row without changing its position or stable row ID.
+    /// The expected path prevents replacing a stale selection.
+    public func replaceSong(
+        entryID: UUID,
+        expectedOriginalPath: String,
+        with replacement: Song,
+        librarySongs: [Song],
+        missingSongIDs: Set<Int64> = []
+    ) throws {
+        guard let index = entries.firstIndex(where: { $0.id == entryID }) else {
+            throw SetlistReplacementError.targetNotFound
+        }
+        let current = entries[index]
+        guard current.song.normalizedPath == expectedOriginalPath else {
+            throw SetlistReplacementError.targetChanged
+        }
+        guard librarySongs.contains(where: {
+            $0.normalizedPath == replacement.normalizedPath
+        }) else {
+            throw SetlistReplacementError.replacementNotInLibrary
+        }
+        guard SameTitleFinder.titleKey(of: current.song) ==
+                SameTitleFinder.titleKey(of: replacement) else {
+            throw SetlistReplacementError.titleMismatch
+        }
+        if let id = replacement.id, missingSongIDs.contains(id) {
+            throw SetlistReplacementError.replacementMissing(
+                replacement.title ?? replacement.filename
+            )
+        }
+        guard current.song.normalizedPath != replacement.normalizedPath else { return }
+
+        let oldEntry = current
+        registerUndo(actionName: "Replace Track in Set") { store in
+            guard let undoIndex = store.entries.firstIndex(where: { $0.id == entryID }) else { return }
+            store.entries[undoIndex] = oldEntry
+            store.noteEdited()
+            store.refreshDuplicatesIfActive()
+        }
+
+        var updated = current
+        updated.song = replacement
+        updated.status = .resolved
+        entries[index] = updated
+        noteEdited()
         refreshDuplicatesIfActive()
     }
 
@@ -519,7 +590,7 @@ public final class SetlistStore: ObservableObject {
 
     // MARK: - Tanda Coloring
 
-    @Published public var isTandaColoringEnabled = true
+    @Published public var isTandaColoringEnabled = false
 
     public func toggleTandaColoring() {
 

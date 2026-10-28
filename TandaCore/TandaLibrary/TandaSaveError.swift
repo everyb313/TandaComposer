@@ -37,6 +37,12 @@ enum TandaSaveError:
     /// this one talks about the Tanda itself and points at the
     /// alternative (delete the whole Tanda).
     case wouldDropBelowMinimum(Int)
+    case invalidReplacementTarget
+    case replacementTargetChanged
+    case replacementNotInLibrary
+    case replacementIsMissing(String)
+    case duplicateTrackInTanda(String)
+    case replacementTitleMismatch
 
     var errorDescription:
         String? {
@@ -65,6 +71,24 @@ enum TandaSaveError:
         case .wouldDropBelowMinimum(let count):
 
             return "A Tanda needs at least 3 tracks (currently \(count)). Delete the whole Tanda instead if you want to remove it entirely."
+
+        case .invalidReplacementTarget:
+            return "The selected track position is no longer valid. Please reopen Same Title and try again."
+
+        case .replacementTargetChanged:
+            return "The original track has changed since Same Title was opened. Please reopen it before replacing the track."
+
+        case .replacementNotInLibrary:
+            return "The replacement track is not in the active Track Library."
+
+        case .replacementIsMissing(let title):
+            return "The replacement track is missing on disk: \(title)."
+
+        case .duplicateTrackInTanda(let title):
+            return "The Tanda already contains this track: \(title)."
+
+        case .replacementTitleMismatch:
+            return "The replacement track does not have the same title as the original track."
         }
     }
 }

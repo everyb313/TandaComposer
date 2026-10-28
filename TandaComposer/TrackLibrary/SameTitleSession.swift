@@ -16,87 +16,33 @@
 //  You should have received a copy of the GNU General Public License
 //  along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import SwiftUI
-import AppKit
 import Combine
 
-/// What the "Same Title" window shows: the tracks with the same title as
-/// the ones selected in the TrackLibrary when "?" was clicked (a snapshot,
-/// it does not follow the TrackLibrary selection), and the window's own
-/// row selection.
+/// Shared state for the Same-Title filter shown in the existing TrackView.
+/// This type deliberately contains no separate-window selection or replacement logic.
 @MainActor
 final class SameTitleSession: ObservableObject {
 
-    @Published private(set) var result = SameTitleSession.emptyResult
+    /// The Setlist song whose normalized title is used to filter TrackView.
+    @Published private(set) var trackViewFilterSong: Song?
 
-    @Published private(set) var libraryName = ""
-
-    @Published private(set) var selection = SameTitleSelection()
-
-    /// Every row of the window, top to bottom (for Shift ranges).
-    private var order: [String] = []
-
-    private static let emptyResult = SameTitleResult(
-        groups: [],
-        omittedTitleCount: 0,
-        untitled: []
-    )
-
-    // MARK: - Lifecycle
-
-    func show(
-        selected: [Song],
-        library: [Song],
-        libraryName: String,
-        settings: AppSettings
-    ) {
-
-        result = SameTitleFinder.find(
-            for: selected,
-            in: library,
-            orchestraSource: settings.orchestraSource,
-            singerSource: settings.singerSource
-        )
-
-        order = result.groups.flatMap { group in
-            group.songs.map(\.normalizedPath)
+    /// Toggle the filter for a song. Selecting the same anchor again turns it off.
+    func toggleTrackViewFilter(for song: Song) {
+        if let current = trackViewFilterSong,
+           current.normalizedPath == song.normalizedPath {
+            trackViewFilterSong = nil
+        } else {
+            trackViewFilterSong = song
         }
-
-        selection = SameTitleSelection()
-        self.libraryName = libraryName
     }
 
-    /// Empties the window, e.g. after the TrackLibrary was switched.
-    func clear() {
-
-        result = SameTitleSession.emptyResult
-        order = []
-        selection = SameTitleSelection()
-        libraryName = ""
+    /// Set or retarget the active filter without toggling it off.
+    /// Used when focus moves to another row in the Setlist.
+    func setTrackViewFilter(for song: Song) {
+        trackViewFilterSong = song
     }
 
-    // MARK: - Selection
-
-    func click(on song: Song, command: Bool, shift: Bool) {
-
-        selection.click(
-            song.normalizedPath,
-            in: order,
-            command: command,
-            shift: shift
-        )
-    }
-
-    func isSelected(_ song: Song) -> Bool {
-        selection.contains(song.normalizedPath)
-    }
-
-    /// The selected rows in the order they are shown. For the later
-    /// "Add to Setlist".
-    var selectedSongs: [Song] {
-
-        result.groups
-            .flatMap(\.songs)
-            .filter { selection.contains($0.normalizedPath) }
+    func clearTrackViewFilter() {
+        trackViewFilterSong = nil
     }
 }

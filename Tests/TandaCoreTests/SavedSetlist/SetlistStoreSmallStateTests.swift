@@ -10,16 +10,16 @@ final class SetlistStoreSmallStateTests: XCTestCase {
         SetlistStore(db: try DatabaseManager())
     }
 
-    func testTandaColoringIsOnByDefaultAndTogglesBackAndForth() throws {
+    func testTandaColoringIsOffByDefaultAndTogglesBackAndForth() throws {
         let store = try makeStore()
 
-        XCTAssertTrue(store.isTandaColoringEnabled)
-
-        store.toggleTandaColoring()
         XCTAssertFalse(store.isTandaColoringEnabled)
 
         store.toggleTandaColoring()
         XCTAssertTrue(store.isTandaColoringEnabled)
+
+        store.toggleTandaColoring()
+        XCTAssertFalse(store.isTandaColoringEnabled)
     }
 
     func testEachAnnouncementCountsOneTickSoTheViewCanReactToEveryRepeat() throws {

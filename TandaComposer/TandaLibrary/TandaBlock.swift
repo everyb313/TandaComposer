@@ -74,6 +74,10 @@ struct TandaBlock:
     let onDropAppend:
         () -> Void
 
+    /// Appends the one Setlist row dropped on the selected Tanda's "+" row.
+    let onDropAddTrack:
+        (Song) -> Void
+
     /// Fired when a Setlist drag hovers over or is released on THIS
     /// block while the Library is locked — the parent shows its
     /// "Library is locked" hint. Passed straight through to this
@@ -93,6 +97,12 @@ struct TandaBlock:
     @FocusState
     private var commentFieldIsFocused:
         Bool
+
+    @State
+    private var isAddTrackDropTargeted = false
+
+    @EnvironmentObject
+    private var setlistStore: SetlistStore
 
     /// Whether THIS Tanda is the one currently hovered for an append
     /// drop — computed from the shared `currentDropTarget`, not its
@@ -579,13 +589,19 @@ struct TandaBlock:
                             columns
                     )
                 }
-                .background(
-                    song == previewPlayer.currentSong
-                    ? Color.accentColor.opacity(
-                        0.18
-                    )
-                    : Color.clear
-                )
+                .background {
+
+                    if song == previewPlayer.currentSong {
+
+                        // Double-click starts playback: keep the row
+                        // visibly highlighted in a stronger blue.
+                        Color.blue.opacity(0.48)
+
+                    } else {
+
+                        Color.clear
+                    }
+                }
                 .contentShape(
                     Rectangle()
                 )
@@ -609,6 +625,49 @@ struct TandaBlock:
                     Divider()
                 }
             }
+
+        // Trailing empty row: available only on the selected Tanda while
+        // unlocked. It accepts one specific dragged Setlist row.
+        if isSelected && !libraryStore.isLocked {
+            HStack(spacing: 0) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isAddTrackDropTargeted ? Color.accentColor : Color.secondary)
+                    // The row's outer horizontal inset aligns this with
+                    // the red delete X; no additional leading padding.
+                    .frame(width: Self.deleteColumnWidth, alignment: .leading)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .frame(
+                width: Self.deleteColumnWidth + 16 + columns.reduce(CGFloat.zero) { $0 + $1.1 },
+                alignment: .leading
+            )
+            .help("Drag a track from the Setlist here to add it")
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(isAddTrackDropTargeted ? Color.accentColor.opacity(0.12) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(
+                        isAddTrackDropTargeted ? Color.accentColor : Color.secondary.opacity(0.25),
+                        style: StrokeStyle(lineWidth: isAddTrackDropTargeted ? 2 : 1, dash: [4, 3])
+                    )
+            )
+            .contentShape(Rectangle())
+            .onDrop(
+                of: [.text],
+                delegate: SetlistTrackToTandaDropDelegate(
+                    isLocked: libraryStore.isLocked,
+                    isTargeted: $isAddTrackDropTargeted,
+                    setlistStore: setlistStore,
+                    onDrop: onDropAddTrack
+                )
+            )
+        }
         }
         .fixedSize(
             horizontal:

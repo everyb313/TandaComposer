@@ -309,6 +309,85 @@ final class TandaStore:
     }
 
 
+    // MARK: - Replace Song
+    //
+    // Replaces exactly one slot in an existing Tanda. Unlike addSongs,
+    // this preserves the Tanda's track count and position ordering.
+    // The expected path protects against a stale SameTitle window.
+
+    func replaceSong(
+        at songIndex: Int,
+        in tanda: Tanda,
+        expectedOriginalPath: String,
+        with replacement: Song,
+        librarySongs: [Song],
+        missingSongIDs: Set<Int64> = []
+    ) throws {
+
+        guard let tandaIndex = tandas.firstIndex(where: {
+            $0.sourceURL == tanda.sourceURL
+        }), tanda.songs.indices.contains(songIndex) else {
+            throw TandaSaveError.invalidReplacementTarget
+        }
+
+        let currentTanda = tandas[tandaIndex]
+        guard currentTanda.songs.indices.contains(songIndex) else {
+            throw TandaSaveError.invalidReplacementTarget
+        }
+        guard currentTanda.songs[songIndex].normalizedPath == expectedOriginalPath else {
+            throw TandaSaveError.replacementTargetChanged
+        }
+        guard librarySongs.contains(where: {
+            $0.normalizedPath == replacement.normalizedPath
+        }) else {
+            throw TandaSaveError.replacementNotInLibrary
+        }
+        guard SameTitleFinder.titleKey(of: currentTanda.songs[songIndex]) ==
+                SameTitleFinder.titleKey(of: replacement) else {
+            throw TandaSaveError.replacementTitleMismatch
+        }
+
+        if let id = replacement.id, missingSongIDs.contains(id) {
+            throw TandaSaveError.replacementIsMissing(
+                replacement.title ?? replacement.filename
+            )
+        }
+
+        if currentTanda.songs.enumerated().contains(where: { item in
+            item.offset != songIndex &&
+                item.element.normalizedPath == replacement.normalizedPath
+        }) {
+            throw TandaSaveError.duplicateTrackInTanda(
+                replacement.title ?? replacement.filename
+            )
+        }
+
+        // Selecting the same recording is a no-op, not a file rewrite.
+        guard currentTanda.songs[songIndex].normalizedPath != replacement.normalizedPath else {
+            return
+        }
+
+        var updatedSongs = currentTanda.songs
+        updatedSongs[songIndex] = replacement
+
+        try TandaMetadataExporter.export(
+            songs: updatedSongs,
+            tandaName: currentTanda.name,
+            to: currentTanda.sourceURL,
+            comment: currentTanda.comment
+        )
+
+        tandas[tandaIndex] = Tanda(
+            name: currentTanda.name,
+            songs: updatedSongs,
+            comment: currentTanda.comment,
+            sourceFolder: currentTanda.sourceFolder,
+            sourceURL: currentTanda.sourceURL,
+            savedAgainstLibraryName: AppPaths.currentLibraryName
+        )
+    }
+
+
     // MARK: - Remove Song
     //
     // Removes a single track (by its position in tanda.songs) and

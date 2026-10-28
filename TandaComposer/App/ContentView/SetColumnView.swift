@@ -4,17 +4,23 @@ import AppKit
 struct SetColumnView<Content: View>: View {
 
     @EnvironmentObject private var setlistStore: SetlistStore
+    @EnvironmentObject private var libraryStore: LibraryStore
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var sameTitleSession: SameTitleSession
 
+
+    @Binding var libraryDisplayMode: LibraryDisplayMode
     @Binding var showingOrchestraBreakdown: Bool
     @Binding var columnHeaderHeight: CGFloat
     let content: Content
 
     init(
+        libraryDisplayMode: Binding<LibraryDisplayMode>,
         showingOrchestraBreakdown: Binding<Bool>,
         columnHeaderHeight: Binding<CGFloat>,
         @ViewBuilder content: () -> Content
     ) {
+        self._libraryDisplayMode = libraryDisplayMode
         self._showingOrchestraBreakdown = showingOrchestraBreakdown
         self._columnHeaderHeight = columnHeaderHeight
         self.content = content()
@@ -57,6 +63,50 @@ struct SetColumnView<Content: View>: View {
                         .infinity,
                     alignment:
                         .leading
+                )
+
+
+                // =====================================================
+                // SAME-TITLE TRACKVIEW FILTER
+                // =====================================================
+
+                Button {
+                    if sameTitleSession.trackViewFilterSong != nil {
+                        // While active, the button always turns the filter off.
+                        sameTitleSession.clearTrackViewFilter()
+                    } else {
+                        guard setlistStore.selectedRowIndexes.count == 1,
+                              let index = setlistStore.selectedRowIndexes.first,
+                              setlistStore.entries.indices.contains(index) else { return }
+                        let entry = setlistStore.entries[index]
+                        // Filter the existing TrackView only. Selecting a result
+                        // continues to use TrackView's normal insertion behavior.
+                        sameTitleSession.setTrackViewFilter(for: entry.song)
+                        libraryDisplayMode = .tracks
+                    }
+                } label: {
+                    Image(
+                        systemName: sameTitleSession.trackViewFilterSong != nil
+                            ? "questionmark.circle.fill"
+                            : "questionmark.circle"
+                    )
+                    .font(.system(size: 18))
+                    // Inactive is always gray; active uses the accent color.
+                    .foregroundStyle(
+                        sameTitleSession.trackViewFilterSong != nil
+                            ? Color.orange
+                            : Color.gray
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(
+                    sameTitleSession.trackViewFilterSong == nil
+                        && setlistStore.selectedRowIndexes.count != 1
+                )
+                .help(
+                    sameTitleSession.trackViewFilterSong != nil
+                        ? "Turn off the same-title TrackView filter"
+                        : "Show TrackView tracks with the selected Setlist title"
                 )
 
 
@@ -222,5 +272,20 @@ struct SetColumnView<Content: View>: View {
             maxHeight:
                 .infinity
         )
+        .onChange(of: setlistStore.selectedRowIndexes) { _, newSelection in
+            // Keep the filter active, but retarget it whenever Setlist focus
+            // moves to a different single row.
+            guard sameTitleSession.trackViewFilterSong != nil,
+                  newSelection.count == 1,
+                  let index = newSelection.first,
+                  setlistStore.entries.indices.contains(index) else {
+                return
+            }
+
+            sameTitleSession.setTrackViewFilter(
+                for: setlistStore.entries[index].song
+            )
+            libraryDisplayMode = .tracks
+        }
     }
 }

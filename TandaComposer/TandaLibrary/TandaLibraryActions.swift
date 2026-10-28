@@ -70,6 +70,28 @@ enum TandaLibraryActions {
         )
     }
 
+    /// Appends the ONE Setlist track that was dragged onto the selected
+    /// Tanda's trailing "+" row. Unlike appendSetlistSelectionToTanda,
+    /// this uses the dragged row's identity and does not append the
+    /// Setlist's current selection. TandaStore.addSongs deduplicates by
+    /// normalizedPath, so a different recording with the same title is
+    /// allowed while the exact same track cannot be added twice.
+    static func appendDraggedTrackToTanda(
+        _ song: Song,
+        to tanda: Tanda,
+        store: TandaStore,
+        libraryStore: LibraryStore
+    ) throws {
+        guard !libraryStore.isLocked else { return }
+
+        try store.addSongs(
+            [song],
+            to: tanda,
+            missingSongIDs: libraryStore.missingSongIDs
+        )
+    }
+
+
     static func deleteSong(
         at songIndex: Int,
         from tanda: Tanda,

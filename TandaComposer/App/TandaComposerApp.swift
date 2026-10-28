@@ -196,19 +196,6 @@ struct TandaComposerApp: App {
         .windowResizability(.automatic)
 
         Window(
-            "Same Title",
-            id: "same-title"
-        ) {
-            SameTitleView()
-                .environmentObject(sameTitleSession)
-                .environmentObject(environment.libraryStore)
-                .environmentObject(environment.setlistStore)
-                .environmentObject(settings)
-                .preferredColorScheme(settings.colorScheme)
-        }
-        .windowResizability(.contentMinSize)
-        .defaultSize(width: 1100, height: 520)
-        Window(
             "How the Library Modes Work",
             id: "library-modes"
         ) {

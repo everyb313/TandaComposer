@@ -3,6 +3,7 @@ import SwiftUI
 struct SmartlistsColumnView<Content: View>: View {
 
     @EnvironmentObject private var smartlistStore: SmartlistStore
+    @EnvironmentObject private var sameTitleSession: SameTitleSession
 
     @Binding var libraryDisplayMode: LibraryDisplayMode
     @Binding var columnHeaderHeight: CGFloat
@@ -132,6 +133,14 @@ struct SmartlistsColumnView<Content: View>: View {
                 .infinity,
             maxHeight:
                 .infinity
+        )
+        // Visual-only indication: Smartlists look inactive while the
+        // same-title filter narrows TrackView, but remain interactive.
+        .opacity(
+            libraryDisplayMode == .tracks &&
+            sameTitleSession.trackViewFilterSong != nil
+            ? 0.45
+            : 1.0
         )
     }
 }

@@ -45,51 +45,9 @@ struct ContentView: View {
     @EnvironmentObject private var sameTitleSession:
         SameTitleSession
 
-    @Environment(\.openWindow)
-    private var openWindow
 
     @Environment(\.undoManager)
     private var undoManager
-
-
-    // MARK: Same title ("?" in the library header)
-
-    /// The tracks selected in the TrackLibrary table, in library order.
-    private var selectedTrackSongs: [Song] {
-
-        let ids = Set(trackTableSelection.compactMap { $0 })
-
-        guard !ids.isEmpty else {
-            return []
-        }
-
-        return libraryStore.songs.filter { song in
-
-            guard let id = song.id else {
-                return false
-            }
-
-            return ids.contains(id)
-        }
-    }
-
-    private func findSameTitle() {
-
-        let selected = selectedTrackSongs
-
-        guard !selected.isEmpty else {
-            return
-        }
-
-        sameTitleSession.show(
-            selected: selected,
-            library: libraryStore.songs,
-            libraryName: libraryStore.currentLibraryName,
-            settings: settings
-        )
-
-        openWindow(id: "same-title")
-    }
 
 
     // MARK: Preview Player
@@ -203,6 +161,7 @@ struct ContentView: View {
                     // =================================================
 
                     SetColumnView(
+                        libraryDisplayMode: $libraryDisplayMode,
                         showingOrchestraBreakdown: $showingOrchestraBreakdown,
                         columnHeaderHeight: $columnHeaderHeight
                     ) {
@@ -234,9 +193,7 @@ struct ContentView: View {
                         columnHeaderHeight: $columnHeaderHeight,
                         savedSetlistViewer: savedSetlistViewer,
                         tandaStore: tandaStore,
-                        showingImporter: $showingImporter,
-                        canFindSameTitle: !trackTableSelection.isEmpty,
-                        onFindSameTitle: { findSameTitle() }
+                        showingImporter: $showingImporter
                     ) {
                         switch libraryDisplayMode {
                         case .tracks:
@@ -249,7 +206,7 @@ struct ContentView: View {
                             TandaLibraryView(
                                 folderSelection: tandaFolderSelection,
                                 danceFilter: $tandaDanceFilter,
-                                store: tandaStore
+                                store: tandaStore,
                             )
                         case .savedsetlist:
                             SavedSetlistViewer(
@@ -621,7 +578,7 @@ struct ContentView: View {
             smartSelection = .showAll
             tandaFolderSelection = .showAll
             trackTableSelection = []
-            sameTitleSession.clear()
+            sameTitleSession.clearTrackViewFilter()
         }
         .onChange(of: libraryDisplayMode) {
 

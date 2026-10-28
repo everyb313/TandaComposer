@@ -75,6 +75,61 @@ enum SetlistDropTarget: Equatable {
 //    performDrop (returns false), and `onLockedAttempt` tells the
 //    parent so it can show a "Library is locked" hint.
 
+/// Drop target for the trailing "+" row in a selected Tanda. It resolves
+/// the UUID of the actual Setlist row being dragged, rather than acting
+/// on the Setlist's current multi-selection.
+struct SetlistTrackToTandaDropDelegate: DropDelegate {
+
+    let isLocked: Bool
+    @Binding var isTargeted: Bool
+    let setlistStore: SetlistStore
+    let onDrop: (Song) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        info.hasItemsConforming(to: [.text]) && isSetlistRowDrag
+    }
+
+    func dropEntered(info: DropInfo) {
+        if !isLocked { isTargeted = true }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        guard !isLocked else {
+            return DropProposal(operation: .forbidden)
+        }
+        isTargeted = true
+        return DropProposal(operation: .copy)
+    }
+
+    func dropExited(info: DropInfo) {
+        isTargeted = false
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        isTargeted = false
+        guard !isLocked else { return false }
+
+        let pasteboard = NSPasteboard(name: .drag)
+        guard
+            let rawID = pasteboard.string(forType: SetlistDragMarker.pasteboardType),
+            let entryID = UUID(uuidString: rawID),
+            let entry = setlistStore.entries.first(where: { $0.id == entryID })
+        else {
+            return false
+        }
+
+        onDrop(entry.song)
+        return true
+    }
+
+    private var isSetlistRowDrag: Bool {
+        NSPasteboard(name: .drag)
+            .types?
+            .contains(SetlistDragMarker.pasteboardType) == true
+    }
+}
+
+
 struct SetlistToTandaDropDelegate: DropDelegate {
 
     let isLocked: Bool

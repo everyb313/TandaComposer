@@ -129,6 +129,45 @@ final class TandaStoreTests: XCTestCase {
         }
     }
 
+    // MARK: - Replace Song
+
+    func testReplaceSongChangesOnlyTheRequestedSlotAndPersistsIt() throws {
+        try withTemporaryAppRoot { _ in
+            let originalSongs = makeSongs(4)
+            try writeTanda("Replaceable", songs: originalSongs, comment: "keep this")
+            let store = TandaStore()
+            let originalTanda = try tanda("Replaceable", in: store)
+            let replacement = makeSong(
+                id: 99,
+                path: "/Music/alternate-T2.flac",
+                title: "T2",
+                artist: "Alternate Orchestra"
+            )
+
+            try store.replaceSong(
+                at: 1,
+                in: originalTanda,
+                expectedOriginalPath: originalSongs[1].normalizedPath,
+                with: replacement,
+                librarySongs: originalSongs + [replacement]
+            )
+
+            let updated = try tanda("Replaceable", in: store)
+            XCTAssertEqual(updated.songs.map(\.normalizedPath), [
+                originalSongs[0].normalizedPath,
+                replacement.normalizedPath,
+                originalSongs[2].normalizedPath,
+                originalSongs[3].normalizedPath
+            ])
+            XCTAssertEqual(updated.comment, "keep this")
+            XCTAssertEqual(
+                try tanda("Replaceable", in: TandaStore()).songs.map(\.normalizedPath),
+                updated.songs.map(\.normalizedPath),
+                "The replacement must be persisted to the Tanda JSON file."
+            )
+        }
+    }
+
     // MARK: - Delete and comment
 
     func testDeleteRemovesTheFileAndTheEntry() throws {

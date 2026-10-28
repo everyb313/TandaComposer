@@ -38,6 +38,9 @@ struct SmartListFilteredLibraryView:
     @EnvironmentObject private var scanner:
         LibraryScanner
 
+    @EnvironmentObject private var sameTitleSession:
+        SameTitleSession
+
 
     let selection:
         SmartlistSelection
@@ -464,6 +467,18 @@ struct SmartListFilteredLibraryView:
 
     private var filteredSongs:
         [Song] {
+
+        // Same-title mode is a display filter over the complete TrackLibrary.
+        // It intentionally bypasses Smartlist and A/T/M/V/X filters, but keeps
+        // the existing LibraryTableView and its ordinary add/insert behavior.
+        if let anchor = sameTitleSession.trackViewFilterSong {
+            guard let wantedKey = SameTitleFinder.titleKey(of: anchor) else {
+                return []
+            }
+            return libraryStore.songs.filter {
+                SameTitleFinder.titleKey(of: $0) == wantedKey
+            }
+        }
 
         switch selection {
 

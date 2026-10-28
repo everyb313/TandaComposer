@@ -180,6 +180,23 @@ final class SameTitleFinderTests: XCTestCase {
         XCTAssertEqual(ids(result.groups[0].songs), [1, 4, 5, 3, 2])
     }
 
+    func testAnchorStaysFirstThenTracksFromItsOrchestraComeNext() {
+        let anchor = song(1, "Poema", artist: "Beta Orchestra", year: 1952)
+        let alpha = song(2, "Poema", artist: "Alpha Orchestra", year: 1936)
+        let betaOlder = song(3, "Poema", artist: "Beta Orchestra", year: 1930)
+        let betaNewer = song(4, "Poema", artist: "Beta Orchestra", year: 1960)
+        let gamma = song(5, "Poema", artist: "Gamma Orchestra", year: 1940)
+
+        let result = SameTitleFinder.find(
+            for: [anchor],
+            in: [anchor, alpha, betaOlder, betaNewer, gamma]
+        )
+
+        XCTAssertEqual(ids(result.groups[0].songs), [1, 3, 4, 2, 5])
+        XCTAssertEqual(result.groups[0].songs.first?.id, anchor.id,
+                       "The selected anchor must remain first")
+    }
+
     func testTheSameYearIsSortedByOrchestraThenSingerThenPath() {
         let library = [
             song(1, "Poema"),

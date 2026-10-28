@@ -274,6 +274,19 @@ struct TandaLibraryView:
                                         saveErrorMessage = error.localizedDescription
                                     }
                                 },
+                                onDropAddTrack: { song in
+
+                                    do {
+                                        try TandaLibraryActions.appendDraggedTrackToTanda(
+                                            song,
+                                            to: tanda,
+                                            store: store,
+                                            libraryStore: libraryStore
+                                        )
+                                    } catch {
+                                        saveErrorMessage = error.localizedDescription
+                                    }
+                                },
                                 onLockedDropAttempt: {
 
                                     showLockedHint()
