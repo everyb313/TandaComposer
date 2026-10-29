@@ -140,17 +140,18 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     TandaComposer Track Library.
   </div>
 
-  <h3>Find other versions of a track</h3>
-  <p class="lead">The same tango often exists in several recordings. Select one or more tracks in the Track Library and click <strong>?</strong> in the Library header, next to the Tracks / Tandas / Saved Setlists switch. The <strong>Same Title</strong> window lists every track of the Library that has the same title.</p>
+  <h3>Find other versions of a track with the Same-Name filter</h3>
+  <p class="lead">To find other recordings of a Setlist track, select or focus that track in the Setlist and click its <strong>?</strong> button. The existing TrackView is filtered to show tracks whose titles match the focused Setlist track; no separate Same Title window opens.</p>
   <ul class="bullets">
-    <li>One block per title, styled like a Tanda. The track you selected carries a blue dot and comes first; the others follow by year, orchestra and singer.</li>
-    <li>Titles have to match exactly. Upper and lower case, accents and extra spaces do not matter, but &ldquo;Poema&rdquo; and &ldquo;Poema (remastered)&rdquo; are different titles.</li>
-    <li>The whole Library is searched, whatever filter or Smartlist is active.</li>
-    <li>Tracks that are already in the Setlist carry a small note icon. Tracks whose file is missing are shown in red.</li>
-    <li>Click a row to select it, Command-click to add or remove rows, Shift-click to select a range. This selection belongs to the window and does not change the selection in the Track Library.</li>
-    <li>The window shows the state at the moment you clicked <strong>?</strong>. Click <strong>?</strong> again to update it.</li>
+    <li>The <strong>?</strong> button in the Setlist is grey when the filter is off and orange when it is active. Click it again to turn the filter off.</li>
+    <li>While the filter is active, moving the focus to another Setlist track automatically updates the TrackView filter to that track's title.</li>
+    <li>A matching title ignores differences in letter case, accents and extra spaces. A title such as &ldquo;Poema (remastered)&rdquo; remains different from &ldquo;Poema&rdquo;.</li>
+    <li>An orange <strong>?</strong> appears next to the Library name in TrackView as a status indicator while the filter is active. It is not a second button.</li>
+    <li>The standalone <strong>?</strong> control formerly shown in TrackView is no longer used. The Setlist <strong>?</strong> is the filter's only control.</li>
+    <li>Smartlists are visually dimmed while the filter is active. The A / T / M / V / X quick-filter controls are unavailable during the Same-Name filter.</li>
+    <li>Choose a result and add it to the Setlist using the normal TrackView insertion action. This inserts a track; it does not replace the focused Setlist track.</li>
   </ul>
-  <div class="callout"><strong>Note:</strong> <strong>?</strong> is available in Track Library mode while at least one track is selected. The explanation of the three Library modes is behind the <strong>i</strong> button next to it, and under Help &rarr; How the Library Modes Work&hellip;</div>
+  <div class="callout"><strong>Note:</strong> The filter searches the Track Library for matching titles. It changes which tracks are shown, not the normal insertion behavior of TrackView.</div>
 
   <h3>Quickly narrow the visible tracks</h3>
   <p class="lead">The <strong>A / T / V / M / X</strong> buttons provide a quick type filter. They can be used on the current Library view, including a Smartlist result where applicable.</p>
@@ -282,6 +283,14 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     A selected Tanda with the per-track remove control visible.
   </div>
   <div class="callout"><strong>The Library lock applies here too.</strong> Both actions above need the Library unlocked, same as creating or deleting a Tanda.</div>
+  <h3>Add an individual track to a Tanda Library</h3>
+  <p class="lead">When a Tanda Library is selected and the Library is unlocked, an empty <strong>+</strong> row appears at the bottom of its track list. Drag a track from the Setlist and drop it onto this row to add it to the selected Tanda Library.</p>
+  <ul class="bullets">
+    <li>The <strong>+</strong> row is an insertion target, not a saved placeholder or a track.</li>
+    <li>The same track cannot be added twice to the same Tanda. Identity is based on the track/file, so a different recording with the same title is allowed.</li>
+    <li>Adding a track to the Tanda Library does not change or remove it from the Setlist.</li>
+    <li>When the Library is locked, the <strong>+</strong> row is hidden and adding tracks is unavailable.</li>
+  </ul>
   <div class="callout">
     <strong>The Tanda's name and folder don't update automatically.</strong> A Tanda's file name and Tanda Library folder are chosen once, from the Orchestra/Singer/Genre of its tracks at the time it's created. Editing its tracks afterwards never renames or moves the file — even if the change means the name no longer quite fits. If that drift bothers you, <strong>Rescan TandaLibrary</strong> (see Maintenance) will offer to rename/refile it to match.
   </div>
@@ -347,7 +356,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   </ul>
 
   <h3>Tanda Coloring</h3>
-  <p class="lead">The palette button in the Setlist header toggles the visual Tanda Coloring. It gives you a quick indication of Tango, Vals and Milonga-type tracks based on the track's Genre metadata.</p>
+  <p class="lead">The palette button in the Setlist header toggles the visual Tanda Coloring. It gives you a quick indication of Tango, Vals and Milonga-type tracks based on the track's Genre metadata. Coloring is <strong>off by default</strong>; turn it on when the visual guidance is useful.</p>
 
   <div class="callout">
     <strong>It is visual guidance, not automatic Tanda detection.</strong> The coloring does not decide which tracks belong together.
@@ -513,7 +522,9 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Edit track tags (experimental)</td><td>Unlock the Library → select track(s) in Track Library → Edit Tags… <strong>(writes into the audio files; a <code>_original</code> backup is kept)</strong></td></tr>
       <tr><td>Narrow a large Track Library</td><td>Apply a Track Smartlist</td></tr>
       <tr><td>Quick type filter</td><td>A / T / V / M / X buttons</td></tr>
-      <tr><td>Find other versions of a track</td><td>Select track(s) in the Track Library → click <strong>?</strong> in the Library header (Same Title window)</td></tr>
+      <tr><td>Find other versions of a track</td><td>Focus a Setlist track → click its <strong>?</strong> button to filter TrackView by matching title; click again to turn off</td></tr>
+      <tr><td>Add a track to a Tanda Library</td><td>Unlock and select the Tanda Library → drag a Setlist track onto the <strong>+</strong> row at the bottom</td></tr>
+      <tr><td>Open / create a Library while locked</td><td>Use Open TrackLibrary or New TrackLibrary; no unlock or save is needed for the locked current Library</td></tr>
       <tr><td>See how the Library modes work</td><td><strong>i</strong> button in the Library header, or Help → How the Library Modes Work…</td></tr>
       <tr><td>Filter Tanda Library</td><td>Double-click a Tanda Library folder / Smartlist; optionally use A / T / V / M / X</td></tr>
       <tr><td>Preview a track</td><td>Double-click a Library or Setlist track</td></tr>

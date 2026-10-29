@@ -19,6 +19,7 @@
 //
 
 import SwiftUI
+import Charts
 
 /// A one-off snapshot of how many Tandas in the active Setlist
 /// belong to each Orchestra.
@@ -51,6 +52,29 @@ struct OrchestraBreakdownView: View {
         var id: String {
             orchestra
         }
+    }
+
+
+    private struct YearEntry: Identifiable {
+        let year: Int
+        let count: Int
+
+        var id: Int { year }
+    }
+
+    /// Counts setlist song entries by the recording year stored in each
+    /// song's metadata. Entries without a year and Cortinas are omitted.
+    private var songsByYear: [YearEntry] {
+        var counts: [Int: Int] = [:]
+
+        for song in songs where !isCortina(song) {
+            guard let year = song.year else { continue }
+            counts[year, default: 0] += 1
+        }
+
+        return counts
+            .map { YearEntry(year: $0.key, count: $0.value) }
+            .sorted { $0.year < $1.year }
     }
 
     // Cortinas are not tango songs and do not belong to an orchestra.
@@ -219,93 +243,225 @@ struct OrchestraBreakdownView: View {
                 }
     }
 
-    var body: some View {
-        if entries.isEmpty {
-            Text("No Tanda songs in the current Set.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding()
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
+    /// Constrains the horizontal scale to the years actually present in the data.
+    /// When only one year exists, a small range around it is needed because a
+    /// chart scale cannot meaningfully span a zero-width domain.
+    private var songsByYearDomain: ClosedRange<Int> {
+        let minYear = songsByYear.first!.year
+        let maxYear = songsByYear.last!.year
+        // Immer 1 Jahr Rand, damit die äußersten Balken nicht halb
+        // abgeschnitten werden und das letzte Tick-Label nicht am Rand klebt.
+        return (minYear - 1)...(maxYear + 1)
+    }
 
-                // MARK: - Table Title
+    /// Jahre, an denen Gridlines und Beschriftungen der X-Achse stehen.
+    /// Normal: alle 5 Jahre. Bei sehr kleinen Spannen jedes Jahr,
+    /// bei sehr großen Spannen alle 10 Jahre (sonst überlappen die Labels).
+    /// Die Ticks liegen immer auf Vielfachen der Schrittweite (1940, 1945, ...).
+    private var xAxisTickYears: [Int] {
+        let domain = songsByYearDomain
+        let span = domain.upperBound - domain.lowerBound
 
-                Text("Tandas by Orchestra")
-                    .font(.headline)
-                    .padding(.horizontal)
-                    .padding(.top)
-                    .padding(.bottom, 8)
+        let step: Int
+        switch span {
+        case ...9:  step = 1
+        case ...50: step = 5
+        default:    step = 10
+        }
 
-                // MARK: - Table
+        // Erstes Vielfaches der Schrittweite innerhalb der Domain
+        let first = (domain.lowerBound + step - 1) / step * step
+        return Array(stride(from: first, through: domain.upperBound, by: step))
+    }
 
-                ScrollView {
-                    Grid(
-                        horizontalSpacing: 0,
-                        verticalSpacing: 0
-                    ) {
-                        // MARK: - Header
+    /// Volle Jahreszahl beim ersten Tick und bei Jahrhundertwechseln,
+    /// sonst nur die letzten beiden Stellen (z. B. 1935, 40, 45 ... 1995, 2000, 05).
+    private func xAxisLabel(for year: Int) -> String {
+        let isFirst = year == xAxisTickYears.first
+        let isCenturyChange = year % 100 == 0
 
-                        GridRow {
-                            Text("Orchestra")
-                                .font(.headline)
-                                .frame(
-                                    maxWidth: .infinity,
-                                    alignment: .leading
-                                )
+        if isFirst || isCenturyChange {
+            return String(year)
+        }
+        return String(format: "%02d", year % 100)
+    }
 
-                            Text("# of Tandas")
-                                .font(.headline)
-                                .frame(
-                                    width: 100,
-                                    alignment: .trailing
-                                )
+    /// Balkenfarbe nach Jahr (Grenzen jeweils inklusive).
+    /// Grün (1938 bis 1948) hat Vorrang vor Gelb (1935 bis 1955).
+    /// Ab 1956 orange, alle Jahre davor (bis 1934) behalten die Akzentfarbe.
+    private func barColor(for year: Int) -> Color {
+        switch year {
+        case 1938...1948: return .green
+        case 1935...1955: return .yellow
+        case 1956...:     return .orange
+        default:          return .accentColor
+        }
+    }
+
+    /// Feste Balkenbreite in Punkten, abgeleitet aus der Zahl der Jahre
+    /// in der Domain (Plotbreite grob 370 pt, ca. 15 % Lücke zwischen Balken).
+    /// `.ratio` hat auf der Int-Achse keine Balken gezeichnet.
+    private var barWidth: CGFloat {
+        let domain = songsByYearDomain
+        let span = max(1, domain.upperBound - domain.lowerBound)
+        let perYear = 370.0 / Double(span)
+        return CGFloat(min(max(perYear * 0.85, 2), 24))
+    }
+
+    private var songsByYearChart: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Songs by Year")
+                .font(.headline)
+
+            if songsByYear.isEmpty {
+                Text("No songs with year metadata in the current Set.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Chart(songsByYear) { entry in
+                    BarMark(
+                        x: .value("Year", entry.year),
+                        y: .value("Song Number", entry.count),
+                        width: .fixed(barWidth)
+                    )
+                    .foregroundStyle(barColor(for: entry.year))
+                }
+                .chartXScale(domain: songsByYearDomain)
+                .chartXAxis {
+                    AxisMarks(values: xAxisTickYears) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel {
+                            if let year = value.as(Int.self) {
+                                Text(xAxisLabel(for: year))
+                            }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.quaternary)
+                    }
+                }
+                // Platz rechts, damit das letzte Label nicht zu "..." gekürzt wird.
+                .chartPlotStyle { plot in
+                    plot.padding(.trailing, 16)
+                }
+                .chartXAxisLabel("Year")
+                .chartYAxisLabel("Song Number")
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 5)) {
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel()
+                    }
+                }
+                // Chart füllt die verfügbare Höhe, damit X-Achse und
+                // Achsenlabel innerhalb des Popovers liegen.
+                .frame(maxHeight: .infinity)
+                .padding(.bottom, 8)
+            }
+        }
+        .frame(width: 430, alignment: .topLeading)
+        .padding(.top, 16)
+    }
 
-                        // MARK: - Rows
+    var body: some View {
+        HStack(alignment: .top, spacing: 18) {
+            VStack(alignment: .leading, spacing: 0) {
+                if entries.isEmpty {
+                    Text("No Tanda songs in the current Set.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .padding()
+                } else {
+                    // MARK: - Table Title
 
-                        ForEach(entries) { entry in
+                    Text("Tandas by Orchestra")
+                        .font(.headline)
+                        .padding(.horizontal)
+                        .padding(.top)
+                        .padding(.bottom, 8)
+
+                    // MARK: - Table
+
+                    ScrollView {
+                        Grid(
+                            horizontalSpacing: 0,
+                            verticalSpacing: 0
+                        ) {
+                            // MARK: - Header
+
                             GridRow {
-                                Text(entry.orchestra)
-                                    .fontWeight(
-                                        isMajorOrchestra(entry.orchestra)
-                                            ? .bold
-                                            : .regular
-                                    )
+                                Text("Orchestra")
+                                    .font(.headline)
                                     .frame(
                                         maxWidth: .infinity,
                                         alignment: .leading
                                     )
 
-                                Text("\(entry.count)")
+                                Text("# of Tandas")
+                                    .font(.headline)
                                     .frame(
                                         width: 100,
                                         alignment: .trailing
                                     )
                             }
                             .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
+                            .padding(.vertical, 8)
+                            .background(.quaternary)
 
-                            Divider()
+                            // MARK: - Rows
+
+                            ForEach(entries) { entry in
+                                GridRow {
+                                    Text(entry.orchestra)
+                                        .fontWeight(
+                                            isMajorOrchestra(entry.orchestra)
+                                                ? .bold
+                                                : .regular
+                                        )
+                                        .frame(
+                                            maxWidth: .infinity,
+                                            alignment: .leading
+                                        )
+
+                                    Text("\(entry.count)")
+                                        .frame(
+                                            width: 100,
+                                            alignment: .trailing
+                                        )
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+
+                                Divider()
+                            }
                         }
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: 8)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(
+                                    .quaternary,
+                                    lineWidth: 1
+                                )
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom)
                     }
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 8)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(
-                                .quaternary,
-                                lineWidth: 1
-                            )
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom)
+                    .frame(maxHeight: 400)
                 }
-                .frame(maxHeight: 400)
             }
+            .frame(width: 360, alignment: .topLeading)
+
+            Divider()
+
+            songsByYearChart
         }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
+        // Feste Gesamtgröße, damit das Popover nicht anhand der
+        // ScrollView-Idealgröße zu klein berechnet wird.
+        // Breite: 12 + 360 + 18 + Divider + 18 + 430 + 12 ≈ 851
+        .frame(width: 860, height: 500, alignment: .topLeading)
     }
+
 }

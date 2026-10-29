@@ -25,9 +25,9 @@ extension LibraryActions {
 
     // MARK: - New Library
 
-    /// Saves the current Library under its own name first (nothing
-    /// discarded — the old Library stays exactly where it is), then
-    /// asks for a name and creates a fresh empty Library under it.
+    /// If the current Library is unlocked, save its current contents
+    /// first. If it is locked, skip saving because it cannot have pending
+    /// edits. Then ask for a name and create a fresh empty Library.
     static func newLibrary(
         libraryStore: LibraryStore,
         setlistStore: SetlistStore,
@@ -35,22 +35,18 @@ extension LibraryActions {
         settings: AppSettings
     ) {
 
-        guard
-            !libraryStore.isLocked
-        else {
-            return
-        }
-
-        do {
-
-            try libraryStore.exportLibrary(
-                to: libraryStore.currentLibraryPath
-            )
-
-        } catch {
-
-            presentError(error)
-            return
+        // A locked library cannot have pending edits, so creating a new
+        // library does not require unlocking or exporting the old one.
+        // Preserve the existing save-before-switch behavior when unlocked.
+        if !libraryStore.isLocked {
+            do {
+                try libraryStore.exportLibrary(
+                    to: libraryStore.currentLibraryPath
+                )
+            } catch {
+                presentError(error)
+                return
+            }
         }
 
         promptForNewLibraryName(
@@ -252,22 +248,13 @@ extension LibraryActions {
     ) {
 
         guard
-            !libraryStore.isLocked,
             name != libraryStore.currentLibraryName
         else {
             return
         }
 
-        let existing =
-            (try? libraryStore.listInternalLibraries()) ?? []
-
-        // Shared by both onSave/onDiscard below — everything a
-        // successful switch needs beyond LibraryStore itself:
-        // persist the new active name to AppSettings.json, and
-        // reload the stores that are now scoped to a different
-        // per-TrackLibrary subtree (Setlists/Smartlists directly
-        // here; Tandas and the saved-Setlist viewer are
-        // ContentView-local, reached via the notification).
+        // Shared by every successful switch path — persist the new
+        // active name and reload stores scoped to this library.
         func finishSwitch() {
 
             finishLibrarySwitch(
@@ -278,6 +265,23 @@ extension LibraryActions {
             )
         }
 
+        // A locked library cannot have been edited through the UI.
+        // Switch directly without asking to save/discard it.
+        if libraryStore.isLocked {
+            do {
+                try libraryStore.loadInternalLibrary(named: name)
+                finishSwitch()
+            } catch {
+                presentError(error)
+            }
+            return
+        }
+
+        let existing =
+            (try? libraryStore.listInternalLibraries()) ?? []
+
+        // For an unlocked library, preserve the existing save/discard
+        // confirmation flow before switching.
         switchConfirmationCenter.ask(
             kind: .library,
             suggestedName: libraryStore.currentLibraryName,

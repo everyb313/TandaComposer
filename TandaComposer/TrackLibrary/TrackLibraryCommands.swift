@@ -63,19 +63,14 @@ struct LibraryCommands: Commands {
 
             } label: {
 
-                lockableLabel(
-                    "New TrackLibrary…",
-                    locked:
-                        libraryStore.isLocked
-                )
+                // Creating a new library is safe while the current
+                // library is locked: it has no pending edits to save.
+                Text("New TrackLibrary…")
             }
             .keyboardShortcut(
                 "n",
                 modifiers:
                     [.command]
-            )
-            .disabled(
-                libraryStore.isLocked
             )
 
 
@@ -152,15 +147,10 @@ struct LibraryCommands: Commands {
 
             } label: {
 
-                lockableLabel(
-                    "Open TrackLibrary",
-                    locked:
-                        libraryStore.isLocked
-                )
+                // Opening another library is safe while the current
+                // library is locked: it cannot have pending edits.
+                Text("Open TrackLibrary")
             }
-            .disabled(
-                libraryStore.isLocked
-            )
 
 
             // =====================================================
