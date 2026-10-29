@@ -344,7 +344,11 @@ enum TandaSaver {
         settings:
             AppSettings,
         excluding excludingURL:
-            URL? = nil
+            URL? = nil,
+        reservedPaths:
+            Set<String> = [],
+        vacatedPaths:
+            Set<String> = []
     ) -> (folder: URL, name: String) {
 
         let fields =
@@ -363,7 +367,9 @@ enum TandaSaver {
             suggestedName(
                 fields: fields,
                 availableIn: folder,
-                excluding: excludingURL
+                excluding: excludingURL,
+                reservedPaths: reservedPaths,
+                vacatedPaths: vacatedPaths
             )
 
         return (folder, name)

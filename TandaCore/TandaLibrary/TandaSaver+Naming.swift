@@ -48,7 +48,11 @@ extension TandaSaver {
         availableIn folder:
             URL,
         excluding excludedURL:
-            URL? = nil
+            URL? = nil,
+        reservedPaths:
+            Set<String> = [],
+        vacatedPaths:
+            Set<String> = []
     ) -> String {
 
         let base =
@@ -81,7 +85,11 @@ extension TandaSaver {
             in:
                 folder,
             excluding:
-                excludedURL
+                excludedURL,
+            reservedPaths:
+                reservedPaths,
+            vacatedPaths:
+                vacatedPaths
         )
     }
 
@@ -156,7 +164,11 @@ extension TandaSaver {
         in folder:
             URL,
         excluding excludedURL:
-            URL? = nil
+            URL? = nil,
+        reservedPaths:
+            Set<String> = [],
+        vacatedPaths:
+            Set<String> = []
     ) -> String {
 
         let excludedPath =
@@ -178,8 +190,24 @@ extension TandaSaver {
                         "json"
                     )
 
-            if candidate.standardizedFileURL.path
-                == excludedPath {
+            let candidatePath =
+                candidate.standardizedFileURL.path
+
+            if candidatePath == excludedPath {
+
+                return false
+            }
+
+            // Already promised to another Tanda in the same pending
+            // rescan batch (nothing is on disk yet).
+            if reservedPaths.contains(candidatePath) {
+
+                return true
+            }
+
+            // Occupied on disk now, but another Tanda in the same
+            // batch is moving away from it (and is applied first).
+            if vacatedPaths.contains(candidatePath) {
 
                 return false
             }

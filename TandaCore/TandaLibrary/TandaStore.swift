@@ -481,7 +481,23 @@ final class TandaStore:
 
         var fixes: [TandaRescanFix] = []
 
-        for tanda in tandas {
+        // Targets already promised to an earlier fix in THIS batch,
+        // and files an earlier fix is moving away from. Without this,
+        // every Tanda is checked against the disk alone, so several
+        // Tandas all see the same gap (e.g. "_5") as free and all get
+        // renamed to it — the last write would then overwrite the rest.
+        var reservedPaths: Set<String> = []
+        var vacatedPaths: Set<String> = []
+
+        // Deterministic, numeric-aware order (…_6 before …_10), so
+        // gaps are filled from the lowest index upward. applyRescan
+        // applies fixes in this same order.
+        let orderedTandas = tandas.sorted {
+            $0.sourceURL.path.localizedStandardCompare($1.sourceURL.path)
+                == .orderedAscending
+        }
+
+        for tanda in orderedTandas {
 
             let trustID =
                 tanda.savedAgainstLibraryName == AppPaths.currentLibraryName
@@ -522,7 +538,9 @@ final class TandaStore:
                 TandaSaver.resolvedLocation(
                     for: updatedSongs,
                     settings: settings,
-                    excluding: tanda.sourceURL
+                    excluding: tanda.sourceURL,
+                    reservedPaths: reservedPaths,
+                    vacatedPaths: vacatedPaths
                 )
 
             let currentFolder =
@@ -541,6 +559,15 @@ final class TandaStore:
                     newName: resolvedLocation.name
                 )
                 : nil
+
+            if let rename {
+                reservedPaths.insert(
+                    rename.newURL.standardizedFileURL.path
+                )
+                vacatedPaths.insert(
+                    tanda.sourceURL.standardizedFileURL.path
+                )
+            }
 
             guard fixedSongCount > 0 || rename != nil else {
                 continue
@@ -581,12 +608,22 @@ final class TandaStore:
             byURL[fix.tanda.sourceURL] = fix
         }
 
-        var resultingTandas: [Tanda] = []
+        // Apply in the order the fixes were computed (lowest index
+        // first), so a Tanda moving into a slot that another Tanda is
+        // vacating always finds that slot already free.
+        let applyOrder = fixes.map { $0.tanda.sourceURL } +
+            tandas.map(\.sourceURL).filter { byURL[$0] == nil }
 
-        for tanda in tandas {
+        var replacements: [URL: Tanda] = [:]
 
-            guard let fix = byURL[tanda.sourceURL] else {
-                resultingTandas.append(tanda)
+        for sourceURL in applyOrder {
+
+            guard
+                let fix = byURL[sourceURL],
+                let tanda = tandas.first(where: {
+                    $0.sourceURL == sourceURL
+                })
+            else {
                 continue
             }
 
@@ -602,6 +639,22 @@ final class TandaStore:
                         at: rename.newFolder,
                         withIntermediateDirectories: true
                     )
+
+                    // Safety net: never overwrite a different Tanda's
+                    // file. Skips this rename instead of losing data.
+                    if rename.newURL.standardizedFileURL.path
+                        != tanda.sourceURL.standardizedFileURL.path,
+                       FileManager.default.fileExists(
+                           atPath: rename.newURL.path
+                       ) {
+
+                        throw CocoaError(
+                            .fileWriteFileExists,
+                            userInfo: [
+                                NSFilePathErrorKey: rename.newURL.path
+                            ]
+                        )
+                    }
 
                     try TandaMetadataExporter.export(
                         songs: fix.updatedSongs,
@@ -630,7 +683,8 @@ final class TandaStore:
                     summary.updatedTandaCount += 1
                     summary.renamedTandaCount += 1
 
-                    resultingTandas.append(
+                    replacements[sourceURL] =
+                        (
                         Tanda(
                             name: rename.newName,
                             songs: fix.updatedSongs,
@@ -656,7 +710,8 @@ final class TandaStore:
                     summary.fixedReferenceCount += fix.fixedSongCount
                     summary.updatedTandaCount += 1
 
-                    resultingTandas.append(
+                    replacements[sourceURL] =
+                        (
                         Tanda(
                             name: tanda.name,
                             songs: fix.updatedSongs,
@@ -677,8 +732,12 @@ final class TandaStore:
                     (url: tanda.sourceURL, error: error)
                 )
 
-                resultingTandas.append(tanda)
+                // (replacements has no entry -> original is kept)
             }
+        }
+
+        let resultingTandas: [Tanda] = tandas.map {
+            replacements[$0.sourceURL] ?? $0
         }
 
         tandas = resultingTandas

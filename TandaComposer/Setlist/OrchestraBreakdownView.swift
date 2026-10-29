@@ -1,4 +1,3 @@
-
 //
 //  OrchestraBreakdownView.swift
 //
@@ -53,7 +52,6 @@ struct OrchestraBreakdownView: View {
             orchestra
         }
     }
-
 
     private struct YearEntry: Identifiable {
         let year: Int
@@ -308,10 +306,43 @@ struct OrchestraBreakdownView: View {
         return CGFloat(min(max(perYear * 0.85, 2), 24))
     }
 
+    // MARK: - Legend for year colors
+
+    private var yearColorLegend: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 16) {
+                legendItem(color: .accentColor, text: "1917 ...  1934 (Guardia Nueva) ")
+                legendItem(
+                    color: .yellow,
+                    text: "1935 ... 1955 (Época de Oro)"
+                )
+            }
+
+            HStack(spacing: 16) {
+                legendItem(color: .green, text: "1938 ... 1948 (Década dorada)")
+                legendItem(color: .orange, text: "1956 ... ")
+            }
+        }
+        .font(.caption)
+    }
+
+    private func legendItem(color: Color, text: String) -> some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: 12, height: 12)
+
+            Text(text)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var songsByYearChart: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Songs by Year")
                 .font(.headline)
+
+            yearColorLegend
 
             if songsByYear.isEmpty {
                 Text("No songs with year metadata in the current Set.")
@@ -463,5 +494,4 @@ struct OrchestraBreakdownView: View {
         // Breite: 12 + 360 + 18 + Divider + 18 + 430 + 12 ≈ 851
         .frame(width: 860, height: 500, alignment: .topLeading)
     }
-
 }
