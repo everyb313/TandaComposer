@@ -90,6 +90,13 @@ struct ContentView: View {
     @State private var trackDanceFilter:
         TandaDanceFilter = .all
 
+    // Title search of the TrackLibrary (field above "Show All" in the
+    // Smartlist column). While it is active it REPLACES the Smartlist
+    // selection and the A/T/V/M/X filter (see
+    // SmartListFilteredLibraryView.filteredSongs). Display-only: the
+    // LibraryStore always keeps the whole Library.
+    @State private var trackSearchText: String = ""
+
     @State private var libraryDisplayMode:
         LibraryDisplayMode = .tracks
 
@@ -187,6 +194,8 @@ struct ContentView: View {
                         tandaFolderSelection: $tandaFolderSelection,
                         tandaDanceFilter: $tandaDanceFilter,
                         trackDanceFilter: $trackDanceFilter,
+                        trackSearchActive:
+                            TrackTitleSearch.mode(for: trackSearchText) != .inactive,
                         libraryDisplayMode: $libraryDisplayMode,
                         showingModeHelp: $showingModeHelp,
                         savedSetlistDuplicateCheckEnabled: $savedSetlistDuplicateCheckEnabled,
@@ -200,6 +209,7 @@ struct ContentView: View {
                             SmartListFilteredLibraryView(
                                 selection: smartSelection,
                                 danceFilter: trackDanceFilter,
+                                searchText: trackSearchText,
                                 tableSelection: $trackTableSelection
                             ) { showingImporter = true }
                         case .tandas:
@@ -238,7 +248,8 @@ struct ContentView: View {
                         case .tracks:
                             SmartListTreeView(
                                 store: smartlistStore,
-                                selection: $smartSelection
+                                selection: $smartSelection,
+                                searchText: $trackSearchText
                             )
                         case .tandas:
                             TandaFolderTreeView(
@@ -578,6 +589,7 @@ struct ContentView: View {
             smartSelection = .showAll
             tandaFolderSelection = .showAll
             trackTableSelection = []
+            trackSearchText = ""
             sameTitleSession.clearTrackViewFilter()
         }
         .onChange(of: libraryDisplayMode) {

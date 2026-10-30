@@ -3,7 +3,7 @@ import Foundation
 import GRDB
 
 /// Only the parts of `LibraryStore` that work on the database are tested
-/// here: reload, search filter, delete, tag updates and import sources.
+/// here: reload, delete, tag updates and import sources.
 ///
 /// Deliberately NOT called: `loadLibrary`, `newLibrary`, `renameCurrentLibrary`,
 /// `deleteInternalLibrary`, `resetToFactoryState`, `setCurrentLibraryName`.
@@ -92,7 +92,13 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(store.songs.count, 1)
     }
 
-    // MARK: - Search
+    // MARK: - Search never shrinks the Library
+    //
+    // The title search (TrackTitleSearch) is a DISPLAY filter applied by
+    // the views on top of `songs`. The store itself must always expose the
+    // whole Library: Setlist/Tanda resolving, Rescans, the Duplicate Finder,
+    // imports etc. read `songs` / `songsByID` / `songsByNormalizedPath` as
+    // "everything".
 
     private func storeForSearch() throws -> LibraryStore {
         let (store, manager) = try makeStore()
@@ -102,77 +108,16 @@ final class LibraryStoreTests: XCTestCase {
         return store
     }
 
-    func testSearchMatchesTitleArtistAlbumGenreAndFilename() throws {
-        let store = try storeForSearch()
-
-        let queries: [(String, [String?])] = [
-            ("poema", ["Poema"]),          // title (also filename)
-            ("beta", ["Valsecito"]),       // artist
-            ("album two", ["Valsecito"]),  // album
-            ("vals", ["Valsecito"]),       // genre
-            ("valsecito.mp3", ["Valsecito"]) // filename
-        ]
-
-        for (query, expected) in queries {
-            store.searchText = query
-            XCTAssertEqual(store.songs.map(\.title), expected, query)
-        }
-    }
-
-    func testSearchIsCaseInsensitive() throws {
-        let store = try storeForSearch()
-
-        store.searchText = "ALPHA"
-
-        XCTAssertEqual(store.songs.map(\.title), ["Poema"])
-    }
-
-    func testSearchWithoutHitsGivesAnEmptyList() throws {
-        let store = try storeForSearch()
-
-        store.searchText = "zzz"
-
-        XCTAssertTrue(store.songs.isEmpty)
-    }
-
-    func testClearingTheSearchRestoresAllSongs() throws {
-        let store = try storeForSearch()
-        store.searchText = "poema"
-        XCTAssertEqual(store.songs.count, 1)
-
-        store.searchText = ""
-
-        XCTAssertEqual(store.songs.count, 2)
-    }
-
-    func testSearchStaysActiveAcrossReload() throws {
-        let (store, manager) = try makeStore()
-        try insert(makeSong(path: "/Music/1.flac", title: "Poema", artist: "Alpha"), into: manager)
-        try store.reload()
-        store.searchText = "poema"
-
-        try insert(makeSong(path: "/Music/2.flac", title: "Other", artist: "Beta"), into: manager)
-        try store.reload()
-
-        XCTAssertEqual(store.songs.map(\.title), ["Poema"])
-    }
-
-    /// KNOWN ISSUE: `songsByID` / `songsByNormalizedPath` are rebuilt from the
-    /// published `songs`, which is the search-FILTERED list. Setlist/Tanda
-    /// resolving, Tanda export and the Rescan views read these caches as "the
-    /// whole Library", so with an active search they would see only the hits.
-    ///
-    /// `XCTExpectFailure` keeps the suite green while the bug exists. Once the
-    /// caches are built from all songs this test starts to FAIL with an
-    /// "expected failure not seen" message: then delete the wrapper.
     func testLookupCachesShouldCoverTheWholeLibraryWhileSearching() throws {
         let store = try storeForSearch()
-        store.searchText = "poema"
 
-        XCTExpectFailure("caches are rebuilt from the filtered list, not from all songs") {
-            XCTAssertEqual(store.songsByID.count, 2)
-            XCTAssertEqual(store.songsByNormalizedPath.count, 2)
-        }
+        // What a view does for an active search.
+        let hits = TrackTitleSearch.filter(store.songs, query: "poema")
+
+        XCTAssertEqual(hits.map(\.title), ["Poema"])
+        XCTAssertEqual(store.songs.count, 2)
+        XCTAssertEqual(store.songsByID.count, 2)
+        XCTAssertEqual(store.songsByNormalizedPath.count, 2)
     }
 
     // MARK: - Delete
@@ -308,17 +253,6 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(store.songCount(underImportSourcePath: "/Music/Tango/"), 2, "trailing slash is the same folder")
         XCTAssertEqual(store.songCount(underImportSourcePath: "/Music"), 4)
         XCTAssertEqual(store.songCount(underImportSourcePath: "/Music/Milonga"), 0)
-    }
-
-    func testSongCountIgnoresAnActiveSearchFilter() throws {
-        let (store, manager) = try makeStore()
-        try insert(makeSong(path: "/Music/Tango/a.flac", title: "A", artist: "A"), into: manager)
-        try insert(makeSong(path: "/Music/Tango/b.flac", title: "B", artist: "B"), into: manager)
-        try store.reload()
-
-        store.searchText = "zzz-no-match"
-
-        XCTAssertEqual(store.songCount(underImportSourcePath: "/Music/Tango"), 2)
     }
 
     func testDeleteImportSourceIsRefusedWhileSongsStillUseIt() throws {

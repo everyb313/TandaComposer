@@ -51,6 +51,10 @@ struct SmartListTreeView: View {
     /// Applied filter — only changed by double-click.
     @Binding var selection: SmartlistSelection
 
+    /// Title search of the TrackLibrary. While it is active it replaces
+    /// the Smartlist; applying a Smartlist (double-click) clears it.
+    @Binding var searchText: String
+
     /// Single-click highlight.
     @State private var highlightedID: String?
 
@@ -80,6 +84,11 @@ struct SmartListTreeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+
+            searchRow
+
+            Divider()
+
             List {
                 showAllRow
 
@@ -90,6 +99,9 @@ struct SmartListTreeView: View {
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
             .background(Color.clear)
+            // Visual-only: the Smartlists are replaced by the title search
+            // while it is active.
+            .opacity(isSearchActive ? 0.45 : 1.0)
 
             Divider()
 
@@ -234,6 +246,51 @@ struct SmartListTreeView: View {
         return "\"\(node.name)\" and everything inside it will be deleted — \(affected.count) smartlist(s):\n\n\(list)\n\nThis can't be undone."
     }
 
+    // MARK: - Title Search
+
+    private var isSearchActive: Bool {
+        TrackTitleSearch.mode(for: searchText) != .inactive
+    }
+
+    private var searchRow: some View {
+
+        HStack(spacing: 6) {
+
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(
+                    isSearchActive
+                    ? Color.accentColor
+                    : Color.secondary
+                )
+
+            TextField("Title", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
+                .onExitCommand {
+                    searchText = ""
+                }
+                .help(
+                    "One letter: titles starting with it. "
+                    + "Two or more: titles containing the text. "
+                    + "Replaces the Smartlist while active."
+                )
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+    }
+
+
     // MARK: - Show All
 
     private var showAllRow: some View {
@@ -258,6 +315,7 @@ struct SmartListTreeView: View {
         .simultaneousGesture(
             TapGesture(count: 2)
                 .onEnded {
+                    searchText = ""
                     selection = .showAll
                 }
         )
@@ -380,6 +438,7 @@ struct SmartListTreeView: View {
                             expandedFolderIDs.insert(node.id)
                         }
                     } else {
+                        searchText = ""
                         selection = .node(node)
                     }
                 }

@@ -51,6 +51,13 @@ struct SmartListFilteredLibraryView:
     let danceFilter:
         TandaDanceFilter
 
+    /// Title search from the Smartlist column's search field. While it is
+    /// active (`TrackTitleSearch.mode(for:) != .inactive`) it REPLACES the
+    /// Smartlist selection and the A/T/V/M/X filter: it searches the whole
+    /// TrackLibrary. Only the same-title mode still takes precedence.
+    let searchText:
+        String
+
     /// Row selection of the table. Owned by ContentView, so the library
     /// header (the "?" button) can tell which tracks are selected. Declared
     /// before `onAddFiles` so that closure stays the trailing argument.
@@ -478,6 +485,14 @@ struct SmartListFilteredLibraryView:
             return libraryStore.songs.filter {
                 SameTitleFinder.titleKey(of: $0) == wantedKey
             }
+        }
+
+        // The title search replaces Smartlist and dance filter.
+        if TrackTitleSearch.mode(for: searchText) != .inactive {
+            return TrackTitleSearch.filter(
+                libraryStore.songs,
+                query: searchText
+            )
         }
 
         switch selection {

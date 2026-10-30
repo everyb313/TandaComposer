@@ -1,5 +1,27 @@
 ## Changelog
 
+## Version 0.8.5 (Build 8) — 2026-10-30
+
+### Added
+- **Title search** in the TrackLibrary: a search field with a magnifier icon at the top of the Smartlist column, directly above “Show All”.
+- One typed letter finds the titles that **start with** it; two or more letters find the titles that **contain** the text.
+- The search looks at the title only. Case, accents and surrounding spaces are ignored (“a” also finds “Ángel”).
+- A ✕ button in the field and the Escape key clear the search.
+
+### Changed
+- While a search is active it **replaces the Smartlist**: the track list shows the matches from the whole TrackLibrary, and the Smartlist column is dimmed. The header label shows “Title search” instead of the Smartlist name.
+- The A/T/V/M/X filter buttons are greyed out and not applied while a search is active (they will be combined with the search later).
+- Double-clicking “Show All” or a Smartlist clears the search.
+- Switching the TrackLibrary clears the search.
+- The same-title filter still takes precedence over everything else.
+
+### Internal
+- The library store no longer filters. `LibraryStore.songs` and its lookup caches (`songsByID`, `songsByNormalizedPath`) always cover the whole TrackLibrary, so Rescans, Duplicate Finder, imports, Clean Up Missing Links and Save Library are never affected by a search. All display filters are applied by the views.
+- The search rules live in the new `TrackTitleSearch` (with its own test suite). The old five-field store search was removed.
+
+### Unchanged
+- Smartlists, the A/T/V/M/X filter and the same-title filter work as before when no search is active.
+
 ## Version 0.8.4 (Build 8) — 2026-10-29
 
 ### Fixed

@@ -148,33 +148,29 @@ final class LibraryStoreSwitchingTests: XCTestCase {
         }
     }
 
-    func testLoadingALibraryClearsTheSearchFilter() throws {
+    func testLoadingALibraryShowsAllItsSongs() throws {
         try withTemporaryAppRoot { _ in
             let (store, manager) = try makeStore()
             try store.newLibrary(named: "A")
             try insert(makeSong(path: "/Music/a.flac", title: "From A", artist: "X"), into: manager)
             try store.newLibrary(named: "B")
-            store.searchText = "something"
 
             try store.loadInternalLibrary(named: "A")
 
-            XCTAssertEqual(store.searchText, "")
             XCTAssertEqual(store.songs.count, 1)
         }
     }
 
-    func testClearLibraryRemovesAllSongsAndTheFilter() throws {
+    func testClearLibraryRemovesAllSongs() throws {
         try withTemporaryAppRoot { _ in
             let (store, manager) = try makeStore()
             try insert(makeSong(path: "/Music/1.flac", title: "One", artist: "A"), into: manager)
             try insert(makeSong(path: "/Music/2.flac", title: "Two", artist: "B"), into: manager)
             try store.reload()
-            store.searchText = "one"
 
             try store.clearLibrary()
 
             XCTAssertTrue(store.songs.isEmpty)
-            XCTAssertEqual(store.searchText, "")
             XCTAssertTrue(store.songsByID.isEmpty)
             XCTAssertEqual(try songCount(manager), 0)
         }

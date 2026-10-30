@@ -22,7 +22,11 @@ import Foundation
 import GRDB
 import Combine
 
-/// Holds the full imported library plus a search-filtered view of it.
+/// Holds the full imported library. `songs` is ALWAYS the whole Library:
+/// display filters (Smartlist, A/T/V/M/X, same-title, title search) are
+/// applied by the views on top of it, never here — everything that looks
+/// tracks up in `songs` / `songsByID` / `songsByNormalizedPath` relies on
+/// that.
 @MainActor
 public final class LibraryStore: ObservableObject {
 
@@ -62,12 +66,6 @@ public final class LibraryStore: ObservableObject {
         songsByNormalizedPath = byPath
     }
 
-    @Published public var searchText: String = "" {
-        didSet {
-            applyFilter()
-        }
-    }
-
     @Published public private(set) var currentLibraryName: String = "Library"
 
     public private(set) var currentLibraryPath: String = ""
@@ -105,7 +103,7 @@ public final class LibraryStore: ObservableObject {
             try Song.order(Column("artist")).fetchAll(db)
         }
 
-        applyFilter()
+        songs = allSongs
         refreshInternalLibraryNames()
         refreshMissingSongIDs()
     }
@@ -363,7 +361,6 @@ public final class LibraryStore: ObservableObject {
 
         allSongs = []
         songs = []
-        searchText = ""
         missingSongIDs = []
     }
 
@@ -742,9 +739,7 @@ public final class LibraryStore: ObservableObject {
             try Song.order(Column("artist")).fetchAll(db)
         }
 
-        searchText = ""
-
-        applyFilter()
+        songs = allSongs
         refreshInternalLibraryNames()
         refreshMissingSongIDs()
     }
@@ -755,33 +750,6 @@ public final class LibraryStore: ObservableObject {
 
         internalLibraryNames =
             (try? AppPaths.internalLibraryNames()) ?? []
-    }
-
-    // MARK: - Filter
-
-    private func applyFilter() {
-
-        guard !searchText.isEmpty else {
-            songs = allSongs
-            return
-        }
-
-        let needle = searchText.lowercased()
-
-        songs = allSongs.filter { song in
-
-            [
-                song.title,
-                song.artist,
-                song.album,
-                song.genre,
-                song.filename
-            ]
-            .compactMap { $0 }
-            .contains {
-                $0.lowercased().contains(needle)
-            }
-        }
     }
 
     // MARK: - Missing Files

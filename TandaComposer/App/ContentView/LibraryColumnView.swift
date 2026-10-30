@@ -12,6 +12,10 @@ struct LibraryColumnView<Content: View>: View {
     @Binding var tandaFolderSelection: TandaFolderSelection
     @Binding var tandaDanceFilter: TandaDanceFilter
     @Binding var trackDanceFilter: TandaDanceFilter
+
+    /// True while the TrackLibrary title search is active. It replaces
+    /// the Smartlist and the A/T/V/M/X filter, so the buttons are greyed out.
+    let trackSearchActive: Bool
     @Binding var libraryDisplayMode: LibraryDisplayMode
     @Binding var showingModeHelp: Bool
     @Binding var savedSetlistDuplicateCheckEnabled: Bool
@@ -32,6 +36,7 @@ struct LibraryColumnView<Content: View>: View {
         tandaFolderSelection: Binding<TandaFolderSelection>,
         tandaDanceFilter: Binding<TandaDanceFilter>,
         trackDanceFilter: Binding<TandaDanceFilter>,
+        trackSearchActive: Bool,
         libraryDisplayMode: Binding<LibraryDisplayMode>,
         showingModeHelp: Binding<Bool>,
         savedSetlistDuplicateCheckEnabled: Binding<Bool>,
@@ -45,6 +50,7 @@ struct LibraryColumnView<Content: View>: View {
         self._tandaFolderSelection = tandaFolderSelection
         self._tandaDanceFilter = tandaDanceFilter
         self._trackDanceFilter = trackDanceFilter
+        self.trackSearchActive = trackSearchActive
         self._libraryDisplayMode = libraryDisplayMode
         self._showingModeHelp = showingModeHelp
         self._savedSetlistDuplicateCheckEnabled = savedSetlistDuplicateCheckEnabled
@@ -177,7 +183,7 @@ struct LibraryColumnView<Content: View>: View {
                     // Status-only indicator: the Setlist's "?" button
                     // controls this filter. There is no separate TrackView button.
                     if sameTitleSession.trackViewFilterSong != nil {
-                        Image(systemName: "questionmark.circle.fill")
+                        Image(systemName: "magnifyingglass")
                             .font(.system(size: 16))
                             .foregroundStyle(Color.orange)
                             .help("Same-title filter is active")
@@ -300,7 +306,9 @@ struct LibraryColumnView<Content: View>: View {
                             .help(
                                 trackDanceFilterButtonsShouldShow
                                 ? filter.helpText
-                                : "Disabled while a Smartlist with a defined genre is active"
+                                : (trackSearchActive
+                                   ? "Disabled while a title search is active"
+                                   : "Disabled while a Smartlist with a defined genre is active")
                             )
                         }
                     }
@@ -510,6 +518,13 @@ struct LibraryColumnView<Content: View>: View {
 
         case .tracks:
 
+            // The title search replaces the Smartlist while it is active,
+            // so the Smartlist's name must not be shown as the filter.
+            if trackSearchActive,
+               sameTitleSession.trackViewFilterSong == nil {
+                return "Title search"
+            }
+
             if case .node(let node) =
                 smartSelection {
 
@@ -557,6 +572,12 @@ struct LibraryColumnView<Content: View>: View {
 
         // The same-title filter is the only active TrackView filter while on.
         guard sameTitleSession.trackViewFilterSong == nil else {
+            return false
+        }
+
+        // The title search replaces the Smartlist and this filter while
+        // it is active.
+        guard !trackSearchActive else {
             return false
         }
 

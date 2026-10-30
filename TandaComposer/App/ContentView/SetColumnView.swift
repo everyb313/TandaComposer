@@ -87,8 +87,11 @@ struct SetColumnView<Content: View>: View {
                 } label: {
                     Image(
                         systemName: sameTitleSession.trackViewFilterSong != nil
-                            ? "questionmark.circle.fill"
-                            : "questionmark.circle"
+ //                           ? "questionmark.circle.fill"
+ //                           : "questionmark.circle"
+                              ? "magnifyingglass"
+                              : "magnifyingglass"
+                            
                     )
                     .font(.system(size: 18))
                     // Inactive is always gray; active uses the accent color.
