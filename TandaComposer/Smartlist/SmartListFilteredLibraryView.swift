@@ -45,16 +45,15 @@ struct SmartListFilteredLibraryView:
     let selection:
         SmartlistSelection
 
-    /// Local A/T/V/M/X filter from the TrackLibrary header. It is used
-    /// only when `selection` is `.showAll`; an active Smartlist always
-    /// takes precedence and is the sole TrackLibrary filter.
+    /// Local A/T/V/M/X filter from the TrackLibrary header. It is applied
+    /// to Show All, to title-search results, and to Smartlists without a
+    /// single defined dance genre in their name.
     let danceFilter:
         TandaDanceFilter
 
-    /// Title search from the Smartlist column's search field. While it is
-    /// active (`TrackTitleSearch.mode(for:) != .inactive`) it REPLACES the
-    /// Smartlist selection and the A/T/V/M/X filter: it searches the whole
-    /// TrackLibrary. Only the same-title mode still takes precedence.
+    /// Title search from the Smartlist column's search field. While active,
+    /// it replaces the Smartlist rule set; A/T/V/M/X is applied to its
+    /// results. Same-title mode still takes precedence.
     let searchText:
         String
 
@@ -487,12 +486,16 @@ struct SmartListFilteredLibraryView:
             }
         }
 
-        // The title search replaces Smartlist and dance filter.
+        // The title search replaces the Smartlist rule set. The A/T/V/M/X
+        // selection is then applied to the filtered TrackView result.
         if TrackTitleSearch.mode(for: searchText) != .inactive {
-            return TrackTitleSearch.filter(
-                libraryStore.songs,
-                query: searchText
-            )
+            let searchResults =
+                TrackTitleSearch.filter(
+                    libraryStore.songs,
+                    query: searchText
+                )
+
+            return filterByDanceType(searchResults)
         }
 
         switch selection {

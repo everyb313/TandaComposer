@@ -339,4 +339,200 @@ final class TandaStoreRescanTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - Several renames in one scan
+    //
+    // Regression (0.8.4): every Tanda used to be checked against the disk
+    // alone. With a gap in the numbering (..._4, [gap], ..._6, ..._7, ..._8)
+    // ALL of them were offered the same new name (..._5); applying that
+    // would have written them to one file and deleted the originals.
+
+    private let baseName = "Alpha Trio_Tango_Singer X"
+
+    /// Index 1 is the plain name, 2 and up carry the suffix `_<index>`.
+    private func numberedName(_ index: Int) -> String {
+        index == 1 ? baseName : "\(baseName)_\(index)"
+    }
+
+    /// The songs of numbered Tanda `index`: ids index*10+1 ... index*10+3.
+    /// All have the same orchestra/singer/genre, so every Tanda resolves to
+    /// the same base name, but each holds different songs.
+    private func songsOfTanda(_ index: Int) -> [Song] {
+        (1...3).map { tandaSong(Int64(index * 10 + $0)) }
+    }
+
+    private func liveSongs(_ indices: [Int]) -> [Song] {
+        indices.flatMap { songsOfTanda($0) }
+    }
+
+    /// Writes the numbered Tandas into the canonical folder of their songs.
+    @discardableResult
+    private func writeNumberedTandas(
+        _ indices: [Int],
+        settings: AppSettings
+    ) throws -> [Int: URL] {
+        var urls: [Int: URL] = [:]
+        for index in indices {
+            let songs = songsOfTanda(index)
+            let folder = TandaSaver.resolvedLocation(for: songs, settings: settings).folder
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let url = folder
+                .appendingPathComponent(numberedName(index))
+                .appendingPathExtension("json")
+            try TandaMetadataExporter.export(
+                songs: songs,
+                tandaName: numberedName(index),
+                to: url,
+                comment: nil,
+                savedAgainstLibraryName: "Default"
+            )
+            urls[index] = url
+        }
+        return urls
+    }
+
+    /// The file of numbered Tanda `index` inside `folder`.
+    private func tandaFile(_ index: Int, in folder: URL) -> URL {
+        folder
+            .appendingPathComponent(numberedName(index))
+            .appendingPathExtension("json")
+    }
+
+    /// Old Tanda name -> new name, for every fix that renames.
+    private func renames(_ fixes: [TandaRescanFix]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: fixes.compactMap { fix in
+            fix.rename.map { (fix.tanda.name, $0.newName) }
+        })
+    }
+
+    func testACompleteNumberingNeedsNothing() throws {
+        try withTemporaryAppRoot { _ in
+            let settings = AppSettings()
+            let indices = [1, 2, 3, 4, 5]
+            try writeNumberedTandas(indices, settings: settings)
+            let store = TandaStore()
+
+            XCTAssertTrue(preview(store, live: liveSongs(indices), settings: settings).isEmpty)
+        }
+    }
+
+    func testSeveralRenamesInOneScanGetDifferentNames() throws {
+        try withTemporaryAppRoot { _ in
+            let settings = AppSettings()
+            let indices = [1, 2, 3, 4, 6, 7, 8]                 // gap at 5
+            try writeNumberedTandas(indices, settings: settings)
+            let store = TandaStore()
+
+            let fixes = preview(store, live: liveSongs(indices), settings: settings)
+
+            let targets = fixes.compactMap { $0.rename?.newURL.standardizedFileURL.path }
+            XCTAssertEqual(targets.count, 3)
+            XCTAssertEqual(Set(targets).count, 3, "no two Tandas may be sent to the same file")
+            XCTAssertEqual(renames(fixes), [
+                numberedName(6): numberedName(5),
+                numberedName(7): numberedName(6),
+                numberedName(8): numberedName(7)
+            ])
+        }
+    }
+
+    func testApplyingTheRenamesKeepsEveryTandasSongs() throws {
+        try withTemporaryAppRoot { _ in
+            let settings = AppSettings()
+            let indices = [1, 2, 3, 4, 6, 7, 8]
+            let urls = try writeNumberedTandas(indices, settings: settings)
+            let folder = try XCTUnwrap(urls[1]).deletingLastPathComponent()
+            let store = TandaStore()
+
+            let summary = store.applyRescan(preview(store, live: liveSongs(indices), settings: settings))
+
+            XCTAssertEqual(summary.renamedTandaCount, 3)
+            XCTAssertTrue(summary.failedWrites.isEmpty)
+
+            // 6 -> 5, 7 -> 6, 8 -> 7: each file holds the songs of the Tanda that moved into it.
+            for (newIndex, oldIndex) in [(5, 6), (6, 7), (7, 8)] {
+                let stored = try TandaMetadataExporter.load(from: tandaFile(newIndex, in: folder))
+                XCTAssertEqual(stored.tandaName, numberedName(newIndex))
+                XCTAssertEqual(stored.songs.map(\.id), songsOfTanda(oldIndex).map(\.id))
+            }
+            XCTAssertFalse(exists(tandaFile(8, in: folder)), "the last file is gone, its Tanda moved to _7")
+            for index in [1, 2, 3, 4] {
+                XCTAssertTrue(exists(tandaFile(index, in: folder)))
+            }
+            XCTAssertEqual(store.tandas.count, 7, "no Tanda was lost")
+        }
+    }
+
+    func testTheNumberingIsStableAfterApplying() throws {
+        try withTemporaryAppRoot { _ in
+            let settings = AppSettings()
+            let indices = [1, 2, 3, 4, 6, 7, 8]
+            try writeNumberedTandas(indices, settings: settings)
+            let store = TandaStore()
+            let live = liveSongs(indices)
+
+            store.applyRescan(preview(store, live: live, settings: settings))
+
+            XCTAssertTrue(preview(store, live: live, settings: settings).isEmpty)
+            XCTAssertTrue(preview(TandaStore(), live: live, settings: settings).isEmpty)
+        }
+    }
+
+    func testGapsAreClosedInNumericOrderNotAlphabetically() throws {
+        try withTemporaryAppRoot { _ in
+            let settings = AppSettings()
+            let indices = [1, 2, 3, 4, 6, 10]                   // "_10" sorts before "_2" as text
+            let urls = try writeNumberedTandas(indices, settings: settings)
+            let folder = try XCTUnwrap(urls[1]).deletingLastPathComponent()
+            let store = TandaStore()
+
+            let fixes = preview(store, live: liveSongs(indices), settings: settings)
+
+            XCTAssertEqual(renames(fixes), [
+                numberedName(6): numberedName(5),
+                numberedName(10): numberedName(6)
+            ])
+
+            // _10 moves into the slot that _6 is leaving, so _6 must be applied first.
+            let summary = store.applyRescan(fixes)
+
+            XCTAssertEqual(summary.renamedTandaCount, 2)
+            XCTAssertTrue(summary.failedWrites.isEmpty)
+            XCTAssertEqual(try TandaMetadataExporter.load(from: tandaFile(5, in: folder)).songs.map(\.id), songsOfTanda(6).map(\.id))
+            XCTAssertEqual(try TandaMetadataExporter.load(from: tandaFile(6, in: folder)).songs.map(\.id), songsOfTanda(10).map(\.id))
+            XCTAssertFalse(exists(tandaFile(10, in: folder)))
+        }
+    }
+
+    func testApplyNeverOverwritesAFileThatAppearedAfterThePreview() throws {
+        try withTemporaryAppRoot { _ in
+            let settings = AppSettings()
+            let indices = [1, 2, 3, 4, 6]
+            let urls = try writeNumberedTandas(indices, settings: settings)
+            let store = TandaStore()
+            let fixes = preview(store, live: liveSongs(indices), settings: settings)
+            XCTAssertEqual(renames(fixes), [numberedName(6): numberedName(5)])
+
+            // Another Tanda shows up at the planned target before "Apply Fixes".
+            let target = try XCTUnwrap(fixes.first?.rename?.newURL)
+            let foreign = songsOfTanda(9)
+            try TandaMetadataExporter.export(
+                songs: foreign,
+                tandaName: numberedName(5),
+                to: target,
+                comment: nil,
+                savedAgainstLibraryName: "Default"
+            )
+            let oldURL = try XCTUnwrap(urls[6])
+
+            let summary = store.applyRescan(fixes)
+
+            XCTAssertEqual(summary.failedWrites.count, 1)
+            XCTAssertEqual(summary.renamedTandaCount, 0)
+            XCTAssertEqual(try TandaMetadataExporter.load(from: target).songs.map(\.id), foreign.map(\.id), "the other file is untouched")
+            XCTAssertTrue(exists(oldURL), "the Tanda that could not move is still there")
+            let stillThere = store.tandas.first { $0.name == numberedName(6) }
+            XCTAssertEqual(stillThere?.songs.map(\.id), songsOfTanda(6).map(\.id))
+        }
+    }
 }

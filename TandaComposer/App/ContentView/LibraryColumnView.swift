@@ -205,18 +205,19 @@ struct LibraryColumnView<Content: View>: View {
                 if let label =
                     activeLibraryFilterLabel {
 
-                    Text(
-                        label
-                    )
-                    .font(
-                        .title3
-                    )
-                    .foregroundStyle(
-                        .secondary
-                    )
-                    .lineLimit(
-                        1
-                    )
+                    HStack(spacing: 6) {
+
+                        if label == "Title search" {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color.orange)
+                        }
+
+                        Text(label)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
 
 
@@ -518,10 +519,14 @@ struct LibraryColumnView<Content: View>: View {
 
         case .tracks:
 
-            // The title search replaces the Smartlist while it is active,
-            // so the Smartlist's name must not be shown as the filter.
-            if trackSearchActive,
-               sameTitleSession.trackViewFilterSong == nil {
+            // Same-title mode takes precedence over the previous Smartlist
+            // selection. Do not leave the stale Smartlist name in the header.
+            if sameTitleSession.trackViewFilterSong != nil {
+                return "Same title"
+            }
+
+            // The title search replaces the Smartlist while it is active.
+            if trackSearchActive {
                 return "Title search"
             }
 
@@ -575,10 +580,10 @@ struct LibraryColumnView<Content: View>: View {
             return false
         }
 
-        // The title search replaces the Smartlist and this filter while
-        // it is active.
-        guard !trackSearchActive else {
-            return false
+        // During a title search the search result becomes the TrackView
+        // input, and the A/T/V/M/X filter can be applied on top of it.
+        if trackSearchActive {
+            return true
         }
 
         guard case .node(let node) = smartSelection else {

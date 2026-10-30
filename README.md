@@ -24,7 +24,8 @@ It is designed for DJs and dancers who want to prepare Setlists from their own m
 - Filter tracks by dance type
 - Create Smartlists to find tracks matching specific criteria
 - Preview tracks while preparing a Setlist
-- Find other recordings of a track: all tracks with the same title in one window
+- Find other recordings of a Setlist track with the Same-Name filter in the existing Track Library view
+- Search the Track Library by title from the Smartlists pane, then narrow the results with A / T / V / M / X
 - See how Tandas in your Setlist are distributed across orchestras
 - Save and export Setlists
 - Share your Tandas: export them as one text or M3U8 file per Tanda in a ZIP, and import such a ZIP into another TrackLibrary (experimental)
@@ -54,9 +55,15 @@ Before building Setlists, you add the folders containing your music to the Track
 
 TandaComposer scans these folders and creates its own Library information for the tracks it finds. The Library keeps track of the music files and their locations; the audio files themselves are not copied into the Library.
 
-### Find other versions of a track
+### Find other versions of a Setlist track
 
-Select one or more tracks in the Track Library and click **?** in the Library header. The *Same Title* window lists every track of the Library with the same title, in blocks styled like Tandas. Titles have to match exactly, ignoring upper and lower case, accents and extra spaces. Your selected track comes first, the others follow by year, orchestra and singer. Rows can be selected in the window; that selection is separate from the Track Library. The **i** button next to **?** explains the Library modes (also under Help → How the Library Modes Work…).
+Select or focus a track in the Setlist and click its **?** button. The existing Track Library view is filtered to show tracks with the same title; no separate window opens. The filter ignores case, accents and extra spaces. Moving the focus to another Setlist track updates the filter. Click **?** again to turn it off. Choose a result and add it to the Setlist using the normal Track Library insertion action; this adds a track and does not replace the focused Setlist track.
+
+### Search track titles
+
+Use the title search field above **Show All** in the Smartlists pane. One character finds titles starting with that character; two or more characters find titles containing the entered text. The search ignores case, accents and character width, and trims leading / trailing spaces. While active, it searches the whole Track Library and replaces the selected Smartlist as the source of the displayed tracks. The Track Library header shows an orange magnifying-glass icon before **Title search**.
+
+The **A / T / V / M / X** quick filters remain available during title search and are applied to the search results. Clear the search with the **×** button or **Escape** to return to the previous Smartlist / Library selection. The title search is a display filter only; it does not modify Library data or affect Setlist and Tanda lookups.
 
 ### Your music files stay untouched — except for Edit Tags
 
@@ -107,6 +114,8 @@ Smartlists allow you to narrow down the tracks or Tandas displayed in a Library.
 For example, a Track Smartlist can be used to show only tracks by a particular orchestra, or to combine criteria such as orchestra and singer.
 
 Smartlists are especially useful when working with a large music collection.
+
+The title search field above **Show All** in the Smartlists pane is a quick alternative to selecting a Smartlist. While a search is active, it replaces the Smartlist filter and searches the full Track Library by title. The A / T / V / M / X filters can then be applied to the matching tracks.
 
 ## Project structure
 
