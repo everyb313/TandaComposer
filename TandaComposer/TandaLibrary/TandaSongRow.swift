@@ -93,7 +93,7 @@ struct TandaSongRow:
 
     // MARK: - Status Indicator
     //
-    // Mirrors LibraryTableView/SetlistView's Status column: red
+    // Mirrors LibraryTableView/SetlistView's Status column: orange
     // octagon for a file the Library couldn't find on disk at last
     // rescan, blue question mark for a song this Tanda references that
     // isn't in the current Library at all, nothing for a song that
@@ -114,7 +114,7 @@ struct TandaSongRow:
                         "octagon.fill"
                 )
                 .foregroundStyle(
-                    Color.red
+                    Color.orange
                 )
                 .help(
                     "File not found on disk"

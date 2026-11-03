@@ -93,7 +93,7 @@ enum LibraryTableCells {
                     )
 
                 imageView.contentTintColor =
-                    .systemRed
+                    .systemOrange
 
                 imageView.toolTip =
                     "File not found on disk"

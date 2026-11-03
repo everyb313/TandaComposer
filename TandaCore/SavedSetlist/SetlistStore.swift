@@ -92,7 +92,7 @@ public final class SetlistStore: ObservableObject {
     /// (`songs.append(...)`, `songs.remove(at:)`, etc.), which meant
     /// EVERY mutation rebuilt every entry from scratch via
     /// `SetlistEntry(song:)` — silently resetting every other entry's
-    /// `.status` back to `.resolved` (losing its red/blue dot) and
+    /// `.status` back to `.resolved` (losing its orange/blue dot) and
     /// handing it a brand-new `id`, not just the ones actually being
     /// added/moved/removed. A `move()` alone was enough to wipe every
     /// dot in the Setlist.

@@ -396,6 +396,16 @@ struct ContentView: View {
         }
 
 
+        // The Preview Player found a file missing when the user tried to
+        // play it: show the orange dot at once instead of waiting for
+        // the next Library check (restart, drive mount, rescan).
+        .onAppear {
+            previewPlayer.onFileMissing = { song in
+                libraryStore.noteFileMissing(for: song)
+            }
+        }
+
+
         // =============================================================
         // IMPORT
         // =============================================================

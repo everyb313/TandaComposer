@@ -158,10 +158,10 @@ enum SongSortComparator {
 
         case "Status":
 
-            // Missing (red) sorts first ascending — that's the
+            // Missing (orange) sorts first ascending — that's the
             // whole point of sorting by this column: group the
             // tracks a cleanup pass would care about together
-            // instead of hunting for red dots one screen at a
+            // instead of hunting for orange dots one screen at a
             // time. Not-in-library isn't a state LibraryTableView
             // itself can produce (every row here BY DEFINITION
             // came from the Library), so this is effectively a

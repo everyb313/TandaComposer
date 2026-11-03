@@ -28,34 +28,92 @@ enum SmartlistActions {
     ) {
 
         let panel =
-            NSSavePanel()
+            NSOpenPanel()
 
         panel.title =
             "Export Smartlists"
 
         panel.message =
-            "Export the complete Smartlist tree."
+            "Choose the folder in which the Smartlists folder should be created."
 
-        panel.nameFieldStringValue =
-            "Smartlists"
+        panel.prompt =
+            "Choose"
+
+        panel.canChooseFiles =
+            false
+
+        panel.canChooseDirectories =
+            true
+
+        panel.allowsMultipleSelection =
+            false
 
         panel.canCreateDirectories =
             true
 
         guard
             panel.runModal() == .OK,
-            let url = panel.url
+            let parentURL = panel.url
         else {
             return
         }
 
         do {
 
-            try store.exportAll(to: url)
+            let destinationURL =
+                nextAvailableExportURL(in: parentURL)
+
+            try store.exportAll(to: destinationURL)
+
+            let alert =
+                NSAlert()
+
+            alert.messageText =
+                "Smartlists saved"
+
+            alert.informativeText =
+                "Smartlists were saved in the folder \"\(destinationURL.lastPathComponent)\".\n\nLocation: \(destinationURL.path)"
+
+            alert.alertStyle =
+                .informational
+
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
 
         } catch {
 
             presentError(error)
+        }
+    }
+
+
+    /// Returns a unique export folder URL inside the selected parent folder.
+    /// Existing exports are left untouched.
+    private static func nextAvailableExportURL(
+        in parentURL: URL
+    ) -> URL {
+
+        let fileManager = FileManager.default
+        let baseName = "Smartlists"
+        var suffix = 1
+
+        while true {
+
+            let folderName =
+                suffix == 1
+                ? baseName
+                : "\(baseName) \(suffix)"
+
+            let candidateURL = parentURL.appendingPathComponent(
+                folderName,
+                isDirectory: true
+            )
+
+            if !fileManager.fileExists(atPath: candidateURL.path) {
+                return candidateURL
+            }
+
+            suffix += 1
         }
     }
 

@@ -124,7 +124,7 @@ struct SmartListFilteredLibraryView:
                         "\(libraryStore.missingSongIDs.count) missing"
                     )
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.orange)
                 }
 
 

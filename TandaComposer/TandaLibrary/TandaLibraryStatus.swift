@@ -81,7 +81,9 @@ enum TandaLibraryStatusResolver {
 }
 
 struct TandaLibraryTaskTrigger: Equatable {
-    let songIDs: [Int64?]
+    /// `LibraryStore.songsRevision` — changes whenever ANY song changes,
+    /// including a moved file whose id stays the same.
+    let songsRevision: Int
     let missingSongIDs: Set<Int64>
     let tandaCount: Int
 }

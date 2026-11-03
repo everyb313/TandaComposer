@@ -35,6 +35,12 @@ final class PreviewPlayer: NSObject, ObservableObject {
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var lastPlayErrorMessage: String?
+
+    /// Called when `play(song:)` finds that the file of the song is not
+    /// on disk. The app connects this to `LibraryStore.noteFileMissing`,
+    /// so the orange dot appears at once instead of at the next Library
+    /// check (restart, drive mount, rescan).
+    var onFileMissing: (@MainActor (Song) -> Void)?
     
     // MARK: - Audio
     
@@ -522,6 +528,12 @@ final class PreviewPlayer: NSObject, ObservableObject {
                         song.path
                 )
         )
+    
+        // play(url:) refuses a file that is not on disk (and clears
+        // currentSong). Tell the Library right away.
+        if !FileManager.default.fileExists(atPath: song.path) {
+            onFileMissing?(song)
+        }
     }
     
     // =============================================================

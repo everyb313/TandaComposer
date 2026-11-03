@@ -395,7 +395,7 @@ struct TandaComposerApp: App {
     //
     // Reconnecting a USB drive that holds imported music files didn't
     // update anything by itself — the TrackLibrary/Setlist/TandaLibrary
-    // "missing" (red dot) status is only ever re-checked in
+    // "missing" (orange dot) status is only ever re-checked in
     // LibraryStore.reload() (specifically refreshMissingSongIDs(),
     // which just re-runs FileManager.fileExists(atPath:) for every
     // Song already in the DB), and nothing called that when a volume

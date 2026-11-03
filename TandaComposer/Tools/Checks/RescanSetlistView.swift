@@ -380,14 +380,21 @@ struct RescanSetlistView: View {
     /// doesn't touch the Setlist or its saved file.
     private func runRescan() {
 
-        pendingFixes =
-            setlistStore.previewRescan(
-                byID: libraryStore.songsByID,
-                byPath: libraryStore.songsByNormalizedPath,
-                missingSongIDs: libraryStore.missingSongIDs
-            )
+        Task { @MainActor in
 
-        isApplied = false
+            // Look at the files NOW — the orange dots otherwise show the
+            // state of the last start-up / drive-mount check.
+            await libraryStore.refreshMissingNow()
+
+            pendingFixes =
+                setlistStore.previewRescan(
+                    byID: libraryStore.songsByID,
+                    byPath: libraryStore.songsByNormalizedPath,
+                    missingSongIDs: libraryStore.missingSongIDs
+                )
+
+            isApplied = false
+        }
     }
 
     /// Step 2 — user confirmation happens implicitly by them clicking

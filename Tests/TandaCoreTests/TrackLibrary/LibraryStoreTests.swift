@@ -323,6 +323,75 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertFalse(store.missingSongIDs.contains(presentID))
     }
 
+    func testRefreshMissingNowReflectsTheFilesWhenItReturns() async throws {
+        let dir = try makeTemporaryDirectory()
+        let file = try writeData(Data("x".utf8), in: dir, named: "a.flac")
+        let (store, manager) = try makeStore()
+        try insert(makeSong(path: file.path, title: "A", artist: "X"), into: manager)
+        try store.reload()
+
+        await store.refreshMissingNow()
+        XCTAssertTrue(store.missingSongIDs.isEmpty)
+
+        try FileManager.default.removeItem(at: file)
+        await store.refreshMissingNow()
+        XCTAssertEqual(store.missingSongIDs.count, 1, "a file that vanished while the app runs must be seen without a restart")
+
+        try Data("x".utf8).write(to: file)
+        await store.refreshMissingNow()
+        XCTAssertTrue(store.missingSongIDs.isEmpty, "a file that came back must be seen without a restart")
+    }
+
+    func testSongsRevisionChangesWhenOnlyAPathChanges() throws {
+        let (store, manager) = try makeStore()
+        var song = try insert(makeSong(path: "/Music/a.flac", title: "A", artist: "X"), into: manager)
+        try store.reload()
+        let before = store.songsRevision
+
+        // Same id, same number of songs — only the path differs (a moved file).
+        song.path = "/Music/moved/a.flac"
+        song.normalizedPath = "/music/moved/a.flac"
+        try manager.dbQueue.write { db in try song.update(db) }
+        try store.reload()
+
+        XCTAssertNotEqual(store.songsRevision, before)
+        XCTAssertEqual(store.songs.map(\.id), [song.id])
+    }
+
+    func testNoteFileMissingMarksTheSongAtOnce() async throws {
+        let dir = try makeTemporaryDirectory()
+        let file = try writeData(Data("x".utf8), in: dir, named: "a.flac")
+        let (store, manager) = try makeStore()
+        let song = try insert(makeSong(path: file.path, title: "A", artist: "X"), into: manager)
+        try store.reload()
+        await store.refreshMissingNow()
+        XCTAssertTrue(store.missingSongIDs.isEmpty)
+
+        // The file is there: a wrong report must not mark it.
+        store.noteFileMissing(for: song)
+        XCTAssertTrue(store.missingSongIDs.isEmpty)
+
+        // The Preview Player finds the file gone.
+        try FileManager.default.removeItem(at: file)
+        store.noteFileMissing(for: song)
+        XCTAssertEqual(store.missingSongIDs, [try XCTUnwrap(song.id)])
+    }
+
+    func testNoteFileMissingIgnoresAPathTheLibraryDoesNotKnow() async throws {
+        let dir = try makeTemporaryDirectory()
+        let file = try writeData(Data("x".utf8), in: dir, named: "a.flac")
+        let (store, manager) = try makeStore()
+        let song = try insert(makeSong(path: file.path, title: "A", artist: "X"), into: manager)
+        try store.reload()
+        await store.refreshMissingNow()
+
+        // A Tanda snapshot from another Library: same id, a path that is not ours.
+        let foreign = makeSong(id: song.id, path: "/Other/place.flac", title: "F", artist: "Y")
+        store.noteFileMissing(for: foreign)
+
+        XCTAssertTrue(store.missingSongIDs.isEmpty)
+    }
+
     // MARK: - Errors
 
     func testEveryLibraryStoreErrorHasADescription() {

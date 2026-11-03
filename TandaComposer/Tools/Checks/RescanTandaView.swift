@@ -409,16 +409,23 @@ struct RescanTandaView: View {
     /// doesn't touch any Tanda file on disk.
     private func runRescan() {
 
-        pendingFixes =
-            tandaStore.previewRescan(
-                byID: libraryStore.songsByID,
-                byPath: libraryStore.songsByNormalizedPath,
-                missingSongIDs: libraryStore.missingSongIDs,
-                settings: settings
-            )
+        Task { @MainActor in
 
-        isApplied = false
-        lastSummary = nil
+            // Look at the files NOW — the orange dots otherwise show the
+            // state of the last start-up / drive-mount check.
+            await libraryStore.refreshMissingNow()
+
+            pendingFixes =
+                tandaStore.previewRescan(
+                    byID: libraryStore.songsByID,
+                    byPath: libraryStore.songsByNormalizedPath,
+                    missingSongIDs: libraryStore.missingSongIDs,
+                    settings: settings
+                )
+
+            isApplied = false
+            lastSummary = nil
+        }
     }
 
     /// Step 2 — user confirmation happens implicitly by them clicking

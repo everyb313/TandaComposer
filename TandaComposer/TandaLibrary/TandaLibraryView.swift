@@ -497,7 +497,7 @@ struct TandaLibraryView:
                             "octagon.fill"
                     )
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.orange)
                     .help(
                         "File not found on disk at last TrackLibrary rescan. If the file moved, run \"Rescan TrackLibrary\", then \"Rescan TandaLibrary\" to re-link it here."
                     )
@@ -728,8 +728,8 @@ struct TandaLibraryView:
         .task(
             id:
                 TandaLibraryTaskTrigger(
-                    songIDs:
-                        libraryStore.songs.map(\.id),
+                    songsRevision:
+                        libraryStore.songsRevision,
                     missingSongIDs:
                         libraryStore.missingSongIDs,
                     tandaCount:

@@ -184,7 +184,7 @@ struct TandaBlock:
 
         // Leading Status column — same fixed width as Tracks' own
         // Status column (LibraryColumnDefaults.statusColumnWidth),
-        // rendering a red/blue dot per song (see TandaSongRow) instead
+        // rendering a orange/blue dot per song (see TandaSongRow) instead
         // of the blank spacer this used to be.
         //
         // The old "#" index column stays commented out here; re-add it
@@ -202,7 +202,7 @@ struct TandaBlock:
     // TrackLibrary — same meaning, same source data, as SetlistView's
     // Status column, plus one extra state Setlist doesn't currently
     // surface: `.notInLibrary` (blue) if this song's id isn't in the
-    // Library at all, `.fileMissing` (red) if it is but the file
+    // Library at all, `.fileMissing` (orange) if it is but the file
     // wasn't found on disk at last Library rescan, `.staleReference`
     // (orange) if the Library knows this id and it's NOT missing, but
     // its current path no longer matches what this Tanda has saved —

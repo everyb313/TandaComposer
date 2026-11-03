@@ -32,9 +32,18 @@ public final class LibraryStore: ObservableObject {
 
     @Published public private(set) var songs: [Song] = [] {
         didSet {
+            songsRevision &+= 1
             rebuildLookupCaches()
         }
     }
+
+    /// Counts every change of `songs` — including changes that keep the
+    /// ids and the number of songs but alter a path or tag (a Rescan
+    /// that moved files). Views that cache something derived from the
+    /// Library (e.g. the Tanda Library's status dots) key their refresh
+    /// on this instead of on `songs.map(\.id)`, which cannot see such
+    /// a change.
+    @Published public private(set) var songsRevision: Int = 0
 
     /// Library songs keyed by id — built once here whenever `songs`
     /// changes, instead of every consumer (Setlist/Tanda rescans, the
@@ -756,38 +765,76 @@ public final class LibraryStore: ObservableObject {
 
     private func refreshMissingSongIDs() {
 
+        Task { await refreshMissingNow() }
+    }
+
+    /// Re-checks every file the Library knows about and returns once
+    /// the result is in `missingSongIDs`. The Rescan windows for
+    /// Setlist / TandaLibrary / Saved Setlists call this before they
+    /// compute their preview: `missingSongIDs` is otherwise only
+    /// refreshed by `reload()` (start-up, drive mount, wake, Rescan
+    /// TrackLibrary), so a file that vanished or came back since then
+    /// would not be seen until the next restart.
+    public func refreshMissingNow() async {
+
         let currentSongs = allSongs
 
-        Task.detached(priority: .utility) {
+        let sweptMissing = await Task.detached(priority: .utility) {
+            Self.missingIDs(in: currentSongs)
+        }.value
 
-            let fm = FileManager.default
+        // The Library changed while the files were being checked: a
+        // newer reload() runs its own sweep.
+        guard allSongs.map(\.id) == currentSongs.map(\.id) else {
+            return
+        }
 
-            var missing = Set<Int64>()
+        if missingSongIDs != sweptMissing {
+            missingSongIDs = sweptMissing
+        }
+    }
 
-            for song in currentSongs {
+    /// The Preview Player tried to play `song` and found the file gone.
+    /// Marks the matching Library song as missing immediately (orange
+    /// dot everywhere) without waiting for the next Library check.
+    ///
+    /// Matches by PATH only: a Tanda snapshot from another Library can
+    /// carry an id that belongs to a different song here. A song whose
+    /// path the Library does not know is ignored (a stale Tanda path is
+    /// already shown as "outdated"). If the file exists after all,
+    /// nothing is marked.
+    public func noteFileMissing(for song: Song) {
 
-                guard let id = song.id else {
-                    continue
-                }
+        guard let known = songsByNormalizedPath[song.normalizedPath],
+              let id = known.id,
+              !FileManager.default.fileExists(atPath: known.path)
+        else {
+            return
+        }
 
-                if !fm.fileExists(atPath: song.path) {
-                    missing.insert(id)
-                }
+        if !missingSongIDs.contains(id) {
+            missingSongIDs.insert(id)
+        }
+    }
+
+    private nonisolated static func missingIDs(in songs: [Song]) -> Set<Int64> {
+
+        let fm = FileManager.default
+
+        var missing = Set<Int64>()
+
+        for song in songs {
+
+            guard let id = song.id else {
+                continue
             }
 
-            let sweptMissing = missing
-
-            await MainActor.run { [weak self] in
-
-                guard let self,
-                      self.allSongs.map(\.id) == currentSongs.map(\.id)
-                else {
-                    return
-                }
-
-                self.missingSongIDs = sweptMissing
+            if !fm.fileExists(atPath: song.path) {
+                missing.insert(id)
             }
         }
+
+        return missing
     }
 
     // MARK: - Path Comparison

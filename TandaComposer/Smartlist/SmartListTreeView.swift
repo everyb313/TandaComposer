@@ -242,8 +242,9 @@ struct SmartListTreeView: View {
         if affected.isEmpty {
             return "\"\(node.name)\" is empty and will be deleted. This can't be undone."
         }
-        let list = affected.map { "• \($0)" }.joined(separator: "\n")
-        return "\"\(node.name)\" and everything inside it will be deleted — \(affected.count) smartlist(s):\n\n\(list)\n\nThis can't be undone."
+        let count = affected.count
+        let itemLabel = count == 1 ? "smartlist" : "smartlists"
+        return "\(node.name) and everything inside it will be deleted, including \(count) \(itemLabel). This can't be undone."
     }
 
     // MARK: - Title Search
