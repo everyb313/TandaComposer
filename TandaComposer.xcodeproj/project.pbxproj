@@ -10,6 +10,7 @@
 		B1000000000000000000000B /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = B1000000000000000000000C /* GRDB */; };
 		CD2C16783021DEE0001CC889 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CD2C16773021DEE0001CC889 /* GRDB */; };
 		CDACF616302115B9005EBF39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDACF60F302115B9005EBF39 /* Assets.xcassets */; };
+		CDED4214309B378D00C12220 /* Images in Resources */ = {isa = PBXBuildFile; fileRef = CDED4213309B378D00C12220 /* Images */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +23,7 @@
 		CD7E0D0E30336C6100E84A2B /* GRDB.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = GRDB.txt; sourceTree = "<group>"; };
 		CD7E0D1030336D9A00E84A2B /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		CDACF60F302115B9005EBF39 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CDED4213309B378D00C12220 /* Images */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Images; path = TandaComposer/Help/Images; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -31,6 +33,28 @@
 				TandaLibrary/TandaDragPayload.swift,
 			);
 			target = B10000000000000000000003 /* TandaCoreTests */;
+		};
+		CDED4212309B373A00C12220 /* Exceptions for "TandaComposer" folder in "TandaComposer" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Help/Images/01-the-main-workspace-setlist-on-the-left-t.png",
+				"Help/Images/02-starting-point-an-empty-setlist-on-the-l.png",
+				"Help/Images/03-building-from-a-saved-setlist-select-a-g.png",
+				"Help/Images/04-building-from-the-tanda-library-drag-a-s.png",
+				"Help/Images/05-select-tracks-in-the-track-library-and-a.png",
+				"Help/Images/06-the-same-name-filter-is-on-the-magnifier.png",
+				"Help/Images/07-the-quick-type-filters-above-the-track-l.png",
+				"Help/Images/08-searching-for-ldquo-buenos-aires-rdquo-t.png",
+				"Help/Images/09-the-setlist-with-tanda-coloring-switched.png",
+				"Help/Images/10-the-tanda-library-saved-tandas-on-the-le.png",
+				"Help/Images/11-a-tanda-selected-in-the-tanda-library-bl.png",
+				"Help/Images/12-the-smartlist-editor-a-name-the-matching.png",
+				"Help/Images/13-the-same-quick-filters-above-the-tanda-l.png",
+				"Help/Images/14-tandas-by-orchestra-left-and-songs-by-ye.jpg",
+				"Help/Images/15-the-tools-menu-with-find-tracklibrary-du.png",
+				"Help/Images/16-tools-import-tandas-from-zip-orchestra-f.png",
+			);
+			target = CD68E10130210DC000899C4B /* TandaComposer */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -58,6 +82,7 @@
 		CD68E10430210DC000899C4B /* TandaComposer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				CDED4212309B373A00C12220 /* Exceptions for "TandaComposer" folder in "TandaComposer" target */,
 				CDBE45FB3021EED400732528 /* Exceptions for "TandaComposer" folder in "Copy Bundle Resources" phase from "TandaComposer" target */,
 			);
 			path = TandaComposer;
@@ -118,6 +143,7 @@
 		CD68E0F930210DC000899C4B = {
 			isa = PBXGroup;
 			children = (
+				CDED4213309B378D00C12220 /* Images */,
 				CD7E0D1030336D9A00E84A2B /* LICENSE */,
 				CD36340A303613D7005C9DF7 /* NOTICE */,
 				CD7E0D0A3033628800E84A2B /* Third-Party_Notices */,
@@ -282,6 +308,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDED4214309B378D00C12220 /* Images in Resources */,
 				CDACF616302115B9005EBF39 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

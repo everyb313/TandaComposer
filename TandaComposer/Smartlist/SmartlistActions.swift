@@ -18,6 +18,7 @@
 //
 
 import AppKit
+import UniformTypeIdentifiers
 
 enum SmartlistActions {
 
@@ -28,57 +29,63 @@ enum SmartlistActions {
     ) {
 
         let panel =
-            NSOpenPanel()
+            NSSavePanel()
 
         panel.title =
             "Export Smartlists"
 
-        panel.message =
-            "Choose the folder in which the Smartlists folder should be created."
+        panel.message = """
+            Saves the complete Smartlist tree as a ZIP file. If the \
+            name is already taken, the number is counted up \
+            (Smartlists_2.zip, …).
+            """
 
-        panel.prompt =
-            "Choose"
-
-        panel.canChooseFiles =
-            false
-
-        panel.canChooseDirectories =
-            true
-
-        panel.allowsMultipleSelection =
-            false
+        panel.allowedContentTypes =
+            [.zip]
 
         panel.canCreateDirectories =
             true
 
+        panel.isExtensionHidden =
+            false
+
+        if let folder = lastZipFolder() {
+
+            panel.directoryURL = folder
+
+            panel.nameFieldStringValue =
+                SmartlistZip.firstFreeURL(
+                    for:
+                        folder.appendingPathComponent("Smartlists.zip")
+                )
+                .lastPathComponent
+
+        } else {
+
+            panel.nameFieldStringValue =
+                "Smartlists.zip"
+        }
+
         guard
             panel.runModal() == .OK,
-            let parentURL = panel.url
+            let url = panel.url
         else {
             return
         }
 
+        // Never overwrite: a name that is already taken gets the next
+        // free number.
+        let destination =
+            SmartlistZip.firstFreeURL(for: url)
+
         do {
 
-            let destinationURL =
-                nextAvailableExportURL(in: parentURL)
+            try SmartlistZip.export(
+                copyTree: { try store.exportAll(to: $0) },
+                to: destination
+            )
 
-            try store.exportAll(to: destinationURL)
-
-            let alert =
-                NSAlert()
-
-            alert.messageText =
-                "Smartlists saved"
-
-            alert.informativeText =
-                "Smartlists were saved in the folder \"\(destinationURL.lastPathComponent)\".\n\nLocation: \(destinationURL.path)"
-
-            alert.alertStyle =
-                .informational
-
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
+            rememberZipFolder(of: destination)
 
         } catch {
 
@@ -86,35 +93,32 @@ enum SmartlistActions {
         }
     }
 
+    private static let zipFolderDefaultsKey =
+        "SmartlistZipLastFolder"
 
-    /// Returns a unique export folder URL inside the selected parent folder.
-    /// Existing exports are left untouched.
-    private static func nextAvailableExportURL(
-        in parentURL: URL
-    ) -> URL {
+    /// The folder of the last ZIP export/import, if it still exists.
+    /// Not set on the first use, so the system does not ask for access
+    /// to a folder the user never chose.
+    private static func lastZipFolder() -> URL? {
 
-        let fileManager = FileManager.default
-        let baseName = "Smartlists"
-        var suffix = 1
-
-        while true {
-
-            let folderName =
-                suffix == 1
-                ? baseName
-                : "\(baseName) \(suffix)"
-
-            let candidateURL = parentURL.appendingPathComponent(
-                folderName,
-                isDirectory: true
-            )
-
-            if !fileManager.fileExists(atPath: candidateURL.path) {
-                return candidateURL
-            }
-
-            suffix += 1
+        guard
+            let path = UserDefaults.standard.string(
+                forKey: zipFolderDefaultsKey
+            ),
+            FileManager.default.fileExists(atPath: path)
+        else {
+            return nil
         }
+
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    private static func rememberZipFolder(of url: URL) {
+
+        UserDefaults.standard.set(
+            url.deletingLastPathComponent().path,
+            forKey: zipFolderDefaultsKey
+        )
     }
 
 
@@ -137,15 +141,19 @@ enum SmartlistActions {
             "Import Smartlists"
 
         panel.message = """
-            Choose a folder of Smartlists to import.
+            Choose a ZIP file made by Export → Smartlists (ZIP)… \
+            (a folder from an older export also works).
             Its contents are copied into an internal \
-            "Imported" folder, 
+            "Imported" folder,
             which you can then sort \
             into your own structure.
             """
 
         panel.canChooseFiles =
-            false
+            true
+
+        panel.allowedContentTypes =
+            [.zip]
 
         panel.canChooseDirectories =
             true
@@ -190,7 +198,27 @@ enum SmartlistActions {
 
         do {
 
-            try store.importAll(from: url)
+            var isDirectory: ObjCBool = false
+
+            FileManager.default.fileExists(
+                atPath: url.path,
+                isDirectory: &isDirectory
+            )
+
+            if isDirectory.boolValue {
+
+                // An older export: a plain folder.
+                try store.importAll(from: url)
+
+            } else {
+
+                // The ZIP is checked before anything is replaced.
+                try SmartlistZip.importTree(from: url) {
+                    try store.importAll(from: $0)
+                }
+
+                rememberZipFolder(of: url)
+            }
 
         } catch {
 

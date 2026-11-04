@@ -29,7 +29,7 @@ struct SmartlistCommands: Commands {
 
         CommandMenu("Smartlists") {
 
-            Button("Export…") {
+            Button("Export (ZIP)…") {
 
                 SmartlistActions.exportAll(
                     store: smartlistStore
@@ -46,11 +46,11 @@ struct SmartlistCommands: Commands {
 
                 if smartlistStore.isLocked {
 
-                    Label("Import…", systemImage: "lock.fill")
+                    Label("Import (ZIP)…", systemImage: "lock.fill")
 
                 } else {
 
-                    Text("Import…")
+                    Text("Import (ZIP)…")
                 }
             }
             .disabled(smartlistStore.isLocked)

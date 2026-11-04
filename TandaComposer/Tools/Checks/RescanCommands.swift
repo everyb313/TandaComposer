@@ -95,7 +95,7 @@ struct RescanCommands: Commands {
                     
                     
                     Button(
-                        "    Smartlists…"
+                        "    Smartlists (ZIP)…"
                     ) {
                         
                         SmartlistActions.exportAll(
@@ -189,7 +189,7 @@ struct RescanCommands: Commands {
                 } label: {
                     
                     lockableLabel(
-                        "Smartlists…",
+                        "Smartlists (ZIP)…",
                         locked:
                             smartlistStore.isLocked
                     )

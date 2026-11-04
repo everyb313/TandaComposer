@@ -31,7 +31,7 @@ struct HelpWebView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
 
         let webView = WKWebView()
-
+        
         if let url = Bundle.main.url(
             forResource: resourceName,
             withExtension: "html"
