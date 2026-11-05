@@ -52,12 +52,22 @@ public struct TandaMetadataExport: Codable {
     /// property's doc comment.
     public let savedAgainstLibraryName: String?
 
+    /// Which tag field the user's "Orchestra" / "Singer" came from when
+    /// this file was last written (Settings → Tag Source): "artist",
+    /// "albumArtist" or "grouping". The raw tags in `songs` are only
+    /// meaningful together with this choice. `nil` for files written
+    /// before these fields existed (the convention is unknown then).
+    public let orchestraSource: TagSource?
+    public let singerSource: TagSource?
+
     public init(
         tandaName: String,
         songs: [Song],
         savedAt: Date = Date(),
         comment: String? = nil,
-        savedAgainstLibraryName: String? = AppPaths.currentLibraryName
+        savedAgainstLibraryName: String? = AppPaths.currentLibraryName,
+        orchestraSource: TagSource? = nil,
+        singerSource: TagSource? = nil
     ) {
         self.format = "TandaComposer Tanda"
         self.version = 1
@@ -66,6 +76,8 @@ public struct TandaMetadataExport: Codable {
         self.songs = songs
         self.comment = comment
         self.savedAgainstLibraryName = savedAgainstLibraryName
+        self.orchestraSource = orchestraSource
+        self.singerSource = singerSource
     }
 }
 
@@ -77,13 +89,21 @@ public enum TandaMetadataExporter {
     /// Exports a Tanda as a self-contained JSON file.
     ///
     /// The order of `songs` is preserved exactly as supplied.
+    ///
+    /// The header records which tag fields the user's "Orchestra" and
+    /// "Singer" came from (`orchestraSource` / `singerSource`). By default
+    /// that is the current choice from Settings (see `TandaConventions`),
+    /// so every write of a Tanda file — new save, comment, add/remove a
+    /// track, rescan — records it.
     public static func export(
         songs: [Song],
         tandaName: String,
         to fileURL: URL,
         savedAt: Date = Date(),
         comment: String? = nil,
-        savedAgainstLibraryName: String? = AppPaths.currentLibraryName
+        savedAgainstLibraryName: String? = AppPaths.currentLibraryName,
+        orchestraSource: TagSource? = TandaConventions.orchestra,
+        singerSource: TagSource? = TandaConventions.singer
     ) throws {
 
         let export =
@@ -92,7 +112,9 @@ public enum TandaMetadataExporter {
                 songs: songs,
                 savedAt: savedAt,
                 comment: comment,
-                savedAgainstLibraryName: savedAgainstLibraryName
+                savedAgainstLibraryName: savedAgainstLibraryName,
+                orchestraSource: orchestraSource,
+                singerSource: singerSource
             )
 
         let doc =
@@ -100,11 +122,13 @@ public enum TandaMetadataExporter {
                 ("format", .string(export.format)),
                 ("version", .number(String(export.version))),
                 ("tandaName", .string(export.tandaName)),
+                ("orchestraSource", .opt(export.orchestraSource?.rawValue)),
+                ("singerSource", .opt(export.singerSource?.rawValue)),
+                ("savedAgainstLibraryName", .opt(export.savedAgainstLibraryName)),
                 ("savedAt", .string(
                     SongMetadataJSON.iso8601String(export.savedAt)
                 )),
                 ("comment", .opt(export.comment)),
-                ("savedAgainstLibraryName", .opt(export.savedAgainstLibraryName)),
                 ("songs", .array(
                     export.songs.map(SongMetadataJSON.orderedValue)
                 )),

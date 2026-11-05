@@ -186,10 +186,19 @@ final class AppSettings:
     // =============================================================
 
     @Published var orchestraSource:
-        TagSource = .artist
+        TagSource = .artist {
+        didSet {
+            // Mirror for code that writes Tanda files (see TandaConventions).
+            TandaConventions.orchestra = orchestraSource
+        }
+    }
 
     @Published var singerSource:
-        TagSource = .albumArtist
+        TagSource = .albumArtist {
+        didSet {
+            TandaConventions.singer = singerSource
+        }
+    }
 
 
     // =============================================================

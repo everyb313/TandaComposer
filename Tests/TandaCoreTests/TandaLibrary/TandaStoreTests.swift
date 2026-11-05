@@ -183,6 +183,31 @@ final class TandaStoreTests: XCTestCase {
         }
     }
 
+    func testEveryWriteRecordsTheCurrentOrchestraAndSingerSource() throws {
+        let savedOrchestra = TandaConventions.orchestra
+        let savedSinger = TandaConventions.singer
+        defer {
+            TandaConventions.orchestra = savedOrchestra
+            TandaConventions.singer = savedSinger
+        }
+
+        try withTemporaryAppRoot { _ in
+            TandaConventions.orchestra = .artist
+            TandaConventions.singer = .albumArtist
+            try writeTanda("Set", songs: makeSongs(3), comment: "old")
+            let store = TandaStore()
+
+            // The user changes the convention in Settings, then edits the Tanda.
+            TandaConventions.orchestra = .grouping
+            TandaConventions.singer = .artist
+            try store.updateComment(for: try tanda("Set", in: store), to: "x")
+
+            let file = try TandaMetadataExporter.load(from: try tanda("Set", in: store).sourceURL)
+            XCTAssertEqual(file.orchestraSource, .grouping)
+            XCTAssertEqual(file.singerSource, .artist)
+        }
+    }
+
     func testUpdateCommentIsStoredInMemoryAndOnDisk() throws {
         try withTemporaryAppRoot { _ in
             try writeTanda("Set", songs: makeSongs(3), comment: "old")

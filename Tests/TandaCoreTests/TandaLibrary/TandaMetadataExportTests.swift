@@ -55,7 +55,7 @@ final class TandaMetadataExportTests: XCTestCase {
         try export(songs: [makeFullSong()], comment: "c", to: file)
         let text = try String(contentsOf: file, encoding: .utf8)
 
-        let keys = ["\"format\"", "\"version\"", "\"tandaName\"", "\"savedAt\"", "\"comment\"", "\"savedAgainstLibraryName\"", "\"songs\""]
+        let keys = ["\"format\"", "\"version\"", "\"tandaName\"", "\"orchestraSource\"", "\"singerSource\"", "\"savedAgainstLibraryName\"", "\"savedAt\"", "\"comment\"", "\"songs\""]
         let positions = try keys.map { key in
             try XCTUnwrap(text.range(of: key), "\(key) missing").lowerBound
         }
@@ -98,5 +98,86 @@ final class TandaMetadataExportTests: XCTestCase {
         XCTAssertEqual(loaded.tandaName, "Old Tanda")
         XCTAssertNil(loaded.comment)
         XCTAssertNil(loaded.savedAgainstLibraryName)
+        XCTAssertNil(loaded.orchestraSource, "a file from before the convention was recorded: unknown")
+        XCTAssertNil(loaded.singerSource)
+    }
+
+    // MARK: - Orchestra / Singer convention in the header
+
+    func testTheHeaderRecordsOrchestraAndSingerSource() throws {
+        let dir = try makeTemporaryDirectory()
+        let file = dir.appendingPathComponent("Tanda.json")
+
+        try TandaMetadataExporter.export(
+            songs: [],
+            tandaName: "Calo_Tango_Instrumental",
+            to: file,
+            savedAt: wholeSecondDate,
+            comment: "",
+            savedAgainstLibraryName: "USB_EdO",
+            orchestraSource: .artist,
+            singerSource: .albumArtist
+        )
+
+        let text = try String(contentsOf: file, encoding: .utf8)
+        XCTAssertTrue(text.contains("\"orchestraSource\" : \"artist\""), text)
+        XCTAssertTrue(text.contains("\"singerSource\" : \"albumArtist\""), text)
+
+        let loaded = try TandaMetadataExporter.load(from: file)
+        XCTAssertEqual(loaded.orchestraSource, .artist)
+        XCTAssertEqual(loaded.singerSource, .albumArtist)
+    }
+
+    func testEveryTagSourceRoundTrips() throws {
+        let dir = try makeTemporaryDirectory()
+
+        for source in TagSource.allCases {
+            let file = dir.appendingPathComponent("\(source.rawValue).json")
+
+            try TandaMetadataExporter.export(
+                songs: [], tandaName: "T", to: file,
+                orchestraSource: source, singerSource: source
+            )
+
+            let loaded = try TandaMetadataExporter.load(from: file)
+            XCTAssertEqual(loaded.orchestraSource, source)
+            XCTAssertEqual(loaded.singerSource, source)
+        }
+    }
+
+    func testAnUnknownConventionIsWrittenAsNullAndLoadsAsNil() throws {
+        let dir = try makeTemporaryDirectory()
+        let file = dir.appendingPathComponent("Tanda.json")
+
+        try TandaMetadataExporter.export(
+            songs: [], tandaName: "T", to: file,
+            orchestraSource: nil, singerSource: nil
+        )
+
+        let text = try String(contentsOf: file, encoding: .utf8)
+        XCTAssertTrue(text.contains("\"orchestraSource\" : null"), text)
+
+        let loaded = try TandaMetadataExporter.load(from: file)
+        XCTAssertNil(loaded.orchestraSource)
+        XCTAssertNil(loaded.singerSource)
+    }
+
+    func testWithoutExplicitValuesTheCurrentSettingsAreRecorded() throws {
+        let savedOrchestra = TandaConventions.orchestra
+        let savedSinger = TandaConventions.singer
+        defer {
+            TandaConventions.orchestra = savedOrchestra
+            TandaConventions.singer = savedSinger
+        }
+        TandaConventions.orchestra = .grouping
+        TandaConventions.singer = .artist
+
+        let dir = try makeTemporaryDirectory()
+        let file = dir.appendingPathComponent("Tanda.json")
+        try export(songs: [], to: file)          // the helper passes no sources
+
+        let loaded = try TandaMetadataExporter.load(from: file)
+        XCTAssertEqual(loaded.orchestraSource, .grouping)
+        XCTAssertEqual(loaded.singerSource, .artist)
     }
 }
