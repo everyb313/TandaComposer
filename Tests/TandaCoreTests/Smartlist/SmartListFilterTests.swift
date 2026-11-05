@@ -53,10 +53,17 @@ final class SmartListFilterTests: XCTestCase {
 
     private func titles(
         _ conditions: [SmartlistCondition],
-        mode: SmartlistMatchMode = .all
+        mode: SmartlistMatchMode = .all,
+        orchestraSource: TagSource = .artist,
+        singerSource: TagSource = .albumArtist
     ) -> [String?] {
         let ruleSet = SmartListRuleSet(name: "Test", matchMode: mode, conditions: conditions)
-        return SmartListFilter.apply(ruleSet, to: library).map(\.title)
+        return SmartListFilter.apply(
+            ruleSet,
+            to: library,
+            orchestraSource: orchestraSource,
+            singerSource: singerSource
+        ).map(\.title)
     }
 
     // MARK: - Empty rule set
@@ -71,18 +78,18 @@ final class SmartListFilterTests: XCTestCase {
     // MARK: - Text fields
 
     func testContainsIsCaseInsensitive() {
-        XCTAssertEqual(titles([condition(.artist, .contains, "di sarli")]), ["Poema", "Bahia Blanca"])
+        XCTAssertEqual(titles([condition(.orchestra, .contains, "di sarli")]), ["Poema", "Bahia Blanca"])
     }
 
     func testContainsIgnoresDiacriticsInBothDirections() {
-        XCTAssertEqual(titles([condition(.artist, .contains, "rodriguez")]), ["La Cumparsita"])
+        XCTAssertEqual(titles([condition(.orchestra, .contains, "rodriguez")]), ["La Cumparsita"])
         XCTAssertEqual(titles([condition(.songName, .contains, "corazon")]), ["Coraz\u{00F3}n"])
-        XCTAssertEqual(titles([condition(.artist, .contains, "Rodr\u{00ED}guez")]), ["La Cumparsita"])
+        XCTAssertEqual(titles([condition(.orchestra, .contains, "Rodr\u{00ED}guez")]), ["La Cumparsita"])
     }
 
     func testIsEqualIsCaseInsensitiveButNeedsTheWholeValue() {
         XCTAssertEqual(titles([condition(.genre, .isEqual, "tango")]), ["Poema", "La Cumparsita"])
-        XCTAssertEqual(titles([condition(.artist, .isEqual, "Carlos")]), [])
+        XCTAssertEqual(titles([condition(.orchestra, .isEqual, "Carlos")]), [])
     }
 
     func testIsNotEqual() {
@@ -94,7 +101,7 @@ final class SmartListFilterTests: XCTestCase {
 
     func testContainsNot() {
         XCTAssertEqual(
-            titles([condition(.artist, .containsNot, "Sarli")]),
+            titles([condition(.orchestra, .containsNot, "Sarli")]),
             ["La Cumparsita", "Coraz\u{00F3}n"]
         )
     }
@@ -107,23 +114,23 @@ final class SmartListFilterTests: XCTestCase {
     func testMissingTextCountsAsEmptyText() {
         // Only "Bahia Blanca" and "Corazon" have no singer.
         XCTAssertEqual(
-            titles([condition(.albumArtist, .isEqual, "")]),
+            titles([condition(.singer, .isEqual, "")]),
             ["Bahia Blanca", "Coraz\u{00F3}n"]
         )
-        XCTAssertEqual(titles([condition(.albumArtist, .contains, "rufino")]), ["Poema"])
+        XCTAssertEqual(titles([condition(.singer, .contains, "rufino")]), ["Poema"])
     }
 
     func testEveryTextFieldReadsItsOwnSongProperty() {
         XCTAssertEqual(titles([condition(.songName, .contains, "cumparsita")]), ["La Cumparsita"])
-        XCTAssertEqual(titles([condition(.artist, .contains, "alpha")]), ["Coraz\u{00F3}n"])
-        XCTAssertEqual(titles([condition(.albumArtist, .contains, "moreno")]), ["La Cumparsita"])
+        XCTAssertEqual(titles([condition(.orchestra, .contains, "alpha")]), ["Coraz\u{00F3}n"])
+        XCTAssertEqual(titles([condition(.singer, .contains, "moreno")]), ["La Cumparsita"])
         XCTAssertEqual(titles([condition(.genre, .contains, "instrumental")]), ["Bahia Blanca"])
         XCTAssertEqual(titles([condition(.grouping, .contains, "group")]), ["Coraz\u{00F3}n"])
     }
 
     func testRangeOperatorsNeverMatchTextFields() {
-        XCTAssertEqual(titles([condition(.artist, .isBetween, "A", "Z")]), [])
-        XCTAssertEqual(titles([condition(.artist, .isNotBetween, "A", "Z")]), [])
+        XCTAssertEqual(titles([condition(.orchestra, .isBetween, "A", "Z")]), [])
+        XCTAssertEqual(titles([condition(.orchestra, .isNotBetween, "A", "Z")]), [])
     }
 
     // MARK: - Year
@@ -173,7 +180,7 @@ final class SmartListFilterTests: XCTestCase {
     func testAllConditionsMustMatch() {
         XCTAssertEqual(
             titles([
-                condition(.artist, .contains, "Sarli"),
+                condition(.orchestra, .contains, "Sarli"),
                 condition(.genre, .isEqual, "Tango")
             ], mode: .all),
             ["Poema"]
@@ -183,7 +190,7 @@ final class SmartListFilterTests: XCTestCase {
     func testAnyConditionIsEnough() {
         XCTAssertEqual(
             titles([
-                condition(.artist, .contains, "Alpha"),
+                condition(.orchestra, .contains, "Alpha"),
                 condition(.year, .isEqual, "1937")
             ], mode: .any),
             ["La Cumparsita", "Coraz\u{00F3}n"]
@@ -205,6 +212,29 @@ final class SmartListFilterTests: XCTestCase {
             []
         )
     }
+
+    /// Orchestra/Singer follow TagSource (AppSettings), not fixed Artist/AlbumArtist columns.
+    func testOrchestraAndSingerRespectTagSourceRemapping() {
+        // Default library: artist = orchestra, albumArtist = singer.
+        // Swap sources → "rufino" matches orchestra; "di sarli" matches singer.
+        XCTAssertEqual(
+            titles(
+                [condition(.orchestra, .contains, "rufino")],
+                orchestraSource: .albumArtist,
+                singerSource: .artist
+            ),
+            ["Poema"]
+        )
+        XCTAssertEqual(
+            titles(
+                [condition(.singer, .contains, "di sarli")],
+                orchestraSource: .albumArtist,
+                singerSource: .artist
+            ),
+            ["Poema", "Bahia Blanca"]
+        )
+    }
+
 }
 
 // MARK: - Rule set model
@@ -224,21 +254,21 @@ final class SmartListRuleSetTests: XCTestCase {
             [.isEqual, .isNotEqual, .isBetween, .isNotBetween]
         )
         XCTAssertEqual(
-            SmartlistOperator.validOperators(for: .artist),
+            SmartlistOperator.validOperators(for: .orchestra),
             [.isEqual, .isNotEqual, .contains, .containsNot]
         )
     }
 
     func testDisplayNamesUseTheTangoVocabulary() {
-        XCTAssertEqual(SmartlistField.artist.displayName, "Orchestra")
-        XCTAssertEqual(SmartlistField.albumArtist.displayName, "Singer")
+        XCTAssertEqual(SmartlistField.orchestra.displayName, "Orchestra")
+        XCTAssertEqual(SmartlistField.singer.displayName, "Singer")
         XCTAssertEqual(SmartlistField.songName.displayName, "Title")
     }
 
     /// These raw values are stored in the Smartlist files on disk.
     func testRawValuesAreStable() {
         XCTAssertEqual(SmartlistField.allCases.map(\.rawValue),
-                       ["songName", "artist", "albumArtist", "genre", "year", "grouping"])
+                       ["songName", "orchestra", "singer", "genre", "year", "grouping"])
         XCTAssertEqual(SmartlistOperator.allCases.map(\.rawValue),
                        ["isEqual", "isNotEqual", "isBetween", "isNotBetween", "contains", "containsNot"])
         XCTAssertEqual(SmartlistMatchMode.allCases.map(\.rawValue), ["all", "any"])
@@ -249,7 +279,7 @@ final class SmartListRuleSetTests: XCTestCase {
             name: "Di Sarli 1940s",
             matchMode: .any,
             conditions: [
-                SmartlistCondition(field: .artist, op: .contains, value: "Sarli", secondValue: nil),
+                SmartlistCondition(field: .orchestra, op: .contains, value: "Sarli", secondValue: nil),
                 SmartlistCondition(field: .year, op: .isBetween, value: "1940", secondValue: "1949")
             ]
         )
@@ -276,7 +306,7 @@ final class SmartListRuleSetTests: XCTestCase {
             },
             {
               "id": "B621E1F8-C36C-495A-93FC-0C247A3E6E5F",
-              "field": "artist",
+              "field": "orchestra",
               "op": "contains",
               "value": "Sarli"
             }

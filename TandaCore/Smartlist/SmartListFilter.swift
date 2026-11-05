@@ -21,28 +21,48 @@ import Foundation
 
 /// Applies a SmartListRuleSet to an array of Song, live (no persistence — this is a read-only filter).
 ///
-/// Adjust the field accessors in `value(for:in:)` if your Song model's property names differ
-/// (assumed here: title, artist, albumArtist, genre, year).
+/// Orchestra / Singer are domain roles resolved via `TagSource` (AppSettings
+/// orchestraSource / singerSource), not fixed tag columns.
 enum SmartListFilter {
 
-    static func apply(_ ruleSet: SmartListRuleSet, to songs: [Song]) -> [Song] {
+    /// - Parameters:
+    ///   - orchestraSource: Which raw tag is Orchestra (from AppSettings).
+    ///   - singerSource: Which raw tag is Singer (from AppSettings).
+    static func apply(
+        _ ruleSet: SmartListRuleSet,
+        to songs: [Song],
+        orchestraSource: TagSource = .artist,
+        singerSource: TagSource = .albumArtist
+    ) -> [Song] {
         guard !ruleSet.conditions.isEmpty else { return songs }
         return songs.filter { song in
-            let results = ruleSet.conditions.map { evaluate($0, song: song) }
+            let results = ruleSet.conditions.map {
+                evaluate(
+                    $0,
+                    song: song,
+                    orchestraSource: orchestraSource,
+                    singerSource: singerSource
+                )
+            }
             return ruleSet.matchMode == .all ? results.allSatisfy { $0 } : results.contains(true)
         }
     }
 
-    private static func evaluate(_ condition: SmartlistCondition, song: Song) -> Bool {
+    private static func evaluate(
+        _ condition: SmartlistCondition,
+        song: Song,
+        orchestraSource: TagSource,
+        singerSource: TagSource
+    ) -> Bool {
         switch condition.field {
         case .year:
             return evaluateYear(condition, year: song.year)
         case .songName:
             return evaluateText(condition, text: song.title)
-        case .artist:
-            return evaluateText(condition, text: song.artist)
-        case .albumArtist:
-            return evaluateText(condition, text: song.albumArtist)
+        case .orchestra:
+            return evaluateText(condition, text: song.rawTagValue(for: orchestraSource))
+        case .singer:
+            return evaluateText(condition, text: song.rawTagValue(for: singerSource))
         case .genre:
             return evaluateText(condition, text: song.genre)
         case .grouping:

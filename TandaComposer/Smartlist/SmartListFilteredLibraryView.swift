@@ -41,6 +41,9 @@ struct SmartListFilteredLibraryView:
     @EnvironmentObject private var sameTitleSession:
         SameTitleSession
 
+    @EnvironmentObject private var appSettings:
+        AppSettings
+
 
     let selection:
         SmartlistSelection
@@ -516,7 +519,11 @@ struct SmartListFilteredLibraryView:
                     SmartListFilter.apply(
                         $0,
                         to:
-                            libraryStore.songs
+                            libraryStore.songs,
+                        orchestraSource:
+                            appSettings.orchestraSource,
+                        singerSource:
+                            appSettings.singerSource
                     )
 
                 } ?? libraryStore.songs

@@ -175,7 +175,7 @@ final class SmartListStoreTests: XCTestCase {
         ruleSet.matchMode = .any
         ruleSet.conditions = [
             SmartlistCondition(field: .year, op: .isBetween, value: "1930", secondValue: "1940"),
-            SmartlistCondition(field: .artist, op: .contains, value: "Alpha", secondValue: nil)
+            SmartlistCondition(field: .orchestra, op: .contains, value: "Alpha", secondValue: nil)
         ]
 
         try store.save(ruleSet, to: node)

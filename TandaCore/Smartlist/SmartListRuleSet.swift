@@ -22,8 +22,8 @@ import Foundation
 /// A single field a Smartlist condition can filter on.
 enum SmartlistField: String, Codable, CaseIterable, Identifiable {
     case songName
-    case artist
-    case albumArtist      // maps to Song.albumArtist (vocalist, in tango-tagging convention)
+    case orchestra        // domain role; filter uses Song.resolvedOrchestra / default tag mapping
+    case singer           // domain role; filter uses Song.resolvedSinger / default tag mapping
     case genre
     case year
     case grouping
@@ -33,8 +33,8 @@ enum SmartlistField: String, Codable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .songName:     return "Title"
-        case .artist:       return "Orchestra"
-        case .albumArtist:  return "Singer"
+        case .orchestra:    return "Orchestra"
+        case .singer:       return "Singer"
         case .genre:        return "Genre"
         case .year:         return "Year"
         case .grouping:     return "Grouping"
