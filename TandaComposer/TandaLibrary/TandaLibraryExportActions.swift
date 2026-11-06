@@ -212,6 +212,206 @@ enum TandaLibraryExportActions {
         alert.runModal()
     }
 
+    // MARK: - JSON ZIP (the Tandas folder as it is)
+    //
+    // Tools → Export → "TandaLibrary (JSON-ZIP)…". See
+    // TandaLibraryJSONExporter for what goes into the ZIP.
+
+    private static let jsonZipFolderKey =
+        "TandaLibraryJSONZipLastFolder"
+
+    static func exportJSONZip() {
+
+        let panel =
+            NSSavePanel()
+
+        panel.title =
+            "Export TandaLibrary (JSON ZIP)"
+
+        panel.message = """
+            Saves all your Tandas exactly as they are stored — one \
+            JSON file per Tanda in your Orchestra / Singer folders — \
+            in one ZIP file. The files contain the complete song \
+            data, including the file paths on this Mac. If the name \
+            is already taken, the number is counted up.
+            """
+
+        panel.allowedContentTypes =
+            [.zip]
+
+        panel.canCreateDirectories =
+            true
+
+        panel.isExtensionHidden =
+            false
+
+        let note =
+            NSTextField(
+                wrappingLabelWithString: """
+                    Orchestra = \(TandaConventions.orchestra.displayName), \
+                    Singer = \(TandaConventions.singer.displayName) \
+                    (from Settings). Older Tanda files that do not \
+                    record this yet get it added in the ZIP only; \
+                    your own files stay unchanged.
+                    """
+            )
+
+        note.font =
+            .systemFont(ofSize: NSFont.smallSystemFontSize)
+
+        note.textColor =
+            .secondaryLabelColor
+
+        note.preferredMaxLayoutWidth =
+            440
+
+        note.sizeToFit()
+
+        panel.accessoryView =
+            note
+
+        let defaultName =
+            defaultFileName()
+
+        if let folder = lastJSONZipFolder() {
+
+            panel.directoryURL = folder
+
+            panel.nameFieldStringValue =
+                TandaLibraryJSONExporter.firstFreeURL(
+                    for:
+                        folder
+                            .appendingPathComponent(defaultName)
+                            .appendingPathExtension("zip")
+                )
+                .lastPathComponent
+
+        } else {
+
+            panel.nameFieldStringValue =
+                defaultName + ".zip"
+        }
+
+        guard
+            panel.runModal() == .OK,
+            let selected = panel.url
+        else {
+            return
+        }
+
+        // Never overwrite: a name that is already taken gets the next
+        // free number.
+        let destination =
+            TandaLibraryJSONExporter.firstFreeURL(for: selected)
+
+        let fm = FileManager.default
+
+        let temp =
+            fm.temporaryDirectory
+                .appendingPathComponent(
+                    "TandaComposer-JSONZip-\(UUID().uuidString)",
+                    isDirectory: true
+                )
+
+        defer {
+            try? fm.removeItem(at: temp)
+        }
+
+        do {
+
+            let staging =
+                temp.appendingPathComponent("Tandas", isDirectory: true)
+
+            let summary =
+                try TandaLibraryJSONExporter.export(to: staging)
+
+            guard summary.tandaCount > 0 else {
+
+                present(
+                    title: "Nothing to export",
+                    text: "There are no Tandas in the TandaLibrary."
+                )
+
+                return
+            }
+
+            try TandaLibraryExporter.zip(
+                folder: staging,
+                to: destination
+            )
+
+            UserDefaults.standard.set(
+                destination.deletingLastPathComponent().path,
+                forKey: jsonZipFolderKey
+            )
+
+            presentJSONSummary(
+                summary,
+                fileName: destination.lastPathComponent
+            )
+
+        } catch {
+
+            present(
+                title: "Export failed",
+                text: error.localizedDescription
+            )
+        }
+    }
+
+    private static func lastJSONZipFolder() -> URL? {
+
+        guard
+            let path = UserDefaults.standard.string(
+                forKey: jsonZipFolderKey
+            ),
+            FileManager.default.fileExists(atPath: path)
+        else {
+            return nil
+        }
+
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    private static func presentJSONSummary(
+        _ summary: TandaLibraryJSONExporter.Summary,
+        fileName: String
+    ) {
+
+        var lines: [String] = [
+            "\(summary.tandaCount) Tandas in "
+                + "\(summary.folderCount) folders were saved in "
+                + "“\(fileName)”."
+        ]
+
+        if summary.stampedCount > 0 {
+            lines.append(
+                "\(summary.stampedCount) older Tanda files did not "
+                + "record the Orchestra / Singer setting yet; it was "
+                + "added in the ZIP only."
+            )
+        }
+
+        if !summary.unreadableFiles.isEmpty {
+            lines.append(
+                "Not exported (not readable as a Tanda):\n"
+                + summary.unreadableFiles.prefix(10)
+                    .map { "• \($0)" }
+                    .joined(separator: "\n")
+                + (summary.unreadableFiles.count > 10 ? "\n…" : "")
+            )
+        }
+
+        let alert = NSAlert()
+
+        alert.messageText = "TandaLibrary exported"
+        alert.informativeText = lines.joined(separator: "\n\n")
+        alert.alertStyle =
+            summary.unreadableFiles.isEmpty ? .informational : .warning
+
+        alert.runModal()
+    }
+
     private static func defaultFileName() -> String {
 
         let formatter = DateFormatter()

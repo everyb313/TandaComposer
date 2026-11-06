@@ -118,6 +118,11 @@ struct RescanCommands: Commands {
                                 settings
                         )
                     }
+                    Button(
+                        "    TandaLibrary (JSON-ZIP)…"
+                    ) {
+                        TandaLibraryExportActions.exportJSONZip()
+                    }
                 }
                 
                 Divider()

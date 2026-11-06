@@ -506,6 +506,13 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     <li>When it is done, a summary tells you how many Tandas were exported and how many tracks are not in your TrackLibrary or have a missing file.</li>
   </ul>
 
+  <p><strong>Export as JSON ZIP:</strong> <strong>Tools → Export → TandaLibrary (JSON-ZIP)…</strong></p>
+  <ul class="bullets">
+    <li>This is a <strong>complete copy for TandaComposer users</strong>: your Tanda files exactly as they are stored, in the same Orchestra / Singer folders, one JSON file per Tanda. They contain the full data of every song, <strong>including the file paths on your Mac</strong>.</li>
+    <li>Each Tanda records which tag field your Orchestra and Singer come from (<code>orchestraSource</code> and <code>singerSource</code>, set in Settings), so whoever imports it knows how to read the tags. Older Tanda files that do not record this yet get it added in the ZIP only; your own files are never changed.</li>
+    <li>If the file name is already taken, the number is counted up (<code>TandaLibrary 2026-11-05.zip</code>, <code>TandaLibrary 2026-11-05_2.zip</code>, …). An existing ZIP is never overwritten.</li>
+  </ul>
+
   <p><strong>Import:</strong> <strong>Tools → Import → Tandas from ZIP…</strong></p>
   <ul class="bullets">
     <li>Choose the ZIP. A window shows the orchestra folders on the left. Pick <strong>one folder at a time</strong>; its Tandas are then matched with your TrackLibrary.</li>
