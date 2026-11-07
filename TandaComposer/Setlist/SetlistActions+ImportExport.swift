@@ -142,6 +142,122 @@ extension SetlistActions {
     }
 
 
+    // MARK: - Export Setlist (JSON)
+
+    /// Tools → Export → "Current Setlist (JSON)…".
+    ///
+    /// Same file shape as Save Set (SetlistMetadataExporter), including
+    /// orchestraSource / singerSource / comment in the header — for
+    /// sharing with another TandaComposer user.
+    static func exportSetlistJSON(
+        setlistStore: SetlistStore
+    ) {
+
+        guard !setlistStore.songs.isEmpty else {
+
+            let alert =
+                NSAlert()
+
+            alert.messageText =
+                "Nothing to Export"
+
+            alert.informativeText =
+                "The current Setlist has no tracks."
+
+            alert.alertStyle =
+                .informational
+
+            alert.runModal()
+
+            return
+        }
+
+        let panel =
+            NSSavePanel()
+
+        panel.title =
+            "Export Setlist (JSON)"
+
+        panel.message =
+            "Export the current Setlist as a TandaComposer JSON file."
+
+        panel.nameFieldStringValue =
+            setlistStore.name + ".json"
+
+        panel.allowedContentTypes =
+            [.json]
+
+        panel.canCreateDirectories =
+            true
+
+        panel.isExtensionHidden =
+            false
+
+        guard
+            panel.runModal() == .OK,
+            let selectedURL = panel.url
+        else {
+            return
+        }
+
+        var jsonURL =
+            selectedURL
+
+        if jsonURL.pathExtension.lowercased() != "json" {
+
+            jsonURL.deletePathExtension()
+            jsonURL.appendPathExtension("json")
+        }
+
+        do {
+
+            try SetlistMetadataExporter.export(
+                songs:
+                    setlistStore.songs,
+                setlistName:
+                    setlistStore.name,
+                to:
+                    jsonURL
+            )
+
+            let alert =
+                NSAlert()
+
+            alert.messageText =
+                "Setlist Exported"
+
+            alert.informativeText =
+                "\(setlistStore.songs.count) track(s) saved in “\(jsonURL.lastPathComponent)”."
+
+            alert.alertStyle =
+                .informational
+
+            alert.addButton(
+                withTitle:
+                    "OK"
+            )
+
+            alert.addButton(
+                withTitle:
+                    "Show in Finder"
+            )
+
+            if alert.runModal() == .alertSecondButtonReturn {
+
+                NSWorkspace.shared.activateFileViewerSelecting(
+                    [jsonURL]
+                )
+            }
+
+        } catch {
+
+            presentError(
+                error
+            )
+        }
+    }
+
+
     // MARK: - Import Setlist
 
     /// Imports an external or previously-exported `.m3u8` file as a

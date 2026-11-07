@@ -95,6 +95,17 @@ struct RescanCommands: Commands {
                     
                     
                     Button(
+                        "    Current Setlist (JSON)…"
+                    ) {
+                        
+                        SetlistActions.exportSetlistJSON(
+                            setlistStore:
+                                setlistStore
+                        )
+                    }
+                    
+                    
+                    Button(
                         "    Smartlists (ZIP)…"
                     ) {
                         

@@ -395,25 +395,26 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   <p class="lead">When the Setlist is ready, save it and export it for the player you will use for the actual DJ set.</p>
 
   <ol class="steps">
-    <li><strong>Save the Setlist</strong><p>Keep the working Setlist so you can reopen it later or reuse tracks from it.</p></li>
-    <li><strong>Choose Current Setlist (M3U8)…</strong><p>Open the <strong>Tools</strong> menu, then <strong>Export</strong>, and choose <strong>Current Setlist (M3U8)…</strong>.</p></li>
-    <li><strong>Save the M3U8 playlist</strong><p>TandaComposer creates an <code>.m3u8</code> playlist referring to the actual music files.</p></li>
-    <li><strong>Open it in your player</strong><p>Use the exported playlist with a player that supports M3U8 playlists. The current workflow has been tested with <strong>Apple Music</strong>.</p></li>
+    <li><strong>Save the Setlist</strong><p>Keep the working Setlist so you can reopen it later or reuse tracks from it. The save file records which tag fields you use for Orchestra and Singer.</p></li>
+    <li><strong>For the player: Current Setlist (M3U8)…</strong><p>Open the <strong>Tools</strong> menu, then <strong>Export</strong>, and choose <strong>Current Setlist (M3U8)…</strong>. TandaComposer creates an <code>.m3u8</code> playlist referring to the actual music files.</p></li>
+    <li><strong>For another TandaComposer user: Current Setlist (JSON)…</strong><p>Same Export menu: <strong>Current Setlist (JSON)…</strong> writes a JSON file with the full track data, including Orchestra / Singer convention and file hashes.</p></li>
+    <li><strong>Open the M3U8 in your player</strong><p>Use the playlist with a player that supports M3U8. The current workflow has been tested with <strong>Apple Music</strong>.</p></li>
   </ol>
 
   <div class="callout warn">
-    <strong>The playlist does not contain the audio.</strong> The music files must remain accessible at the paths referenced by the M3U8 playlist.
+    <strong>The playlist does not contain the audio.</strong> The music files must remain accessible at the paths referenced by the M3U8 playlist. The JSON export also contains no audio.
   </div>
 
   <div class="callout"><strong>Import and export are in the Tools menu.</strong> <strong>Tools → Export</strong> and <strong>Tools → Import</strong> list everything that moves data out of or into TandaComposer: Setlists, Smartlists, your TandaLibrary for sharing, and a backup of all data. The Setlist menu itself only manages Setlists (New, Open, Delete).</div>
 
-  <div class="callout"><strong>Two ways to import a Setlist — which one?</strong> Use <strong>Setlist from M3U8 (file paths must fit)…</strong> for a playlist made on this Mac, for example one exported from TandaComposer: it works only when the file paths are found in your Track Library. Use <strong>Setlist from List or M3U8 (Pick Tracks)…</strong> for a list from another source, such as a text list from the internet or a playlist from another computer: tracks that cannot be matched automatically are offered for you to pick by hand.</div>
+  <div class="callout"><strong>Import a Setlist.</strong> Use <strong>Tools → Import → Setlist from List or M3U8…</strong> for an M3U8 playlist, a text list, or a <strong>TandaComposer Setlist JSON</strong> file. Tracks are matched against your TrackLibrary. When every track is found by exact path, a short confirmation is enough; otherwise a window opens so you can pick the right tracks by hand.</div>
 
-  <h3>Import a Setlist from an M3U8 file (experimental)</h3>
-  <p class="lead">Open the <strong>Tools</strong> menu, then <strong>Import</strong>, and choose <strong>Setlist from M3U8 (file paths must fit)…</strong> to create a new Setlist from an <code>.m3u8</code> playlist.</p>
+  <h3>Import a Setlist from a list, M3U8 or JSON (experimental)</h3>
+  <p class="lead">Open the <strong>Tools</strong> menu, then <strong>Import</strong>, and choose <strong>Setlist from List or M3U8…</strong> to create a new Setlist from an <code>.m3u8</code> playlist, a text list, or a Setlist JSON exported from TandaComposer.</p>
   <ul class="bullets">
-    <li>A track is added only if its file path is found in your Track Library. Add the music folder to the Library first.</li>
-    <li>The tracks land in a new saved Setlist named after the playlist file. An existing Setlist is not overwritten; you may be asked whether to save the Setlist you are working on first.</li>
+    <li>Tracks are matched against your TrackLibrary. Exact path matches are taken automatically; anything else can be picked by hand in a window.</li>
+    <li>For a <strong>JSON</strong> file the window shows which tag fields the sender uses for Orchestra and Singer (next to yours). Names are compared by role; file hashes find the same audio even when tags differ.</li>
+    <li>When every track is an exact path match, only a short confirmation is shown. The tracks land in a new saved Setlist named after the file (or the name stored in the JSON). An existing Setlist is not overwritten; you may be asked whether to save the Setlist you are working on first.</li>
     <li>When the import is done, a summary lists the paths that were not found in the Library and any lines that could not be read as file paths.</li>
   </ul>
 </section>
@@ -524,7 +525,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
     <strong>Imported Tandas can only be removed one by one</strong> (Delete Tanda). Make a backup first. A Tanda is "already there" only when it uses exactly the same files; the same Tanda in another file format is imported as a new Tanda.
   </div>
   <div class="callout">
-    <strong>Also in the Import menu:</strong> <strong>Setlist from List or M3U8 (Pick Tracks)…</strong> is still in development and is not described here.
+    <strong>Also in the Import menu:</strong> other import actions are described in their own sections.
   </div>
 </section>
 
@@ -553,8 +554,9 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Tanda Coloring</td><td>Palette button in the Setlist header</td></tr>
       <tr><td>Tanda statistics (orchestras, years)</td><td>Bar-chart button in the Setlist header</td></tr>
       <tr><td>Save a Setlist</td><td>Save Set</td></tr>
-      <tr><td>Export a Setlist</td><td>Tools → Export → Current Setlist (M3U8)… → <code>.m3u8</code></td></tr>
-      <tr><td>Import an M3U8 playlist (experimental)</td><td>Tools → Import → Setlist from M3U8 (file paths must fit)…</td></tr>
+      <tr><td>Export a Setlist for the player</td><td>Tools → Export → Current Setlist (M3U8)… → <code>.m3u8</code></td></tr>
+      <tr><td>Export a Setlist as JSON (share)</td><td>Tools → Export → Current Setlist (JSON)…</td></tr>
+      <tr><td>Import a Setlist (list, M3U8 or JSON)</td><td>Tools → Import → Setlist from List or M3U8…</td></tr>
       <tr><td>Share your Tandas (experimental)</td><td>Tools → Export → TandaLibrary (JSON-ZIP)…</td></tr>
       <tr><td>Import Tandas from a ZIP (experimental)</td><td>Tools → Import → Tandas from ZIP… → choose one orchestra folder → check the Tandas → Import</td></tr>
       <tr><td>Export / import Smartlists (ZIP)</td><td>Tools → Export / Import → Smartlists (ZIP)… (also in the Smartlists menu); an existing ZIP name gets the next number</td></tr>

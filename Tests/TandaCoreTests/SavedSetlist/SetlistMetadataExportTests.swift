@@ -34,6 +34,9 @@ final class SetlistMetadataExportTests: XCTestCase {
         XCTAssertEqual(loaded.setlistName, "Friday")
         XCTAssertEqual(loaded.savedAt, wholeSecondDate)
         XCTAssertEqual(loaded.savedAgainstLibraryName, "Default")
+        XCTAssertNotNil(loaded.orchestraSource)
+        XCTAssertNotNil(loaded.singerSource)
+        XCTAssertNil(loaded.comment)
         XCTAssertEqual(loaded.songs, songs)
     }
 
@@ -74,7 +77,7 @@ final class SetlistMetadataExportTests: XCTestCase {
         try export(songs: [makeFullSong()], to: file)
         let text = try String(contentsOf: file, encoding: .utf8)
 
-        let keys = ["\"format\"", "\"version\"", "\"playlistName\"", "\"savedAt\"", "\"savedAgainstLibraryName\"", "\"songs\""]
+        let keys = ["\"format\"", "\"version\"", "\"playlistName\"", "\"orchestraSource\"", "\"singerSource\"", "\"comment\"", "\"savedAt\"", "\"savedAgainstLibraryName\"", "\"songs\""]
         let positions = try keys.map { key in
             try XCTUnwrap(text.range(of: key), "\(key) missing").lowerBound
         }
@@ -132,6 +135,9 @@ final class SetlistMetadataExportTests: XCTestCase {
 
         XCTAssertEqual(loaded.setlistName, "Old Set")
         XCTAssertNil(loaded.savedAgainstLibraryName, "files from before this key existed have none")
+        XCTAssertNil(loaded.orchestraSource)
+        XCTAssertNil(loaded.singerSource)
+        XCTAssertNil(loaded.comment)
         XCTAssertEqual(loaded.songs.first?.title, "A")
         XCTAssertEqual(loaded.songs.first?.id, 5)
     }
@@ -165,4 +171,34 @@ final class SetlistMetadataExportTests: XCTestCase {
 
         XCTAssertEqual(try SetlistMetadataExporter.load(from: file).songs.count, 2)
     }
+
+    func testOrchestraAndSingerSourcesRoundTrip() throws {
+        let dir = try makeTemporaryDirectory()
+        let file = dir.appendingPathComponent("conv.json")
+
+        try SetlistMetadataExporter.export(
+            songs: [makeFullSong()],
+            setlistName: "Conv",
+            to: file,
+            savedAt: wholeSecondDate,
+            savedAgainstLibraryName: "Default",
+            orchestraSource: .albumArtist,
+            singerSource: .grouping,
+            comment: "Evening set"
+        )
+
+        let loaded = try SetlistMetadataExporter.load(from: file)
+
+        XCTAssertEqual(loaded.orchestraSource, .albumArtist)
+        XCTAssertEqual(loaded.singerSource, .grouping)
+        XCTAssertEqual(loaded.comment, "Evening set")
+
+        let text = try String(contentsOf: file, encoding: .utf8)
+        XCTAssertTrue(text.contains("orchestraSource"))
+        XCTAssertTrue(text.contains("albumArtist"))
+        XCTAssertTrue(text.contains("singerSource"))
+        XCTAssertTrue(text.contains("grouping"))
+        XCTAssertTrue(text.contains("Evening set"))
+    }
+
 }

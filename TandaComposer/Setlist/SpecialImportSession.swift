@@ -21,18 +21,19 @@
 import Foundation
 import Combine
 
-/// State of the one running "Special Import" (M3U8 with manual
-/// assignment). Shared between the Setlist menu, which starts it, and
-/// the Special Import window, which edits it.
-///
-/// The existing Setlist import is not involved: this only collects
-/// decisions and hands the adopted Library songs to `SetlistActions`.
+/// State of the one running Special Import (M3U8, text, or JSON).
+/// Shared between the Tools menu, which starts it, and the Special
+/// Import window, which edits it.
 @MainActor
 final class SpecialImportSession: ObservableObject {
 
     @Published private(set) var rows: [SpecialImportRow] = []
 
     @Published private(set) var sourceName: String = ""
+
+    /// For JSON Setlists: sender vs. own Orchestra / Singer convention.
+    /// nil for text / M3U8.
+    @Published private(set) var conventionNote: String?
 
     /// True while the rows are being computed off the main thread.
     @Published private(set) var isPreparing: Bool = false
@@ -54,6 +55,8 @@ final class SpecialImportSession: ObservableObject {
             sourceURL
                 .deletingPathExtension()
                 .lastPathComponent
+
+        conventionNote = nil
 
         generation += 1
         let token = generation
@@ -95,19 +98,20 @@ final class SpecialImportSession: ObservableObject {
 
         rows = []
         sourceName = ""
+        conventionNote = nil
     }
 
     /// Installs already computed rows (matching done outside the session).
-    /// Used when the import decides between a short confirmation and the
-    /// full Special Import window.
     func beginWithPreparedRows(
         sourceName: String,
-        rows: [SpecialImportRow]
+        rows: [SpecialImportRow],
+        conventionNote: String? = nil
     ) {
 
         generation += 1
         self.sourceName = sourceName
         self.rows = rows
+        self.conventionNote = conventionNote
         self.isPreparing = false
     }
 

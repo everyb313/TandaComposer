@@ -1,54 +1,50 @@
-## Version 0.8.6 (Build 8) — 2026-11-07
+## Version 0.8.7 — 2026-11-07
 
-### TandaLibrary share (JSON-ZIP)
+### Setlist JSON (share + save header)
+
+**Save Set**
+- Setlist JSON files now record `orchestraSource`, `singerSource`, and optional `comment` in the header (same idea as Tanda JSON).
+- Older Setlist files without these keys still load; the fields are then `nil`.
 
 **Export**
-- Live path is only **Tools → Export → TandaLibrary (JSON-ZIP)…**
-- One JSON file per Tanda, same Orchestra / Singer folders as in the TandaLibrary
-- Records `orchestraSource` / `singerSource` so the importer can match by role
-- Older Tanda files without that header get the sources added in the ZIP only; local files are not changed
-- Text/M3U8 export (`exportForSharing`) is no longer in the menu (kept as dead code for now)
+- **Tools → Export → Current Setlist (JSON)…** — full Setlist as TandaComposer JSON for another user (includes convention header and track hashes).
+- **Current Setlist (M3U8)…** unchanged for the player.
 
 **Import**
-- **Tools → Import → Tandas from ZIP…** targets JSON-ZIP exports
-- Shows the sender’s Orchestra / Singer convention next to yours
-- Matches by role (not by raw tag field) and by file hash when tags differ
-- Legacy text/M3U8 ZIPs are still accepted by the parser
-- Menu item and Import button are disabled while the Library is locked
-
-### Setlist import simplified
-
-- One menu item: **Tools → Import → Setlist from List or M3U8…**
-- Accepts M3U8/M3U or a text list
-- All tracks exact path match → short confirmation, then create Setlist
-- Otherwise → Special Import window to pick tracks by hand
-- Former **Setlist from M3U8 (file paths must fit)…** removed from the menu (`importSetlist` kept as dead code)
+- **Tools → Import → Setlist from List or M3U8…** also accepts Setlist JSON.
+- JSON tracks are mapped by Orchestra / Singer **role** from the file header; file hash is carried over.
+- Special Import window shows a short convention note (sender vs. you) for JSON files.
+- Exact path matches still get a short confirmation; otherwise the pick-tracks window opens.
 
 ### Help
+- `help_en.html` documents JSON export/import and the updated import entry.
 
-- `help_en.html` updated for JSON-ZIP only and the single Setlist import entry
+### Tests
+- `SetlistMetadataExportTests`: header field order, sources/comment round-trip, older files without sources.
+- `SetlistJSONReaderTests` (new): format check, role mapping, missing header, convention note.
 
 ### Files touched
 
 ```
-TandaComposer/Tools/Checks/RescanCommands.swift
-TandaComposer/TandaLibrary/TandaLibraryExportActions.swift
-TandaComposer/TandaLibrary/TandaImportView.swift
-TandaComposer/TandaLibrary/TandaImportSession.swift
+TandaCore/SavedSetlist/SetlistMetadataExport.swift
+TandaCore/Import/SetlistJSONReader.swift
+TandaComposer/Setlist/SetlistActions+ImportExport.swift
 TandaComposer/Setlist/SetlistActions+SpecialImport.swift
 TandaComposer/Setlist/SpecialImportSession.swift
-TandaComposer/Setlist/SetlistActions+ImportExport.swift
 TandaComposer/Setlist/SpecialImportView.swift
+TandaComposer/Tools/Checks/RescanCommands.swift
 TandaComposer/Help/help_en.html
+Tests/TandaCoreTests/SavedSetlist/SetlistMetadataExportTests.swift
+Tests/TandaCoreTests/Import/SetlistJSONReaderTests.swift
 ```
 
 ### Suggested git commit
 
 ```
-Release 0.8.6 (8): JSON-ZIP Tanda share, simplified Setlist import
+Release 0.8.7: Setlist JSON export/import and save header
 
-- Keep only TandaLibrary (JSON-ZIP) in Export; text/M3U8 export dead
-- Tanda import: convention note, lock when Library locked
-- One Setlist import menu; exact matches confirm, else Special Import
-- Help and UI strings aligned
+- Save Set writes orchestraSource, singerSource, comment
+- Export Current Setlist (JSON)… for sharing
+- Import accepts Setlist JSON via Special Import (roles + hash)
+- Help and tests updated
 ```

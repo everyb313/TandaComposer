@@ -21,13 +21,13 @@
 import AppKit
 import UniformTypeIdentifiers
 
-// MARK: - Special import (M3U8, manual assignment)
+// MARK: - Special import (M3U8 / text / JSON)
 
 extension SetlistActions {
 
-    // MARK: - Special Import (M3U8 / text list)
+    // MARK: - Special Import
 
-    /// Single Setlist import entry: M3U8 or text list.
+    /// Single Setlist import entry: M3U8, text list, or TandaComposer JSON.
     ///
     /// Parses the file and matches every line against the TrackLibrary.
     /// When every line is an exact path match, a short confirmation is
@@ -49,13 +49,14 @@ extension SetlistActions {
             "Import Setlist"
 
         panel.message =
-            "Choose a playlist or text file."
+            "Choose a playlist, text file, or TandaComposer JSON."
 
         panel.allowedContentTypes =
             [
                 UTType(filenameExtension: "m3u8"),
                 UTType(filenameExtension: "m3u"),
-                UTType.plainText
+                UTType.plainText,
+                .json
             ]
             .compactMap { $0 }
 
@@ -77,27 +78,54 @@ extension SetlistActions {
             let fileExtension =
                 sourceURL.pathExtension.lowercased()
 
-            let isPlaylist =
-                fileExtension == "m3u8"
-                || fileExtension == "m3u"
-
             let tracks: [ImportedTrack]
+            var sourceName: String
+            var conventionNote: String?
 
-            if isPlaylist {
+            if fileExtension == "json" {
 
-                tracks =
-                    try M3U8Importer.importTracks(
-                        from:
-                            sourceURL
+                let json =
+                    try SetlistJSONReader.read(from: sourceURL)
+
+                tracks = json.tracks
+                sourceName = json.name
+                conventionNote =
+                    SetlistJSONReader.conventionNote(
+                        orchestraSource: json.orchestraSource,
+                        singerSource: json.singerSource,
+                        ownOrchestra: settings.orchestraSource,
+                        ownSinger: settings.singerSource
                     )
 
             } else {
 
-                tracks =
-                    try TextListImporter.importTracks(
-                        from:
-                            sourceURL
-                    )
+                let isPlaylist =
+                    fileExtension == "m3u8"
+                    || fileExtension == "m3u"
+
+                if isPlaylist {
+
+                    tracks =
+                        try M3U8Importer.importTracks(
+                            from:
+                                sourceURL
+                        )
+
+                } else {
+
+                    tracks =
+                        try TextListImporter.importTracks(
+                            from:
+                                sourceURL
+                        )
+                }
+
+                sourceName =
+                    sourceURL
+                        .deletingPathExtension()
+                        .lastPathComponent
+
+                conventionNote = nil
             }
 
             guard !tracks.isEmpty else {
@@ -119,7 +147,8 @@ extension SetlistActions {
                 return
             }
 
-            if let problem =
+            if fileExtension != "json",
+               let problem =
                 TracklibImportReferenceStore.loadProblem
             {
                 let warning =
@@ -137,11 +166,6 @@ extension SetlistActions {
                 warning.runModal()
             }
 
-            let sourceName =
-                sourceURL
-                    .deletingPathExtension()
-                    .lastPathComponent
-
             let songs =
                 libraryStore.songs
 
@@ -154,8 +178,6 @@ extension SetlistActions {
             let autoPickBestFile =
                 settings.autoPickBestFile
 
-            // Matching can take a moment on large lists; keep the UI
-            // responsive, then decide: short confirm vs. full window.
             Task.detached(priority: .userInitiated) {
 
                 let rows =
@@ -175,7 +197,8 @@ extension SetlistActions {
 
                     session.beginWithPreparedRows(
                         sourceName: sourceName,
-                        rows: rows
+                        rows: rows,
+                        conventionNote: conventionNote
                     )
 
                     if allExact {

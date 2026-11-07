@@ -102,6 +102,10 @@ public nonisolated enum SongMetadataJSON {
 ///
 /// Contains the complete Song records for the Setlist,
 /// including Library Tracking information.
+///
+/// The header records which tag fields the user's "Orchestra" and
+/// "Singer" came from (`orchestraSource` / `singerSource`), same idea
+/// as a Tanda JSON file — so a later share/import can match by role.
 public struct SetlistMetadataExport: Codable {
 
     public let format: String
@@ -122,6 +126,17 @@ public struct SetlistMetadataExport: Codable {
     /// `AppPaths.currentLibraryName` to decide it.
     public let savedAgainstLibraryName: String?
 
+    /// Which tag field the user's "Orchestra" / "Singer" came from when
+    /// this file was last written (Settings → Tag Source): "artist",
+    /// "albumArtist" or "grouping". `nil` for files written before
+    /// these fields existed.
+    public let orchestraSource: TagSource?
+    public let singerSource: TagSource?
+
+    /// Optional free-text note. Not used in the UI yet; reserved for
+    /// later (and for shared Setlist JSON).
+    public let comment: String?
+
     // The Swift property is `setlistName`, but the on-disk JSON key
     // stays "playlistName" so Setlist files (and backups) saved by
     // earlier versions keep loading unchanged.
@@ -132,13 +147,19 @@ public struct SetlistMetadataExport: Codable {
         case savedAt
         case songs
         case savedAgainstLibraryName
+        case orchestraSource
+        case singerSource
+        case comment
     }
 
     public init(
         setlistName: String,
         songs: [Song],
         savedAt: Date = Date(),
-        savedAgainstLibraryName: String? = AppPaths.currentLibraryName
+        savedAgainstLibraryName: String? = AppPaths.currentLibraryName,
+        orchestraSource: TagSource? = nil,
+        singerSource: TagSource? = nil,
+        comment: String? = nil
     ) {
         self.format = "TandaComposer Setlist"
         self.version = 1
@@ -146,6 +167,9 @@ public struct SetlistMetadataExport: Codable {
         self.savedAt = savedAt
         self.songs = songs
         self.savedAgainstLibraryName = savedAgainstLibraryName
+        self.orchestraSource = orchestraSource
+        self.singerSource = singerSource
+        self.comment = comment
     }
 }
 
@@ -165,12 +189,20 @@ public enum SetlistMetadataExporter {
     ///
     /// The order of `songs` is preserved exactly as supplied.
     /// Duplicate songs are also preserved.
+    ///
+    /// The header records which tag fields the user's "Orchestra" and
+    /// "Singer" came from (`orchestraSource` / `singerSource`). By default
+    /// that is the current choice from Settings (see `TandaConventions`),
+    /// so every Save Set writes them.
     public static func export(
         songs: [Song],
         setlistName: String,
         to fileURL: URL,
         savedAt: Date = Date(),
-        savedAgainstLibraryName: String? = AppPaths.currentLibraryName
+        savedAgainstLibraryName: String? = AppPaths.currentLibraryName,
+        orchestraSource: TagSource? = TandaConventions.orchestra,
+        singerSource: TagSource? = TandaConventions.singer,
+        comment: String? = nil
     ) throws {
 
         let export =
@@ -182,7 +214,13 @@ public enum SetlistMetadataExporter {
                 savedAt:
                     savedAt,
                 savedAgainstLibraryName:
-                    savedAgainstLibraryName
+                    savedAgainstLibraryName,
+                orchestraSource:
+                    orchestraSource,
+                singerSource:
+                    singerSource,
+                comment:
+                    comment
             )
 
 
@@ -196,6 +234,18 @@ public enum SetlistMetadataExporter {
 
                 ("playlistName", .string(
                     export.setlistName
+                )),
+
+                ("orchestraSource", .opt(
+                    export.orchestraSource?.rawValue
+                )),
+
+                ("singerSource", .opt(
+                    export.singerSource?.rawValue
+                )),
+
+                ("comment", .opt(
+                    export.comment
                 )),
 
                 ("savedAt", .string(

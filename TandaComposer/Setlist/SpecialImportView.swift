@@ -208,15 +208,29 @@ struct SpecialImportView: View {
 
             HStack {
 
-                Text("Pick Tracks")
-                    .font(.system(size: 20))
-                    .bold()
+                VStack(alignment: .leading, spacing: 2) {
 
-                Text(session.sourceName)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    HStack(spacing: 8) {
+
+                        Text("Pick Tracks")
+                            .font(.system(size: 20))
+                            .bold()
+
+                        Text(session.sourceName)
+                            .font(.system(size: 14))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+
+                    if let note = session.conventionNote {
+
+                        Text(note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
 
                 Spacer()
 
