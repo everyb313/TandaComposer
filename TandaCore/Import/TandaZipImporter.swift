@@ -43,6 +43,16 @@ nonisolated struct SharedTanda: Identifiable, Sendable {
     let comment: String?
 
     let tracks: [ImportedTrack]
+
+    /// JSON Tandas only: the tag fields the sender's file says hold the
+    /// Orchestra and the Singer. nil if the file says nothing (written
+    /// before the header recorded it).
+    var orchestraSource: TagSource? = nil
+    var singerSource: TagSource? = nil
+
+    /// True for a Tanda read from a JSON file (a "TandaLibrary
+    /// (JSON-ZIP)" export), false for text and M3U8 lists.
+    var isJSON = false
 }
 
 nonisolated struct SharedTandaScan: Sendable {
@@ -164,10 +174,16 @@ enum TandaZipImporter {
 
         for case let url as URL in enumerator {
 
-            guard ["txt", "m3u8", "m3u"]
+            guard ["txt", "m3u8", "m3u", "json"]
                     .contains(url.pathExtension.lowercased()),
                   !url.lastPathComponent.hasPrefix("._")
             else {
+                continue
+            }
+
+            // A JSON file that is not a Tanda is none of our business.
+            if url.pathExtension.lowercased() == "json",
+               !TandaJSONReader.looksLikeTanda(url) {
                 continue
             }
 
@@ -219,8 +235,23 @@ enum TandaZipImporter {
                 let tracks: [ImportedTrack]
                 var name = stem
                 var comment: String?
+                var orchestraSource: TagSource?
+                var singerSource: TagSource?
+                var isJSON = false
 
-                if file.url.pathExtension.lowercased() == "txt" {
+                if file.url.pathExtension.lowercased() == "json" {
+
+                    let json =
+                        try TandaJSONReader.read(from: file.url)
+
+                    tracks = json.tracks
+                    name = json.name
+                    comment = json.comment
+                    orchestraSource = json.orchestraSource
+                    singerSource = json.singerSource
+                    isJSON = true
+
+                } else if file.url.pathExtension.lowercased() == "txt" {
 
                     tracks =
                         try TextListImporter.importTracks(
@@ -259,7 +290,10 @@ enum TandaZipImporter {
                         fileName: stem,
                         name: name,
                         comment: comment,
-                        tracks: tracks
+                        tracks: tracks,
+                        orchestraSource: orchestraSource,
+                        singerSource: singerSource,
+                        isJSON: isJSON
                     )
                 )
 

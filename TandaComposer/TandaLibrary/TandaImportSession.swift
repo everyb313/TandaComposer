@@ -52,6 +52,10 @@ final class TandaImportSession: ObservableObject {
 
     @Published private(set) var zipName = ""
 
+    /// For JSON Tandas: which tag fields the sender uses for Orchestra
+    /// and Singer, next to yours. nil for text / M3U8 ZIPs.
+    @Published private(set) var conventionNote: String?
+
     /// Changes with every loaded ZIP, so the window can reset itself.
     @Published private(set) var loadID = UUID()
 
@@ -102,6 +106,12 @@ final class TandaImportSession: ObservableObject {
         isMatching = false
         unreadable = result.unreadable
         zipName = zipURL.lastPathComponent
+        conventionNote =
+            SenderConventionNote.text(
+                for: result.tandas,
+                ownOrchestra: TandaConventions.orchestra,
+                ownSinger: TandaConventions.singer
+            )
         loadID = UUID()
 
         folders =
@@ -427,7 +437,7 @@ enum TandaImportActions {
         panel.title = "Import Tandas from ZIP"
 
         panel.message =
-            "Choose a ZIP that another DJ made with Tools → Export → \"TandaLibrary (ZIP)…\"."
+            "Choose a ZIP that another DJ made with Tools → Export → \"TandaLibrary (JSON-ZIP)…\"."
 
         panel.allowedContentTypes = [.zip]
         panel.allowsMultipleSelection = false
@@ -458,7 +468,7 @@ enum TandaImportActions {
             present(
                 title: "No Tandas Found",
                 text:
-                    "The ZIP contains no readable text or M3U8 files."
+                    "The ZIP contains no readable JSON Tanda files (legacy text/M3U8 are still accepted)."
                     + (session.unreadable.isEmpty
                         ? ""
                         : "\n\nCould not be read:\n"

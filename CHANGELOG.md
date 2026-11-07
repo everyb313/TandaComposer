@@ -1,51 +1,54 @@
-## Changelog
+## Version 0.8.6 (Build 8) — 2026-11-07
 
-## Version 0.8.5 (Build 8) — 2026-10-30
+### TandaLibrary share (JSON-ZIP)
 
-### Added
-- **Title search** in the TrackLibrary: a search field with a magnifier icon at the top of the Smartlist column, directly above “Show All”.
-- One typed letter finds the titles that **start with** it; two or more letters find the titles that **contain** the text.
-- The search looks at the title only. Case, accents and surrounding spaces are ignored (“a” also finds “Ángel”).
-- A ✕ button in the field and the Escape key clear the search.
+**Export**
+- Live path is only **Tools → Export → TandaLibrary (JSON-ZIP)…**
+- One JSON file per Tanda, same Orchestra / Singer folders as in the TandaLibrary
+- Records `orchestraSource` / `singerSource` so the importer can match by role
+- Older Tanda files without that header get the sources added in the ZIP only; local files are not changed
+- Text/M3U8 export (`exportForSharing`) is no longer in the menu (kept as dead code for now)
 
-### Changed
-- While a search is active it **replaces the Smartlist**: the track list shows the matches from the whole TrackLibrary, and the Smartlist column is dimmed. The header label shows “Title search” instead of the Smartlist name.
-- The A/T/V/M/X filter buttons are greyed out and not applied while a search is active (they will be combined with the search later).
-- Double-clicking “Show All” or a Smartlist clears the search.
-- Switching the TrackLibrary clears the search.
-- The same-title filter still takes precedence over everything else.
+**Import**
+- **Tools → Import → Tandas from ZIP…** targets JSON-ZIP exports
+- Shows the sender’s Orchestra / Singer convention next to yours
+- Matches by role (not by raw tag field) and by file hash when tags differ
+- Legacy text/M3U8 ZIPs are still accepted by the parser
+- Menu item and Import button are disabled while the Library is locked
 
-### Internal
-- The library store no longer filters. `LibraryStore.songs` and its lookup caches (`songsByID`, `songsByNormalizedPath`) always cover the whole TrackLibrary, so Rescans, Duplicate Finder, imports, Clean Up Missing Links and Save Library are never affected by a search. All display filters are applied by the views.
-- The search rules live in the new `TrackTitleSearch` (with its own test suite). The old five-field store search was removed.
+### Setlist import simplified
 
-### Unchanged
-- Smartlists, the A/T/V/M/X filter and the same-title filter work as before when no search is active.
+- One menu item: **Tools → Import → Setlist from List or M3U8…**
+- Accepts M3U8/M3U or a text list
+- All tracks exact path match → short confirmation, then create Setlist
+- Otherwise → Special Import window to pick tracks by hand
+- Former **Setlist from M3U8 (file paths must fit)…** removed from the menu (`importSetlist` kept as dead code)
 
-## Version 0.8.4 (Build 8) — 2026-10-29
+### Help
 
-### Fixed
-- **Rescan TandaLibrary:** when several Tandas needed renaming in one scan (e.g. to fill a gap in the numbering), they could all be assigned the same new name (e.g. `…_VariousSingers_5`). Applying such a preview would have overwritten Tanda files and lost data. Each Tanda now gets its own unique name.
+- `help_en.html` updated for JSON-ZIP only and the single Setlist import entry
 
-### Improved
-- Gaps in the Tanda numbering are closed in a single scan (`_6 → _5`, `_7 → _6`, `_8 → _7`).
-- Rescan processes Tandas in natural numeric order (`_6` before `_10`), and applies the fixes in that same order.
-- “Apply Fixes” never overwrites an existing Tanda file that belongs to a different Tanda. Such a rename is skipped and reported as a failed write; the original file stays untouched.
+### Files touched
 
-### Unchanged
-- Track reconnection in saved Tandas works as before.
-- Tandas whose name and folder are already correct are not touched.
+```
+TandaComposer/Tools/Checks/RescanCommands.swift
+TandaComposer/TandaLibrary/TandaLibraryExportActions.swift
+TandaComposer/TandaLibrary/TandaImportView.swift
+TandaComposer/TandaLibrary/TandaImportSession.swift
+TandaComposer/Setlist/SetlistActions+SpecialImport.swift
+TandaComposer/Setlist/SpecialImportSession.swift
+TandaComposer/Setlist/SetlistActions+ImportExport.swift
+TandaComposer/Setlist/SpecialImportView.swift
+TandaComposer/Help/help_en.html
+```
 
-## Version 0.8.3 (Build 8) — 2026-10-29
+### Suggested git commit
 
-### Added
-- Added a vertical “Songs by Year” chart to the orchestra statistics window.
-- Song counts are grouped by the year recorded in the song metadata.
+```
+Release 0.8.6 (8): JSON-ZIP Tanda share, simplified Setlist import
 
-### Improved
-- The chart's X-axis now spans the minimum and maximum years found among the songs instead of starting at year zero.
-- Single-year datasets receive a small axis range so the chart remains readable.
-
-### Unchanged
-- The existing orchestra tanda statistics remain unchanged.
-- Songs without a valid year are excluded from the yearly chart.
+- Keep only TandaLibrary (JSON-ZIP) in Export; text/M3U8 export dead
+- Tanda import: convention note, lock when Library locked
+- One Setlist import menu; exact matches confirm, else Special Import
+- Help and UI strings aligned
+```

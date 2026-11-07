@@ -25,33 +25,32 @@ import UniformTypeIdentifiers
 
 extension SetlistActions {
 
-    // MARK: - Special Import (M3U8, manual assignment)
+    // MARK: - Special Import (M3U8 / text list)
 
-    /// Manual intermediate stage next to the normal M3U8 import, which
-    /// stays untouched. Parses the file, matches every line against the
-    /// current TrackLibrary and opens the Special Import window, where
-    /// non-exact lines are assigned by hand. Nothing happens to the open
-    /// Setlist until "Create Setlist" is pressed there.
+    /// Single Setlist import entry: M3U8 or text list.
+    ///
+    /// Parses the file and matches every line against the TrackLibrary.
+    /// When every line is an exact path match, a short confirmation is
+    /// enough and the Special Import window is skipped. Otherwise the
+    /// window opens so non-exact lines can be assigned by hand. Nothing
+    /// happens to the open Setlist until the user confirms.
     static func specialImport(
         session: SpecialImportSession,
         libraryStore: LibraryStore,
+        setlistStore: SetlistStore,
         settings: AppSettings,
-        openWindow: () -> Void
+        openWindow: @escaping () -> Void
     ) {
 
         let panel =
             NSOpenPanel()
 
         panel.title =
-            "Import Setlist (Pick Tracks)"
+            "Import Setlist"
 
-        panel.message = """
-            Choose a list from another source: an M3U8 playlist \
-            or a text file with one track per line (with or without \
-            path or file suffix).
-            Tracks that can't be matched automatically can be picked \
-            by hand before the Setlist is created.
-            """
+        panel.message =
+            "Choose a playlist or text file."
+
         panel.allowedContentTypes =
             [
                 UTType(filenameExtension: "m3u8"),
@@ -138,18 +137,101 @@ extension SetlistActions {
                 warning.runModal()
             }
 
-            session.begin(
-                sourceURL:
-                    sourceURL,
-                tracks:
-                    tracks,
-                songs:
-                    libraryStore.songs,
-                settings:
-                    settings
-            )
+            let sourceName =
+                sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent
 
-            openWindow()
+            let songs =
+                libraryStore.songs
+
+            let orchestraSource =
+                settings.orchestraSource
+
+            let singerSource =
+                settings.singerSource
+
+            let autoPickBestFile =
+                settings.autoPickBestFile
+
+            // Matching can take a moment on large lists; keep the UI
+            // responsive, then decide: short confirm vs. full window.
+            Task.detached(priority: .userInitiated) {
+
+                let rows =
+                    SpecialImportPlanner.makeRows(
+                        tracks: tracks,
+                        songs: songs,
+                        orchestraSource: orchestraSource,
+                        singerSource: singerSource,
+                        autoPickBestFile: autoPickBestFile
+                    )
+
+                let allExact =
+                    !rows.isEmpty
+                    && rows.allSatisfy { $0.state == .matched }
+
+                await MainActor.run {
+
+                    session.beginWithPreparedRows(
+                        sourceName: sourceName,
+                        rows: rows
+                    )
+
+                    if allExact {
+
+                        let alert =
+                            NSAlert()
+
+                        alert.messageText =
+                            "Create Setlist?"
+
+                        let n =
+                            rows.count
+
+                        alert.informativeText =
+                            n == 1
+                            ? "1 track was found in your TrackLibrary by exact path. Create a new Setlist from it?"
+                            : "\(n) tracks were found in your TrackLibrary by exact path. Create a new Setlist from them?"
+
+                        alert.alertStyle =
+                            .informational
+
+                        alert.addButton(
+                            withTitle:
+                                "Create"
+                        )
+
+                        alert.addButton(
+                            withTitle:
+                                "Cancel"
+                        )
+
+                        let answer =
+                            alert.runModal()
+
+                        if answer == .alertFirstButtonReturn {
+
+                            createSetlistFromSpecialImport(
+                                session:
+                                    session,
+                                setlistStore:
+                                    setlistStore,
+                                libraryStore:
+                                    libraryStore
+                            )
+
+                        } else {
+
+                            session.reset()
+                        }
+
+                    } else {
+
+                        openWindow()
+                    }
+                }
+            }
 
         } catch {
 

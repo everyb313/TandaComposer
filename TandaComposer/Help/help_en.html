@@ -499,23 +499,18 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
   <h3>Share your Tandas with others (experimental)</h3>
   <p class="lead">Your TandaLibrary can be packed into a ZIP so that someone else can load your Tandas into their own TrackLibrary. The ZIP does not contain any music.</p>
 
-  <p><strong>Export:</strong> <strong>Tools → Export → TandaLibrary (ZIP)…</strong></p>
+  <p><strong>Export:</strong> <strong>Tools → Export → TandaLibrary (JSON-ZIP)…</strong></p>
   <ul class="bullets">
-    <li>One file per Tanda, in the same folders as your TandaLibrary. Nothing in your TandaLibrary or your music files is changed.</li>
-    <li>Choose the format in the save dialog. <strong>Text files</strong> (recommended) show one track per line, for example <code>1. Juan D'Arienzo - Paciencia (Singer: Enrique Carbel)</code>, using your Orchestra and Singer settings. <strong>M3U8 playlists</strong> are for other players and contain the length, orchestra, title and bare file name of each track (no folders, no singer).</li>
-    <li>When it is done, a summary tells you how many Tandas were exported and how many tracks are not in your TrackLibrary or have a missing file.</li>
-  </ul>
-
-  <p><strong>Export as JSON ZIP:</strong> <strong>Tools → Export → TandaLibrary (JSON-ZIP)…</strong></p>
-  <ul class="bullets">
-    <li>This is a <strong>complete copy for TandaComposer users</strong>: your Tanda files exactly as they are stored, in the same Orchestra / Singer folders, one JSON file per Tanda. They contain the full data of every song, <strong>including the file paths on your Mac</strong>.</li>
+    <li>A <strong>complete copy for TandaComposer users</strong>: your Tanda files exactly as they are stored, in the same Orchestra / Singer folders, one JSON file per Tanda. They contain the full data of every song, <strong>including the file paths on your Mac</strong>. Nothing in your TandaLibrary or your music files is changed.</li>
     <li>Each Tanda records which tag field your Orchestra and Singer come from (<code>orchestraSource</code> and <code>singerSource</code>, set in Settings), so whoever imports it knows how to read the tags. Older Tanda files that do not record this yet get it added in the ZIP only; your own files are never changed.</li>
     <li>If the file name is already taken, the number is counted up (<code>TandaLibrary 2026-11-05.zip</code>, <code>TandaLibrary 2026-11-05_2.zip</code>, …). An existing ZIP is never overwritten.</li>
   </ul>
 
   <p><strong>Import:</strong> <strong>Tools → Import → Tandas from ZIP…</strong></p>
   <ul class="bullets">
-    <li>Choose the ZIP. A window shows the orchestra folders on the left. Pick <strong>one folder at a time</strong>; its Tandas are then matched with your TrackLibrary.</li>
+    <li>Choose a ZIP made with <strong>TandaLibrary (JSON-ZIP)…</strong>. A window shows the orchestra folders on the left. Pick <strong>one folder at a time</strong>; its Tandas are then matched with your TrackLibrary.</li>
+    <li>For JSON Tandas the window shows <strong>which tag fields the sender uses for Orchestra and Singer</strong>, next to yours. The names are compared by role, not by tag field, so an orchestra the sender keeps in AlbumArtist is still compared with the orchestra in <em>your</em> Orchestra field.</li>
+    <li>JSON Tandas carry the file hash of every song. A track whose file is identical to one in your TrackLibrary is found even if the tags differ. The sender's file paths and database ids are not used to find your tracks, except when the same path exists on your Mac.</li>
     <li>Each Tanda has a status: <strong>Ready</strong> (every track found, checked for import), <strong>Needs help</strong> (a track is missing or ambiguous), <strong>Already in your TandaLibrary</strong>, or <strong>Not possible</strong> (for example fewer than 3 or more than 8 tracks, or a file is missing on disk).</li>
     <li>A track counts as found when the exact file matches, when it exists as several files of the same recording and Settings → <strong>Auto-pick best file</strong> chose one, or when exactly one track in your TrackLibrary agrees in title, orchestra and singer. <strong>Show tracks</strong> lists the tracks found, with year, length and file type, so you can check each one.</li>
     <li>For a Tanda that <strong>Needs help</strong>, click <strong>Choose tracks</strong> and pick the right track from the candidates. Once every track is chosen the Tanda becomes Ready.</li>
@@ -560,7 +555,7 @@ img.help-shot{display:block;max-width:100%;height:auto;margin:18px auto 28px;bor
       <tr><td>Save a Setlist</td><td>Save Set</td></tr>
       <tr><td>Export a Setlist</td><td>Tools → Export → Current Setlist (M3U8)… → <code>.m3u8</code></td></tr>
       <tr><td>Import an M3U8 playlist (experimental)</td><td>Tools → Import → Setlist from M3U8 (file paths must fit)…</td></tr>
-      <tr><td>Share your Tandas (experimental)</td><td>Tools → Export → TandaLibrary (ZIP)…</td></tr>
+      <tr><td>Share your Tandas (experimental)</td><td>Tools → Export → TandaLibrary (JSON-ZIP)…</td></tr>
       <tr><td>Import Tandas from a ZIP (experimental)</td><td>Tools → Import → Tandas from ZIP… → choose one orchestra folder → check the Tandas → Import</td></tr>
       <tr><td>Export / import Smartlists (ZIP)</td><td>Tools → Export / Import → Smartlists (ZIP)… (also in the Smartlists menu); an existing ZIP name gets the next number</td></tr>
       <tr><td>Find duplicates</td><td>Tools → Find TrackLibrary Duplicates…</td></tr>

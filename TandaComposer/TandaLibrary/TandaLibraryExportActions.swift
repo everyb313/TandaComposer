@@ -19,11 +19,16 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// Tools → Export → "TandaLibrary (ZIP)…": writes one file per
-/// Tanda, keeps the Tanda folders, and zips the result.
+/// TandaLibrary export actions.
 ///
-/// Read-only. Needs no unlocked Library.
+/// Live path: `exportJSONZip` (Tools → Export → "TandaLibrary (JSON-ZIP)…").
+/// `exportForSharing` (text / M3U8 ZIP) is temporarily kept as dead code.
 enum TandaLibraryExportActions {
+
+    // MARK: - Dead code (text / M3U8 ZIP)
+    //
+    // Formerly Tools → Export → "TandaLibrary (ZIP)…". Not exposed in the
+    // UI for now; kept so we can revive it without digging in history.
 
     static func exportForSharing(
         libraryStore: LibraryStore,
@@ -212,7 +217,7 @@ enum TandaLibraryExportActions {
         alert.runModal()
     }
 
-    // MARK: - JSON ZIP (the Tandas folder as it is)
+    // MARK: - JSON ZIP (live)
     //
     // Tools → Export → "TandaLibrary (JSON-ZIP)…". See
     // TandaLibraryJSONExporter for what goes into the ZIP.

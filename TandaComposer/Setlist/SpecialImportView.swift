@@ -411,10 +411,9 @@ private struct SpecialImportRowBlock: View {
                 }
             }
         }
-        .fixedSize(
-            horizontal: true,
-            vertical: false
-        )
+        // Fill the window width; do not grow with long path strings
+        // (window uses .contentSize — ideal-width text would stretch it).
+        .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
                 .stroke(
@@ -430,20 +429,17 @@ private struct SpecialImportRowBlock: View {
 
     private func incompleteHeader(_ heading: String) -> some View {
 
-        HStack(spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
 
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.orange)
 
-            Text(heading)
+            Text("\(heading) Same title only. Check before using.")
                 .font(.system(size: 13))
-                .fontWeight(.semibold)
                 .foregroundStyle(Color.orange)
-
-            Text("Same title only. Check before using.")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
     }
@@ -499,6 +495,7 @@ private struct SpecialImportRowBlock: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .help(path)
                 }
             }

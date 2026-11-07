@@ -105,19 +105,8 @@ struct RescanCommands: Commands {
                     }
                     
                     
-                    // One text file (or M3U8) per Tanda, Tanda folders
-                    // kept, zipped. Read-only, so no Library lock.
-                    Button(
-                        "    TandaLibrary (ZIP)…"
-                    ) {
-                        
-                        TandaLibraryExportActions.exportForSharing(
-                            libraryStore:
-                                libraryStore,
-                            settings:
-                                settings
-                        )
-                    }
+                    // Live: JSON ZIP only (one JSON file per Tanda).
+                    // exportForSharing (text/M3U8) is temporarily dead code.
                     Button(
                         "    TandaLibrary (JSON-ZIP)…"
                     ) {
@@ -148,8 +137,11 @@ struct RescanCommands: Commands {
                 "Import"
             ) {
                 
+                // One entry: M3U8 or text. Exact path matches get a short
+                // confirmation; anything else opens the Special Import window.
+                // importSetlist (path-only) is temporarily dead code.
                 Button(
-                    "Setlist from List or M3U8 (Pick Tracks)…"
+                    "Setlist from List or M3U8…"
                 ) {
                     
                     SetlistActions.specialImport(
@@ -157,6 +149,8 @@ struct RescanCommands: Commands {
                             specialImportSession,
                         libraryStore:
                             libraryStore,
+                        setlistStore:
+                            setlistStore,
                         settings:
                             settings,
                         openWindow: {
@@ -165,21 +159,6 @@ struct RescanCommands: Commands {
                                     "special-import"
                             )
                         }
-                    )
-                }
-                
-                
-                Button(
-                    "Setlist from M3U8 (file paths must fit)…"
-                ) {
-                    
-                    SetlistActions.importSetlist(
-                        setlistStore:
-                            setlistStore,
-                        libraryStore:
-                            libraryStore,
-                        switchConfirmationCenter:
-                            switchConfirmationCenter
                     )
                 }
                 
@@ -204,11 +183,10 @@ struct RescanCommands: Commands {
                 )
                 
                 
-                // Reads a ZIP made by Tools → Export → "TandaLibrary (ZIP)…";
-                // one orchestra folder at a time.
-                Button(
-                    "Tandas from ZIP…"
-                ) {
+                // Reads a ZIP made by Tools → Export → "TandaLibrary (JSON-ZIP)…";
+                // one orchestra folder at a time. (Legacy text/M3U8 still parsed.)
+                // Writes into the TandaLibrary → needs the Library unlocked.
+                Button {
                     
                     if TandaImportActions.chooseZip(
                         session:
@@ -219,7 +197,18 @@ struct RescanCommands: Commands {
                                 "tanda-import"
                         )
                     }
+                    
+                } label: {
+                    
+                    lockableLabel(
+                        "Tandas from ZIP…",
+                        locked:
+                            libraryStore.isLocked
+                    )
                 }
+                .disabled(
+                    libraryStore.isLocked
+                )
                 
                 
                 Divider()

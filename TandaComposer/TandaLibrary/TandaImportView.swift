@@ -48,7 +48,7 @@ struct TandaImportView: View {
 
             RescanIntro(
                 what:
-                    "Imports Tandas that another DJ exported from their TandaComposer (Tools → Export → \"TandaLibrary (ZIP)…\").",
+                    "Imports Tandas that another DJ exported from their TandaComposer (Tools → Export → \"TandaLibrary (JSON-ZIP)…\").",
                 limits:
                     "Their tracks are matched against your own TrackLibrary. Tandas with tracks you don't have are marked \"Needs help\".",
                 hint:
@@ -105,6 +105,14 @@ struct TandaImportView: View {
                         : session.zipName
                 )
                 .font(.system(size: 16, weight: .semibold))
+
+                if let note = session.conventionNote {
+
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer()
@@ -120,7 +128,10 @@ struct TandaImportView: View {
             Button(importTitle) {
                 runImport()
             }
-            .disabled(session.checkedReadyCount == 0)
+            .disabled(
+                session.checkedReadyCount == 0
+                    || libraryStore.isLocked
+            )
             .keyboardShortcut(.defaultAction)
         }
         .controlSize(.large)

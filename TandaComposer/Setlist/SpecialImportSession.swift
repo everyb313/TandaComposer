@@ -97,6 +97,20 @@ final class SpecialImportSession: ObservableObject {
         sourceName = ""
     }
 
+    /// Installs already computed rows (matching done outside the session).
+    /// Used when the import decides between a short confirmation and the
+    /// full Special Import window.
+    func beginWithPreparedRows(
+        sourceName: String,
+        rows: [SpecialImportRow]
+    ) {
+
+        generation += 1
+        self.sourceName = sourceName
+        self.rows = rows
+        self.isPreparing = false
+    }
+
     // MARK: - Decisions
 
     func choose(_ song: Song, for rowID: UUID) {

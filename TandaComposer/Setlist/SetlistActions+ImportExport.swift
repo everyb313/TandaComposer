@@ -147,6 +147,13 @@ extension SetlistActions {
     /// Imports an external or previously-exported `.m3u8` file as a
     /// brand-new Setlist.
     ///
+    // MARK: - Dead code (path-only M3U8 import)
+    //
+    // Formerly Tools → Import → "Setlist from M3U8 (file paths must fit)…".
+    // Not exposed in the UI; exact path matches are handled by
+    // specialImport with a short confirmation. Kept so we can revive
+    // it without digging in history.
+
     /// This always REPLACES what's currently on screen — there is
     /// only ever one active Setlist — so it goes through the same
     /// "save your current Setlist first?" prompt as Open Setlist,
